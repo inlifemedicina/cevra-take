@@ -56,6 +56,15 @@ custo, privacidade ou destrutivas exigem decisão explícita.
     independente apropriada; economia não autoriza suprimir um gate necessário.
 25. Medir custo total até a entrega aceita: tokens, tempo humano, correções, I/O e manutenção.
 
+Antes de fornecer um prompt de execução ao proprietário, indicar explicitamente a
+ferramenta/agente, o modelo recomendado, a potência ou esforço de raciocínio e se uma
+revisão independente é necessária. Escolher conforme risco e complexidade, buscando o
+menor custo total que preserve qualidade e evite retrabalho. Não usar potência máxima
+por padrão nem presumir equivalência entre agentes. Verificar a disponibilidade do
+modelo e da configuração antes de recomendá-los; não fixar um modelo como obrigação
+permanente do projeto. A recomendação não autoriza alterar configurações globais,
+contratar planos ou ativar cobrança.
+
 ## Execução e fechamento
 
 26. Escopo pequeno com aceites identificados; testes existentes antes da alteração e regressões pertinentes depois.
