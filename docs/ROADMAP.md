@@ -5,7 +5,7 @@ merge, gasto ou próxima fase. Não adotar cronograma por promessa nem percentua
 
 | Etapa | Entrega | Gate de saída | Estado atual |
 |---|---|---|---|
-| NC-00 | Nome, bootstrap documental, governança, inventário e contexto consolidado; visibilidade pública conforme decisão do proprietário. | Bootstrap e documentos reconciliados; owner, nome, visibilidade pública, branch, SHA e arquivos remotos confirmados; ensaio de continuidade. | Bootstrap publicado em main no SHA `4c15ddf9a554e0c014772526476ec8830f17fbad`; R2 em branch própria para revisão; NC-00 EM FECHAMENTO; ensaio PENDENTE |
+| NC-00 | Nome, bootstrap documental, governança, inventário e contexto consolidado; visibilidade pública conforme decisão do proprietário. | Bootstrap e documentos reconciliados; owner, nome, visibilidade pública, branch, SHA e arquivos remotos confirmados; ensaio de continuidade. | CLOSED — bootstrap público; PR #1 e R2 incorporados em `main` pelo merge `8f61e41cb705d5505bd95695b86694d3467a0f89`; ensaio concluído com sucesso conforme relato do proprietário |
 | NC-01 | Provas de captura+áudio, teleprompter, persistência, IA mobile, pesquisa e portabilidade. | Evidência por alvo e limites; seleção técnica justificada. | NÃO INICIADO |
 | NC-02 | Núcleo local, permissões, biblioteca e interfaces mobile/desktop. | Criar, salvar, reabrir e restaurar sem login/IA/Vids obrigatórios. | NÃO INICIADO |
 | NC-03 | Primeiro fluxo completo: explicação, roteiro, teleprompter, tomada, revisão, exportação. | Leigo conclui o trajeto nos alvos testados. | NÃO INICIADO |

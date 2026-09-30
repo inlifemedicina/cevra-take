@@ -8,10 +8,15 @@ um não cria nem sincroniza automaticamente os outros.
 
 A mudança não apaga o projeto anterior. Também não devemos presumir que uma nova
 conversa terá acesso integral ao contexto antigo. Em project-only memory, as conversas
-não consultam conversas de outros projetos. A fonte durável são os documentos.
+não consultam conversas de outros projetos. Para CEVRA Take, o repositório e seus
+documentos são a autoridade de continuidade; o projeto ChatGPT organiza as conversas.
 Fonte: `https://help.openai.com/en/articles/10169521-projects-in-chatgpt` (consulta 30/09/2026).
 
-## Ordem sem perda de continuidade
+## Migração NC-00 concluída e procedimento reutilizável
+
+A migração para o novo projeto ChatGPT CEVRA Take e o ensaio de continuidade foram
+concluídos com sucesso, conforme relato do proprietário. A sequência abaixo registra
+o processo executado e serve como referência para futuras migrações.
 
 1. Revisar este bootstrap, confrontar suas restrições e preservar a origem.
 2. O bootstrap documental do repositório público Take foi publicado em `main` no commit
@@ -20,7 +25,7 @@ Fonte: `https://help.openai.com/en/articles/10169521-projects-in-chatgpt` (consu
 3. Conferir owner, visibilidade pública vigente, branch, commit remoto, lista de arquivos e ausência de segredos.
 4. Atualizar MASTER_CONTEXT com o estado verdadeiro e o próximo passo; não confundir snapshot com status atual.
 5. No projeto ChatGPT CEVRA Take, disponibilizar o contexto consolidado e o acesso autorizado ao repo.
-6. Fazer ensaio de recuperação: uma sessão nova reconstrói o checkpoint sem consultar a conversa antiga.
+6. Ensaio de recuperação NC-00 concluído com sucesso; repetir esta verificação em futuras migrações.
 7. Só então continuar o planejamento/implementação no novo projeto. Manter Vids e esta conversa intactos.
 
 Projetos no Codex devem ter pastas próprias; não abrir a pasta-pai de Vids+Take como
