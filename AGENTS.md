@@ -16,7 +16,9 @@ custo, privacidade ou destrutivas exigem decisão explícita.
 ## Isolamento obrigatório
 
 1. Confirmar diretório real, raiz Git, remote, branch, SHA, diferenças e arquivos não rastreados.
-2. Único alvo: `inlifemedicina/cevra-take`, privado. Preservar trabalho preexistente.
+2. Único alvo: `inlifemedicina/cevra-take`. A visibilidade vigente é pública, confirmada
+   pelo proprietário em 30/09/2026; não altere a visibilidade sem nova decisão explícita.
+   Preservar trabalho preexistente.
 3. Não operar dentro do Vids, num worktree dele, em uma pasta-pai comum ou por symlink.
 4. Não modificar `inlifemedicina/cevra`, suas branches, PRs, configurações ou credenciais.
 5. Não usar Full Access nem alterar configurações globais como atalho. Não imprimir segredos.
@@ -53,6 +55,15 @@ custo, privacidade ou destrutivas exigem decisão explícita.
 24. Câmera, concorrência, persistência, privacidade e integrações críticas exigem revisão
     independente apropriada; economia não autoriza suprimir um gate necessário.
 25. Medir custo total até a entrega aceita: tokens, tempo humano, correções, I/O e manutenção.
+
+Antes de fornecer um prompt de execução ao proprietário, indicar explicitamente a
+ferramenta/agente, o modelo recomendado, a potência ou esforço de raciocínio e se uma
+revisão independente é necessária. Escolher conforme risco e complexidade, buscando o
+menor custo total que preserve qualidade e evite retrabalho. Não usar potência máxima
+por padrão nem presumir equivalência entre agentes. Verificar a disponibilidade do
+modelo e da configuração antes de recomendá-los; não fixar um modelo como obrigação
+permanente do projeto. A recomendação não autoriza alterar configurações globais,
+contratar planos ou ativar cobrança.
 
 ## Execução e fechamento
 

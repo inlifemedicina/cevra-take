@@ -1,9 +1,9 @@
 # CEVRA Take — contexto canônico
 
-**Consolidação:** 30/09/2026. **Etapa:** NC-00, preparação documental.
-**Nome aprovado:** CEVRA Take. **Alvo:** `inlifemedicina/cevra-take` (privado).
-**Produto executável:** não implementado. **Remoto:** criação/verificação pendentes na emissão do pacote.
-**Próxima ação:** revisar e publicar somente o bootstrap; retornar o resultado antes de avançar.
+**Consolidação:** 30/09/2026. **Etapa:** NC-00, em fechamento; ensaio de continuidade pendente.
+**Nome aprovado:** CEVRA Take. **Alvo:** `inlifemedicina/cevra-take`, público por decisão atual do proprietário.
+**Produto executável:** não implementado. **Bootstrap:** publicado em `main` no commit `4c15ddf9a554e0c014772526476ec8830f17fbad`.
+**Próxima ação:** revisar a reconciliação documental R2 e concluir o ensaio de continuidade antes de avançar. NC-01 não iniciado.
 
 ## Autoridade
 
@@ -20,7 +20,7 @@ O Git deve informar o SHA atual; não criar ciclos tentando gravar no próprio c
 |---|---|---|
 | TAKE-D01 | Nome comercial CEVRA Take; REC não foi escolhido. | APROVADO |
 | TAKE-D02 | Produto independente do Vids, mobile prioritário e percurso completo também no computador. | APROVADO |
-| TAKE-D03 | Repositório/pasta/projeto Codex separados; destino operacional cevra-take. | DIREÇÃO APROVADA; remoto pendente |
+| TAKE-D03 | Repositório/pasta/projeto Codex separados; destino operacional cevra-take. | Bootstrap publicado em repositório público; reconciliação R2 em revisão |
 | TAKE-D04 | Dados/mídia locais, custos externos mínimos, nenhuma migração paga silenciosa. | APROVADO |
 | TAKE-D05 | IA local quando adequada; GPT/Claude somente por caminho oficial validado. | APROVADO; capabilities pendentes |
 | TAKE-D06 | Entradas por intenção, estruturas combináveis, nicho como contexto. | APROVADO |
@@ -47,7 +47,7 @@ A consulta ao alvo cevra-take retornou 404: isso não comprova disponibilidade d
 ou ausência de um repositório privado fora do acesso da conexão.
 Nenhum remoto, branch, commit ou arquivo do Vids foi modificado.
 
-## Registro da retomada NC-00/R1
+## Registro da retomada NC-00/R1 — decisão de visibilidade substituída
 
 Em 30/09/2026, os 14 arquivos documentais aprovados foram restaurados no projeto
 Take separado, preservando o Git preexistente. O ZIP, o manifesto, os tamanhos e
@@ -55,16 +55,23 @@ os checksums do pacote foram conferidos antes da restauração. A revisão local
 abrangeu requisitos, seis entradas, fronteiras, gates, estados e links internos.
 Não foram incluídos dados pessoais, segredos, mídia ou código do Vids.
 
-A decisão de bootstrap autoriza somente o primeiro commit documental e sua
-publicação em `inlifemedicina/cevra-take`, privado, após confirmação do destino.
-Os estados "na emissão do pacote" são históricos. A confirmação de criação,
-privacidade, branch e SHA remoto pertence ao relatório de fechamento posterior
-ao primeiro push; este registro não afirma que essas operações já ocorreram.
+No checkpoint R1, a decisão de bootstrap exigia publicação privada após confirmar
+o destino. Essa exigência foi SUPERSEDED em NC-00/R2 pela decisão expressa do
+proprietário: “MANTER PÚBLICO. EU MUDEI.” A origem da decisão privada e os estados
+"na emissão do pacote" são preservados aqui como histórico, não como requisitos ativos.
 
 IA, câmera, testes de produto, CI, revisão independente e ensaio em uma nova
 sessão não foram executados nesta retomada. Após a conferência remota, parar
 para a avaliação do proprietário e a migração posterior do projeto ChatGPT.
 NC-01 permanece não iniciado; as escolhas técnicas continuam pendentes.
+
+## Decisão vigente NC-00/R2
+
+Em 30/09/2026, o proprietário confirmou que `inlifemedicina/cevra-take` deve
+permanecer público. A API do GitHub confirmou a visibilidade pública e o commit
+inicial em `main`: `4c15ddf9a554e0c014772526476ec8830f17fbad`. Nenhuma alteração
+de visibilidade foi executada. Esta reconciliação documental está em branch
+própria para revisão; NC-00 permanece em fechamento até o ensaio de continuidade.
 
 ## Escolhas não congeladas
 
