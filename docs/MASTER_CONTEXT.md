@@ -1,9 +1,10 @@
 # CEVRA Take — contexto canônico
 
-**Consolidação:** 30/09/2026. **Etapa:** NC-00, em fechamento; ensaio de continuidade pendente.
-**Nome aprovado:** CEVRA Take. **Alvo:** `inlifemedicina/cevra-take`, público por decisão atual do proprietário.
-**Produto executável:** não implementado. **Bootstrap:** publicado em `main` no commit `4c15ddf9a554e0c014772526476ec8830f17fbad`.
-**Próxima ação:** revisar a reconciliação documental R2 e concluir o ensaio de continuidade antes de avançar. NC-01 não iniciado.
+**Consolidação:** 30/09/2026. **Etapa:** NC-00 CLOSED no escopo documental e de continuidade.
+**Nome aprovado:** CEVRA Take. **Alvo:** `inlifemedicina/cevra-take`, público por decisão do proprietário.
+**Produto executável:** não implementado. **Bootstrap:** publicado em `main` no commit `4c15ddf9a554e0c014772526476ec8830f17fbad`; PR #1 e reconciliação R2 incorporados pelo merge commit `8f61e41cb705d5505bd95695b86694d3467a0f89`.
+**Continuidade:** migração para o novo projeto ChatGPT e ensaio concluídos com sucesso, conforme relato do proprietário.
+**Próxima etapa:** NC-01 permanece NÃO INICIADO e exige autorização própria.
 
 ## Autoridade
 
@@ -20,7 +21,7 @@ O Git deve informar o SHA atual; não criar ciclos tentando gravar no próprio c
 |---|---|---|
 | TAKE-D01 | Nome comercial CEVRA Take; REC não foi escolhido. | APROVADO |
 | TAKE-D02 | Produto independente do Vids, mobile prioritário e percurso completo também no computador. | APROVADO |
-| TAKE-D03 | Repositório/pasta/projeto Codex separados; destino operacional cevra-take. | Bootstrap publicado em repositório público; reconciliação R2 em revisão |
+| TAKE-D03 | Repositório/pasta/projeto Codex separados; destino operacional cevra-take. | Bootstrap público e reconciliação R2 incorporados à main por PR #1; continuidade concluída conforme relato do proprietário |
 | TAKE-D04 | Dados/mídia locais, custos externos mínimos, nenhuma migração paga silenciosa. | APROVADO |
 | TAKE-D05 | IA local quando adequada; GPT/Claude somente por caminho oficial validado. | APROVADO; capabilities pendentes |
 | TAKE-D06 | Entradas por intenção, estruturas combináveis, nicho como contexto. | APROVADO |
@@ -65,13 +66,27 @@ sessão não foram executados nesta retomada. Após a conferência remota, parar
 para a avaliação do proprietário e a migração posterior do projeto ChatGPT.
 NC-01 permanece não iniciado; as escolhas técnicas continuam pendentes.
 
-## Decisão vigente NC-00/R2
+## Decisão NC-00/R2 e estado pré-merge — histórico
 
 Em 30/09/2026, o proprietário confirmou que `inlifemedicina/cevra-take` deve
 permanecer público. A API do GitHub confirmou a visibilidade pública e o commit
 inicial em `main`: `4c15ddf9a554e0c014772526476ec8830f17fbad`. Nenhuma alteração
-de visibilidade foi executada. Esta reconciliação documental está em branch
-própria para revisão; NC-00 permanece em fechamento até o ensaio de continuidade.
+de visibilidade foi executada. Naquele checkpoint, a reconciliação aguardava
+revisão em branch própria e o ensaio ainda estava pendente.
+
+## Fechamento NC-00 — estado vigente
+
+PR #1 foi mergeado em `main` por merge commit normal: `8f61e41cb705d5505bd95695b86694d3467a0f89`.
+A decisão de manter o repositório público continua vigente, e a reconciliação R2
+está incorporada à branch padrão. Durante o closeout, foram confirmados localmente
+o repositório, a visibilidade pública, `main` local/remota nesse SHA e a árvore
+limpa. O proprietário reportou que migrou para um novo projeto ChatGPT e que a
+sessão nova reconstruiu com sucesso o contexto do Take usando somente os documentos
+do repositório.
+
+NC-00 está CLOSED no seu escopo documental, de publicação e continuidade.
+Não há produto implementado: frameworks e tecnologias continuam sem escolha.
+NC-01 permanece NÃO INICIADO.
 
 ## Escolhas não congeladas
 
@@ -82,9 +97,10 @@ bibliotecas pesquisadas são candidatos, não escolhas implementadas.
 Não herdar do Vids companion obrigatório, bloqueio comercial de exportação,
 empacotamento desktop, Python privado ou Project IR como banco editorial do Take.
 
-## Continuidade
+## Continuidade e critério reutilizável
 
-Uma nova sessão deve explicar identidade, seis entradas, isolamento, etapa real,
-limites de IA/custo e próximo passo a partir destes arquivos. Se faltar fonte,
-registrar a lacuna em vez de inventar ou recomeçar todas as decisões.
-[TRANSITION.md](TRANSITION.md) define o teste antes da troca de projeto.
+O ensaio de continuidade de NC-00 foi reportado como concluído com sucesso pelo
+proprietário. Para futuras migrações, uma nova sessão deve explicar identidade,
+seis entradas, isolamento, etapa real, limites de IA/custo e próximo passo a partir
+destes arquivos. Se faltar fonte, registrar a lacuna em vez de inventar ou recomeçar
+decisões. [TRANSITION.md](TRANSITION.md) mantém o procedimento reutilizável.
