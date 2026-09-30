@@ -6,13 +6,6 @@
 **Continuidade:** migração para o novo projeto ChatGPT e ensaio concluídos com sucesso, conforme relato do proprietário.
 **Próxima etapa:** NC-01 permanece NÃO INICIADO e exige autorização própria.
 
-## Lugar do Take no ecossistema
-
-CEVRA Take é um produto independente dentro do CEVRA Orbit. CEVRA Orbit delimita o
-ecossistema e pode abrigar serviços compartilhados futuros; nenhum serviço Orbit é
-dependência obrigatória do runtime do Take. A relação com CEVRA Vids é opcional e
-segue contratos próprios.
-
 ## Autoridade
 
 Este documento é o mapa do estado, não uma transcrição de todas as conversas.
@@ -85,11 +78,11 @@ revisão em branch própria e o ensaio ainda estava pendente.
 
 PR #1 foi mergeado em `main` por merge commit normal: `8f61e41cb705d5505bd95695b86694d3467a0f89`.
 A decisão de manter o repositório público continua vigente, e a reconciliação R2
-está incorporada à branch padrão. Nesta sessão, foram confirmados localmente o
-repositório, a visibilidade pública, `main` local/remota nesse SHA e a árvore
-de trabalho limpa. O proprietário reportou que migrou para um novo projeto
-ChatGPT e que a sessão nova reconstruiu com sucesso o contexto do Take usando
-somente os documentos do repositório.
+está incorporada à branch padrão. Durante o closeout, foram confirmados localmente
+o repositório, a visibilidade pública, `main` local/remota nesse SHA e a árvore
+limpa. O proprietário reportou que migrou para um novo projeto ChatGPT e que a
+sessão nova reconstruiu com sucesso o contexto do Take usando somente os documentos
+do repositório.
 
 NC-00 está CLOSED no seu escopo documental, de publicação e continuidade.
 Não há produto implementado: frameworks e tecnologias continuam sem escolha.
