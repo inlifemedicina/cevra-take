@@ -1,6 +1,6 @@
 # CEVRA Take
 
-Aplicativo independente do CEVRA Vids para preparar e captar conteúdo.
+Aplicativo independente do CEVRA Orbit para preparar e captar conteúdo.
 **Mobile prioritário; percurso próprio completo também no computador.**
 
 ## Estado real
