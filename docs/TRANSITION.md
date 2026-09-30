@@ -14,8 +14,10 @@ Fonte: `https://help.openai.com/en/articles/10169521-projects-in-chatgpt` (consu
 ## Ordem sem perda de continuidade
 
 1. Revisar este bootstrap, confrontar suas restrições e preservar a origem.
-2. Inicializar/publicar somente os arquivos aprovados no repositório privado Take.
-3. Conferir owner, visibilidade, branch, commit remoto, lista de arquivos e ausência de segredos.
+2. O bootstrap documental do repositório público Take foi publicado em `main` no commit
+   `4c15ddf9a554e0c014772526476ec8830f17fbad`; a decisão de visibilidade privada do R1
+   foi substituída pela decisão expressa do proprietário no NC-00/R2.
+3. Conferir owner, visibilidade pública vigente, branch, commit remoto, lista de arquivos e ausência de segredos.
 4. Atualizar MASTER_CONTEXT com o estado verdadeiro e o próximo passo; não confundir snapshot com status atual.
 5. No projeto ChatGPT CEVRA Take, disponibilizar o contexto consolidado e o acesso autorizado ao repo.
 6. Fazer ensaio de recuperação: uma sessão nova reconstrói o checkpoint sem consultar a conversa antiga.
@@ -35,7 +37,7 @@ Falhou em algum item material? Corrigir o contexto antes de prosseguir.
 ## Instrução compacta para o novo projeto
 
 “Este projeto trata do CEVRA Take. Leia AGENTS.md e docs/MASTER_CONTEXT.md do
-repositório privado autorizado. Siga a navegação para os requisitos e aceites da
+repositório público autorizado. Siga a navegação para os requisitos e aceites da
 etapa atual. Preserve decisões aprovadas, domínio próprio, núcleo local, custos
 mínimos e prioridade do Vids. Não altere Vids, não reabra o nome e não selecione stack
 sem as provas previstas. Informe estado real, limitações e próximo passo. Não
@@ -43,6 +45,6 @@ implemente outra etapa nem execute ações externas sem o escopo autorizado.”
 
 ## Retorno obrigatório do NC-00
 
-Repositório/URL, owner e private confirmado; caminho local; branch e SHA local/remoto;
+Repositório/URL, owner e visibilidade pública confirmados; caminho local; branch e SHA local/remoto;
 lista final de arquivos; validações reais; divergências; confirmação de nenhuma
 alteração Vids; ponto exato para retomada. Um push que não foi verificado não é fechamento.

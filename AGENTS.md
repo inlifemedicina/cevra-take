@@ -16,7 +16,9 @@ custo, privacidade ou destrutivas exigem decisão explícita.
 ## Isolamento obrigatório
 
 1. Confirmar diretório real, raiz Git, remote, branch, SHA, diferenças e arquivos não rastreados.
-2. Único alvo: `inlifemedicina/cevra-take`, privado. Preservar trabalho preexistente.
+2. Único alvo: `inlifemedicina/cevra-take`. A visibilidade vigente é pública, confirmada
+   pelo proprietário em 30/09/2026; não altere a visibilidade sem nova decisão explícita.
+   Preservar trabalho preexistente.
 3. Não operar dentro do Vids, num worktree dele, em uma pasta-pai comum ou por symlink.
 4. Não modificar `inlifemedicina/cevra`, suas branches, PRs, configurações ou credenciais.
 5. Não usar Full Access nem alterar configurações globais como atalho. Não imprimir segredos.

@@ -7,9 +7,10 @@ Aplicativo independente do CEVRA Orbit para preparar e captar conteúdo.
 
 Este repositório começa como **base documental**, sem aplicativo implementado.
 O nome comercial CEVRA Take foi aprovado pelo proprietário em 30/09/2026.
-Destino de publicação: `inlifemedicina/cevra-take`, **privado**.
-A criação e a confirmação do remoto não foram executadas no ambiente que preparou este pacote.
-A confirmação deve ocorrer no NC-00 pelo Codex local autenticado.
+Destino: `inlifemedicina/cevra-take`, **público**, conforme decisão posterior do
+proprietário em 30/09/2026. O bootstrap foi publicado em `main` no commit
+`4c15ddf9a554e0c014772526476ec8830f17fbad`. A reconciliação documental R2 está
+em branch própria para revisão; o ensaio de continuidade ainda está pendente.
 
 Comece por [AGENTS.md](AGENTS.md) e [MASTER_CONTEXT.md](docs/MASTER_CONTEXT.md).
 
