@@ -5,8 +5,23 @@
 [PR #3](https://github.com/inlifemedicina/cevra-take/pull/3) MERGED, fechamento P0 presente.
 **Implementador/configuração efetiva:** Codex, `gpt-6.1-sol` / `high`, confirmados nos
 metadados locais do turno; nenhuma alteração de plano ou configuração global.
-**Estado:** P1A documental — manifesto e prontidão planejada; instalação pendente
-de autorização explícita. P1 NÃO READY; build/deployment/captura e demais spikes NOT_RUN.
+**Estado:** P1A documental CONCLUÍDO com revisão independente PASS; manifesto
+aprovado para planejamento. P1 permanece NÃO READY / NOT_RUN; instalação e
+preparação operacional exigem autorização separada. Build/deployment/captura e
+demais spikes NOT_RUN.
+
+## Revisão independente — checkpoint documental
+
+Conforme resultado informado pelo proprietário, a revisão ocorreu em nova sessão
+Codex separada da autoria; configuração declarada pelo revisor: GPT-6.1 Sol / High.
+Checkpoint revisado: `ae7d3922034d38f2109478e5ba9c512a888a1992`.
+Veredito: **PASS — PR #4 apto para closeout/merge documental**; nenhum finding
+bloqueador. A revisão não foi refeita nesta rodada; o PASS refere-se a esse checkpoint.
+
+Escopo do PASS: somente conteúdo documental P1A. Não autoriza merge, instalação,
+beta, signing/pairing/Developer Mode, deployment ou P1 READY; não aprova produto/stack
+nem altera thresholds. Este microcloseout corrige os três findings não bloqueadores:
+referência Apple, minimização de caminho e operacionalização futura dos thresholds.
 
 ## Autoridade, preflight e limites
 
@@ -16,7 +31,7 @@ decisões D1–D8, preservadas: P0 CONCLUÍDO/revisão independente PASS; iOS pr
 proprietário; instalações por spike; thresholds pré-registrados. Este documento
 é dono somente da preparação Apple e das propostas preliminares de medição.
 
-Raiz real/Git: `/Users/mauriciodallorto/Documents/ChatGPT/cevra-take`; origin
+Raiz real/Git: `~/Documents/ChatGPT/cevra-take`; origin
 `https://github.com/inlifemedicina/cevra-take.git`. Árvore inicial limpa, sem untracked,
 sem symlink na raiz/ancestrais ou Git em pasta-pai; `.git`/git-common-dir próprios,
 único worktree Take. A sessão começou na branch P0 em `6c99e19febb911b3c98fcded6a6e225ffc22e1b4`,
@@ -57,8 +72,10 @@ iOS 27.2** requer a versão beta 2 acima entre as listadas. Se houver incompatib
 oficial verificável de pairing/debug ou necessidade explícita desse SDK, apresentar
 a contingência Xcode 27.2 beta 2 para nova autorização; não baixar duas versões
 preventivamente nem trocar silenciosamente. [Notas 27.2](https://developer.apple.com/documentation/xcode-release-notes/xcode-27_2-release-notes)
-confirmam o SDK e registram risco de code completion no macOS 27.2 beta;
-não executar workarounds que alterem preferências globais nesta tarefa.
+confirmam o SDK. A atribuição anterior de risco específico de code completion às
+notas atuais foi retirada neste microcloseout: a revisão independente identificou
+esse relato em conteúdo anterior/indexado, ausente nas notas Markdown atuais Beta 2.
+Isso não comprova resolução nem persistência do problema e não muda a recomendação.
 
 [Testing a beta OS](https://developer.apple.com/documentation/xcode/testing-a-beta-os)
 separa testar um app existente no SO beta de reconstruí-lo com o SDK beta para
@@ -173,6 +190,12 @@ proprietário para trade-off perceptivo/produto/custo/risco, não números arbit
 | Térmica | Não iniciar com thermal state serious/critical; interromper ensaio e finalizar com segurança ao entrar nesses estados ou receber interrupção por pressão/temperatura | Política conservadora de prova, não limite final do produto. [Estados oficiais](https://developer.apple.com/documentation/foundation/processinfo/thermalstate-swift.enum); não provocar superaquecimento para obter dado. Registrar PARTIAL/BLOCKED conforme causa. |
 | Armazenamento | Não iniciar se livre < **máximo(1 GiB, 2×tamanho estimado da tomada + reserva de finalização)**; durante captura, finalizar antes de livre cair abaixo da reserva pré-registrada, nunca menor que 1 GiB | Margem de espaço para container/dados e encerramento. Taxa máxima estimada, reserva e método de consulta definidos antes da rodada conforme perfil/candidato; sem isso BLOCKED. Não preencher disco geral nem apagar materiais para testar. |
 
+Os thresholds acima continuam **PROPOSTOS / NÃO MEDIDOS**. Antes de P3/prova
+executável e da primeira medição, o protocolo deve explicitar cálculo/denominador
+dos frames esperados, arredondamento do orçamento de perdas, agregação das três
+repetições e decomposição dos orçamentos de finalização/armazenamento. Nenhuma regra
+pode ser ajustada depois do resultado para converter FAIL em PASS.
+
 Incerteza do sinal A/V (quantização de frame, propagação de som e alinhamento)
 registrada antes da rodada; teste limítrofe/inconclusivo é PARTIAL. Falha real e
 injeção controlada são categorias distintas. [TN2445 Apple](https://developer.apple.com/library/archive/technotes/tn2445/_index.html)
@@ -208,10 +231,12 @@ não implementa APIs e não antecipa os gates completos de [NC-07](ROADMAP.md).
 Prontidão P1 **BLOCKED / NÃO READY**: Xcode/SDK/tooling não preparados, aparelho
 ainda não detectado/pareado oficialmente, signing não verificável. Tamanhos totais,
 componentes auxiliares e necessidade real de beta permanecem limites explícitos.
-P1A entrega manifesto e critérios planejados em PR draft; independente de sua
-aprovação, instalação exige autorização posterior enumerada. Não iniciar app vazio,
+P1A documental CONCLUÍDO com revisão independente PASS no checkpoint registrado;
+manifesto aprovado para planejamento, com microcloseout no mesmo PR draft.
+P1 permanece NÃO READY / NOT_RUN; instalação e preparação operacional exigem
+autorização posterior enumerada. Não iniciar app vazio,
 captura, P2/P3, provider, modelos ou escolha de stack automaticamente.
 
 Nenhuma instalação, dependência, simulador, IA/modelo, chamada paga, produto ou
 alteração no Vids nesta tarefa. Nenhum TAKE-A promovido. Parar aguardando autorização
-explícita da preparação, após revisão do manifesto e das propostas.
+explícita da instalação/preparação operacional. Merge não autorizado nesta rodada.
