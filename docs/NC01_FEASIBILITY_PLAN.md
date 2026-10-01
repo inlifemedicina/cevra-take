@@ -1,6 +1,6 @@
 # NC-01/P0 — inventário e plano de provas
 
-**Data do inventário:** 30/09/2026. **Estado:** P0 documental iniciado; decisões D1–D8 registradas conforme o proprietário; spot-check/revisão independente pendente. P1 e demais spikes NOT_RUN.
+**Data do inventário:** 30/09/2026. **Estado:** P0 documental CONCLUÍDO; inventário concluído para o ambiente observado, plano de provas concluído e decisões D1–D8 registradas; revisão independente PASS. P1 e demais spikes NOT_RUN e sujeitos a autorização própria.
 **Baseline:** `main` em `20c5c9a69b1fcd49bb052ac275b8ee31d38c9ba0`, fechamento NC-00 incorporado pelo [PR #2](https://github.com/inlifemedicina/cevra-take/pull/2).
 **Implementador:** Codex. **Configuração efetiva:** `gpt-6.1-sol`, esforço `high`, verificados nos metadados locais do turno. Configuração mantida conforme orientação posterior do proprietário; nenhuma configuração global, plano ou cobrança foi alterado.
 
@@ -300,7 +300,7 @@ captura profissional permanecem nas etapas apropriadas, especialmente [NC-07](RO
 
 ## Ordem proposta dos próximos slices (não autorizada por este documento)
 
-1. **P1 — prontidão:** revisão independente do P0, decisões D1–D5/D8 registradas,
+1. **P1 — prontidão:** revisão independente do P0 PASS, decisões D1–D5/D8 registradas,
    protocolo pré-registrado, manifesto de uma prova/candidato e autorização exata de preparação; confirmar
    toolchain/dispositivo funcionando antes de declarar pronto.
 2. **P2 — persistência mínima de prova:** fixtures de revisão/tomada/original,
@@ -346,8 +346,10 @@ não validado; falsas fontes e conteúdo hostil; extrapolação de host/VM para 
 Mitigação começa por autorizações e protocolos estreitos, preservação dos originais,
 evidência por alvo e interrupção quando faltar pré-requisito.
 
-Saída de P0: inventário rastreável, mapa de provas e decisões explícitas em PR draft,
-validação documental e revisão independente pendente. NC-01 continua aberto em
-preflight; nenhum framework selecionado, dependência instalada, modelo baixado,
-chamada paga ou produto implementado. Decisões D1–D8 registradas; P1 NOT_RUN.
-Parar para spot-check final, sem merge ou início de P1.
+P0 documental CONCLUÍDO: inventário do ambiente observado, plano de provas e decisões
+D1–D8 registrados. Revisão independente do conteúdo P0: PASS no checkpoint
+`f4dc15d33e761b849d7683495b8d35eb2223bff3`, conforme resultado informado pelo proprietário.
+P0 encerra planejamento/preflight; não satisfaz o gate completo de NC-01, que continua
+INICIADO. Nenhuma stack selecionada, produto implementado, TAKE-A promovido a PASS
+ou spike técnico executado. P1 é o próximo slice proposto, NOT_RUN / NÃO INICIADO;
+P1 e demais spikes exigem autorização própria. O merge do PR #3 não autoriza P1 automaticamente.

@@ -1,11 +1,11 @@
 # CEVRA Take — contexto canônico
 
-**Consolidação:** 30/09/2026. **Etapa:** NC-00 CLOSED; NC-01 iniciado somente em P0/preflight documental.
+**Consolidação:** 30/09/2026. **Etapa:** NC-00 CLOSED; NC-01 INICIADO; P0/preflight documental CONCLUÍDO com revisão independente PASS; P1 NOT_RUN.
 **Nome aprovado:** CEVRA Take. **Alvo:** `inlifemedicina/cevra-take`, público por decisão do proprietário.
 **Produto executável:** não implementado. **Bootstrap:** publicado em `main` no commit `4c15ddf9a554e0c014772526476ec8830f17fbad`; PR #1 e reconciliação R2 incorporados pelo merge commit `8f61e41cb705d5505bd95695b86694d3467a0f89`.
 **Continuidade:** migração para o novo projeto ChatGPT e ensaio concluídos com sucesso, conforme relato do proprietário.
 **Plano atual:** [NC01_FEASIBILITY_PLAN.md](NC01_FEASIBILITY_PLAN.md) registra inventário, provas propostas e decisões D1–D8 do proprietário, incluindo a restrição de evolução da captura para a seleção técnica; nenhuma stack selecionada ou spike executado.
-**Próximo gate:** spot-check/revisão independente do P0; P1 NOT_RUN e sujeito a autorização própria.
+**Próximo gate:** autorização/preparação de P1, sujeito a autorização própria; o fechamento documental de P0 não satisfaz o gate completo de NC-01 nem autoriza P1 automaticamente.
 
 ## Autoridade
 
