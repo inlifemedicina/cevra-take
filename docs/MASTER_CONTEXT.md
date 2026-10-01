@@ -1,10 +1,11 @@
 # CEVRA Take — contexto canônico
 
-**Consolidação:** 30/09/2026. **Etapa:** NC-00 CLOSED no escopo documental e de continuidade.
+**Consolidação:** 30/09/2026. **Etapa:** NC-00 CLOSED; NC-01 INICIADO; P0/preflight documental CONCLUÍDO com revisão independente PASS; P1 NOT_RUN.
 **Nome aprovado:** CEVRA Take. **Alvo:** `inlifemedicina/cevra-take`, público por decisão do proprietário.
 **Produto executável:** não implementado. **Bootstrap:** publicado em `main` no commit `4c15ddf9a554e0c014772526476ec8830f17fbad`; PR #1 e reconciliação R2 incorporados pelo merge commit `8f61e41cb705d5505bd95695b86694d3467a0f89`.
 **Continuidade:** migração para o novo projeto ChatGPT e ensaio concluídos com sucesso, conforme relato do proprietário.
-**Próxima etapa:** NC-01 permanece NÃO INICIADO e exige autorização própria.
+**Plano atual:** [NC01_FEASIBILITY_PLAN.md](NC01_FEASIBILITY_PLAN.md) registra inventário, provas propostas e decisões D1–D8 do proprietário, incluindo a restrição de evolução da captura para a seleção técnica; nenhuma stack selecionada ou spike executado.
+**Próximo gate:** autorização/preparação de P1, sujeito a autorização própria; o fechamento documental de P0 não satisfaz o gate completo de NC-01 nem autoriza P1 automaticamente.
 
 ## Autoridade
 
@@ -74,7 +75,7 @@ inicial em `main`: `4c15ddf9a554e0c014772526476ec8830f17fbad`. Nenhuma alteraç�
 de visibilidade foi executada. Naquele checkpoint, a reconciliação aguardava
 revisão em branch própria e o ensaio ainda estava pendente.
 
-## Fechamento NC-00 — estado vigente
+## Fechamento NC-00 — registro do checkpoint
 
 PR #1 foi mergeado em `main` por merge commit normal: `8f61e41cb705d5505bd95695b86694d3467a0f89`.
 A decisão de manter o repositório público continua vigente, e a reconciliação R2
@@ -86,7 +87,7 @@ do repositório.
 
 NC-00 está CLOSED no seu escopo documental, de publicação e continuidade.
 Não há produto implementado: frameworks e tecnologias continuam sem escolha.
-NC-01 permanece NÃO INICIADO.
+NC-01 permanecia NÃO INICIADO nesse checkpoint; o estado atual P0 está no início deste documento.
 
 ## Escolhas não congeladas
 

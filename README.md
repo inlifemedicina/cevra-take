@@ -12,7 +12,8 @@ proprietário em 30/09/2026. O bootstrap foi publicado em `main` no commit
 `4c15ddf9a554e0c014772526476ec8830f17fbad`. A reconciliação documental R2 foi
 incorporada a `main` pelo merge commit `8f61e41cb705d5505bd95695b86694d3467a0f89`.
 O ensaio de continuidade foi concluído com sucesso. NC-00 está CLOSED no escopo
-documental e de continuidade; NC-01 permanece NÃO INICIADO.
+documental e de continuidade. [NC-01/P0](docs/NC01_FEASIBILITY_PLAN.md) foi iniciado
+somente em preflight documental; nenhuma stack selecionada ou spike executado.
 
 Comece por [AGENTS.md](AGENTS.md) e [MASTER_CONTEXT.md](docs/MASTER_CONTEXT.md).
 
