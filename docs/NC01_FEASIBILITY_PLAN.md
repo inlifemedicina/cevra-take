@@ -1,6 +1,6 @@
 # NC-01/P0 — inventário e plano de provas
 
-**Data do inventário:** 30/09/2026. **Estado:** P0 documental iniciado; revisão independente e decisões do proprietário pendentes. Spikes NOT_RUN.
+**Data do inventário:** 30/09/2026. **Estado:** P0 documental iniciado; decisões D1–D8 registradas conforme o proprietário; spot-check/revisão independente pendente. P1 e demais spikes NOT_RUN.
 **Baseline:** `main` em `20c5c9a69b1fcd49bb052ac275b8ee31d38c9ba0`, fechamento NC-00 incorporado pelo [PR #2](https://github.com/inlifemedicina/cevra-take/pull/2).
 **Implementador:** Codex. **Configuração efetiva:** `gpt-6.1-sol`, esforço `high`, verificados nos metadados locais do turno. Configuração mantida conforme orientação posterior do proprietário; nenhuma configuração global, plano ou cobrança foi alterado.
 
@@ -78,6 +78,9 @@ a partir das ferramentas acima.
 Nenhum desses resultados é PASS de portabilidade do Take. Não é necessário outro
 host macOS para planejar iOS; é necessário outro alvo Windows verificado para a sua
 prova de execução. Cross-compilação, se proposta depois, também exige evidência própria.
+Disponibilidade de aparelhos/periféricos informada posteriormente pelo proprietário
+está em D3; não substitui detecção, pareamento ou medição local. O inventário acima
+permanece o registro observado, sem nova instalação ou teste.
 
 ## Matriz capability × aceite × evidência
 
@@ -239,9 +242,10 @@ Não portar código Vids sem auditoria seletiva futura e autorização própria;
 
 ## Métricas e protocolo fixados ANTES de cada experimento
 
-P0 define os campos obrigatórios, não congela thresholds de produto. Limiares
-numéricos, repetição/amostra e envelope devem ser registrados e revisados antes
-da primeira medição. Sem isso, o experimento fica BLOCKED para decisão PASS/FAIL.
+P0 define os campos obrigatórios e registra o baseline inicial aprovado em D2,
+sem congelar thresholds finais de produto. Conforme D8, o agente propõe limiares
+numéricos, repetição/amostra e envelope com base técnica, pré-registrados e revisados
+antes da primeira medição. Sem isso, o experimento fica BLOCKED para decisão PASS/FAIL.
 Não ajustar limite depois de conhecer os resultados para obter PASS.
 
 | Área | Fixar antes do experimento | Medir/guardar como evidência |
@@ -263,27 +267,41 @@ exposição pública de material pessoal. Julgamento humano tem responsável e c
 
 ## DECISÕES DO PROPRIETÁRIO NECESSÁRIAS ANTES DOS SPIKES
 
-"NECESSÁRIA AGORA" significa antes do primeiro spike dependente, não condição para
-publicar este plano. Nenhuma recomendação abaixo foi decidida silenciosamente.
+Decisões explícitas do proprietário para o checkpoint P0, substituindo as propostas
+pendentes da versão anterior deste plano, preservada no histórico Git. RESOLVIDA
+registra a decisão; não atesta prontidão do ambiente nem autoriza executar P1.
 
-| Item | Classificação | Pergunta / opções e recomendação fundamentada |
+| Item | Estado | Decisão vigente e limite |
 |---|---|---|
-| D1 — ordem dos alvos físicos | NECESSÁRIA AGORA | Qual ordem: **iOS primeiro**, **Android primeiro** ou **ambos desde o primeiro spike**? Recomenda-se um alvo físico primeiro, iOS se houver iPhone disponível e autorização para Xcode no Mac; se só houver Android disponível, começar por ele evita aquisição. Ambos amplia preparação e custo antes de estabilizar o protocolo. Não reduz os quatro alvos previstos. |
-| D2 — perfil mínimo de captura | NECESSÁRIA AGORA | Critério inicial: **1080p/30 SDR**, **720p/30 SDR** ou **perfil padrão do aparelho explicitamente registrado**? Recomenda-se 1080p/30 SDR com áudio interno quando suportado pelo aparelho escolhido, separando adequação de hardware de controles Pro. 720p reduz carga; padrão varia entre aparelhos e enfraquece comparabilidade. Aprovar também o envelope de duração e thresholds antes do ensaio; P0 não os fixa. |
-| D3 — aparelhos e periféricos disponíveis | NECESSÁRIA AGORA | Estão disponíveis para teste autorizado **iOS**, **Android** ou **ambos**? Informar modelo/versão de SO, disponibilidade e microfone/rota externa que poderá ser testada, sem serial/IMEI. Recomenda-se usar equipamento já disponível e depois incluir hardware representativo de menor capacidade. Detecção USB negativa não responde esta pergunta; nenhuma compra está autorizada. |
-| D4 — hosts macOS/Windows | NECESSÁRIA AGORA | Haverá **Mac atual + Windows físico**, **Mac atual + guest Windows autorizado** ou **somente Mac inicialmente**? Confirmar acesso/periféricos do Mac. Recomenda-se Windows físico para o gate final de captura/lifecycle; guest pode adiantar dados/UI com limites. Somente Mac mantém Windows BLOCKED, sem alegar suporte já provado. |
-| D5 — preparação e instalações futuras | NECESSÁRIA AGORA | Após revisão do P0, aprovar **um pacote enumerado por spike** ou **manifesto conjunto com um candidato por capacidade**? Recomenda-se por spike: fonte oficial, versão, licença, dependências, tamanho, permissões e destino conhecidos antes de instalar. Toolchains Apple/Android e assinatura oficial são autorizações próprias; este plano não autoriza nenhum instalador ou candidato. |
-| D6 — primeira rodada de IA/externos | PODE SER ADIADA | Recomenda-se começar com caminho sem IA e fixtures offline. Candidato/pesos locais e provider/modelo externo só precisam ser decididos antes da prova respectiva, após hardware/qualidade/custo definidos. Não bloquear captura/persistência com login de provider. |
-| D7 — política de chamadas/downloads | JÁ DEFINIDA NOS DOCUMENTOS | Nenhuma chamada, login de provider ou modelo em P0. Futuras instalações/downloads exigem autorização específica com origem/licença, tamanho e armazenamento; chamadas externas exigem mecanismo oficial, dados/disclosure, entitlement e teto de gasto explícitos. Nenhum cookie consumer, cobrança alternativa ou envio integral de mídia silencioso. Git push/PR documentais já autorizados são distintos de prova de provider. |
-| D8 — critérios de cada experiência | NECESSÁRIA AGORA | Aprovar o protocolo/thresholds antes de executar o spike dependente; opções: **limites existentes fornecidos pelo proprietário** ou **proposta técnica pré-registrada para revisão**. Recomenda-se proposta técnica após D1–D4, com critério humano do proprietário e aborto seguro. Sem limiar, não emitir PASS/FAIL de desempenho. |
+| D1 — ordem dos alvos físicos | RESOLVIDA | **iOS primeiro**. Android continua obrigatório posteriormente; é ordem de prova, não prioridade comercial definitiva. |
+| D2 — perfil inicial de captura | RESOLVIDA | **1080p / 30 fps / SDR**, quando suportado, como baseline inicial de prova, não teto de capacidade nem requisito final do produto. A seleção técnica deve atender à restrição de evolução de captura abaixo. |
+| D3 — aparelhos e periféricos disponíveis | RESOLVIDA | Disponibilidade informada pelo proprietário: **iPhone 16 Pro Max / iOS 27.2**, primeiro aparelho físico, disponível até novembro de 2026. **iPhone 18 Pro Max** previsto como principal a partir de novembro de 2026: não esperar por ele; repetir depois os protocolos relevantes, distinguindo evidência do 16 da futura evidência do 18. Microfone externo **Hollyland** disponível; modelo/conexão a registrar antes do spike externo, sem inferir interface ou capabilities. Primeira captura pode usar microfone interno; rota externa terá prova própria posterior. |
+| D4 — hosts macOS/Windows | RESOLVIDA | **Mac primeiro**, sem aguardar Windows para os primeiros slices. Windows continua obrigatório na prova de portabilidade; guest/VM autorizado futuramente pode servir a regras/dados/UI limitados, sem substituir hardware Windows real na evidência final dependente de SO/hardware. |
+| D5 — preparação e instalações futuras | RESOLVIDA | **Autorizações por spike**. Antes de instalação significativa, apresentar item, origem oficial, versão/revisão, licença, finalidade, dependências relevantes, tamanho aproximado quando aplicável, permissões, destino e rollback/remoção quando pertinente. Instalar só o necessário ao spike autorizado; este registro não autoriza instalar Xcode, outros toolchains ou candidatos agora. |
+| D6 — primeira rodada de IA/externos | ADIADA POR DECISÃO | Ordem: **núcleo sem IA → IA local/on-device em prova própria → provider externo oficial em gate separado, se ainda necessário**. Captura, persistência, teleprompter e exportação não podem depender de login, provider ou rede. |
+| D7 — política de chamadas/downloads | JÁ DEFINIDA / MANTIDA | Não reabrir. Downloads relevantes, modelos, runtimes e chamadas externas exigem autorização explícita, mecanismo oficial, origem/licença, dados enviados, entitlement, custo/teto e privacidade. Sem cookies/login consumer como atalho ou billing/provider alternativo silencioso. Nenhuma chamada, login de provider ou modelo em P0; push/PR documentais são distintos de prova de provider. |
+| D8 — critérios de cada experiência | RESOLVIDA | **Proposta técnica pré-registrada por spike**: agente propõe thresholds e protocolo com base técnica antes de medir, sem pedir números técnicos arbitrários ao proprietário. Chamá-lo para trade-off real de produto, qualidade perceptiva, custo, experiência do usuário, risco ou escopo material. Nunca alterar threshold após o resultado para transformar FAIL em PASS. |
 | Stack/binding/versões mínimas finais | PODE SER ADIADA | Seleção após evidências por alvo; versão real do aparelho e candidato deve ser registrada em cada prova, mesmo sem congelar suporte mínimo. |
-| Pro/Log/HDR/codecs, voice-following, sync, distribuição comercial e integração real Vids | PODE SER ADIADA | Gates próprios; não pertencem ao mínimo da primeira captura/teleprompter manual. Sem promessas de paridade. |
+| Implementação Pro/Log/HDR/codecs, voice-following, sync, distribuição comercial e integração real Vids | PODE SER ADIADA | Gates próprios; não pertencem ao mínimo da primeira captura/teleprompter manual. A avaliação de viabilidade da evolução da captura em D2 deve preceder a seleção final de NC-01. Sem promessas de paridade. |
 | Independência, dados locais, originais, percurso mobile+desktop, PT-BR/EN-US e fontes não confiáveis | JÁ DEFINIDA NOS DOCUMENTOS | Preservar os requisitos canônicos; não reabrir estas decisões para economizar a prova. |
+
+### D2 — restrição de não-regressão para evolução da captura
+
+O proprietário definiu que Take deve evoluir também para ser um aplicativo muito
+bom de gravação de vídeo. Sucesso em 1080p30 SDR não basta para selecionar um candidato
+que crie bloqueio previsível ou exija reescrita estrutural injustificada para essa evolução.
+Antes da seleção final de stack em NC-01, avaliar a viabilidade, conforme hardware/plataforma,
+de **4K, 60 fps, HDR/Log, foco, exposição, white balance, seleção de câmera/lente,
+áudio externo e rotas, gravações prolongadas, comportamento térmico e demais controles
+profissionais pertinentes**. Registrar evidência/limites e riscos de evolução do candidato,
+sem presumir suporte universal ou escolher stack neste checkpoint.
+Esta restrição não manda implementar essas funções em P0/P1. Os gates completos de
+captura profissional permanecem nas etapas apropriadas, especialmente [NC-07](ROADMAP.md).
 
 ## Ordem proposta dos próximos slices (não autorizada por este documento)
 
-1. **P1 — prontidão:** revisão independente do P0, respostas D1–D5/D8, alvo/perfil,
-   manifesto de uma prova/candidato e autorização exata de preparação; confirmar
+1. **P1 — prontidão:** revisão independente do P0, decisões D1–D5/D8 registradas,
+   protocolo pré-registrado, manifesto de uma prova/candidato e autorização exata de preparação; confirmar
    toolchain/dispositivo funcionando antes de declarar pronto.
 2. **P2 — persistência mínima de prova:** fixtures de revisão/tomada/original,
    escrita segura, exportação/restauração e falhas em espaço isolado; sem app completo.
@@ -298,7 +316,8 @@ publicar este plano. Nenhuma recomendação abaixo foi decidida silenciosamente.
 7. **P7 — pesquisa/fontes:** fixtures adversariais primeiro; aquisição limitada real
    quando autorizada. Sem crawler/social implícitos. A09 tem ensaio posterior próprio.
 8. **P8 — decisão NC-01:** consolidar evidências/limites por alvo e comparar somente
-   alternativas justificadas; revisão independente precede seleção técnica. Lacuna
+   alternativas justificadas, incluindo a viabilidade de evolução da captura exigida em D2;
+   revisão independente precede seleção técnica. Lacuna
    material mantém o gate aberto; não iniciar NC-02 por terminar um spike.
 
 Numeração e ordem são proposta de trabalho, não substituem o roadmap nem liberam P1.
@@ -319,8 +338,9 @@ BLOCKED pelos pré-requisitos acima. Build macOS e todos os protocolos são NOT_
 os aceites do produto permanecem BLOCKED como no catálogo. Nenhum PASS de Vids,
 documentação, simulador, mock ou CLI é transportado para o produto Take.
 
-Riscos principais: ausência de aparelhos/toolchains/Windows confirmado; perfil e
-limiares ainda não aprovados; concorrência câmera+UI+IA; A/V e rota de áudio; perdas
+Riscos principais: toolchains ausentes, aparelhos ainda sem detecção/pareamento oficial
+e Windows não verificado; thresholds por spike ainda não pré-registrados; bloqueios
+de evolução da captura a avaliar antes da seleção; concorrência câmera+UI+IA; A/V e rota de áudio; perdas
 por lifecycle/escrita; modelos com licença/capacidade desconhecidas; custo/provider
 não validado; falsas fontes e conteúdo hostil; extrapolação de host/VM para hardware.
 Mitigação começa por autorizações e protocolos estreitos, preservação dos originais,
@@ -329,4 +349,5 @@ evidência por alvo e interrupção quando faltar pré-requisito.
 Saída de P0: inventário rastreável, mapa de provas e decisões explícitas em PR draft,
 validação documental e revisão independente pendente. NC-01 continua aberto em
 preflight; nenhum framework selecionado, dependência instalada, modelo baixado,
-chamada paga ou produto implementado. Parar para revisão e decisões do proprietário.
+chamada paga ou produto implementado. Decisões D1–D8 registradas; P1 NOT_RUN.
+Parar para spot-check final, sem merge ou início de P1.
