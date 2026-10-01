@@ -307,5 +307,9 @@ pelo agente; nenhuma beta autorizada por este closeout.
 Os próximos gates de device/signing/deployment exigem autorização própria. Nenhum
 threshold, baseline, protocolo ou requisito foi alterado. Nenhuma instalação,
 download, prova operacional, implementação ou operação no Vids nesta rodada
-documental. Revisão/spot-check do closeout pendente antes de qualquer merge;
-o PR DRAFT não autoriza próximos gates nem P2/P3.
+documental. O closeout documental P1B foi incorporado à `main` pelo PR #5, merge
+`d934f83611a627eddb5680654f1616481d22b8af`, após spot-check documental
+independente do HEAD `1d4ca1a3b0f7fcd3a252692b1b8084f271fa0c2d`. Esse spot-check
+não foi CI nem GitHub Review formal. Os próximos gates permanecem separados,
+NOT_RUN e sujeitos às autorizações próprias; o merge documental não autorizou P2/P3
+nem qualquer gate operacional.
