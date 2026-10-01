@@ -1,14 +1,16 @@
 # NC-01/P1A — prontidão iOS e manifesto de preparação
 
-**Consulta/inventário:** 30/09/2026, horário local do Mac (UTC−03).
-**Baseline:** `main` local/remota em `f7b7c4a276b998bc42e84dbb76df66a17629bdf8`;
+**Consulta/inventário P1A — histórico:** 30/09/2026, horário local do Mac (UTC−03).
+**Baseline P1A — histórico:** `main` local/remota em `f7b7c4a276b998bc42e84dbb76df66a17629bdf8`;
 [PR #3](https://github.com/inlifemedicina/cevra-take/pull/3) MERGED, fechamento P0 presente.
-**Implementador/configuração efetiva:** Codex, `gpt-6.1-sol` / `high`, confirmados nos
+**Implementador/configuração efetiva P1A:** Codex, `gpt-6.1-sol` / `high`, confirmados nos
 metadados locais do turno; nenhuma alteração de plano ou configuração global.
 **Estado:** P1A documental CONCLUÍDO com revisão independente PASS; manifesto
-aprovado para planejamento. P1 permanece NÃO READY / NOT_RUN; instalação e
-preparação operacional exigem autorização separada. Build/deployment/captura e
-demais spikes NOT_RUN.
+aprovado para planejamento. Resultado operacional posterior: **P1B PARTIAL —
+toolchain Apple preparado e funcional; desvios de evidência/manifesto não bloqueantes;
+device/signing/deployment/captura NOT_RUN**. P1 permanece **NÃO READY**; os gates
+restantes exigem autorização própria. O inventário, manifesto e fechamento P1A
+abaixo são registros históricos; o resultado P1B está na seção final.
 
 ## Revisão independente — checkpoint documental
 
@@ -226,7 +228,7 @@ Este é o envelope que a seleção final de NC-01 deve avaliar para não criar b
 previsível ou reescrita estrutural injustificada, conforme D2. Não escolhe framework,
 não implementa APIs e não antecipa os gates completos de [NC-07](ROADMAP.md).
 
-## Bloqueios e fechamento desta tarefa
+## Bloqueios e fechamento P1A — histórico de 30/09/2026
 
 Prontidão P1 **BLOCKED / NÃO READY**: Xcode/SDK/tooling não preparados, aparelho
 ainda não detectado/pareado oficialmente, signing não verificável. Tamanhos totais,
@@ -240,3 +242,70 @@ captura, P2/P3, provider, modelos ou escolha de stack automaticamente.
 Nenhuma instalação, dependência, simulador, IA/modelo, chamada paga, produto ou
 alteração no Vids nesta tarefa. Nenhum TAKE-A promovido. Parar aguardando autorização
 explícita da instalação/preparação operacional. Merge não autorizado nesta rodada.
+
+## P1B — resultado do preparo do toolchain Apple
+
+**Checkpoint da execução:** 01/10/2026, após reinício do Mac; `main` local/remota
+em `20f60aebbfe4606f0567539eab7e486efe45ba60`, [PR #4](https://github.com/inlifemedicina/cevra-take/pull/4)
+MERGED. Fonte: relatório TAKE REP, turno `01a0f721-2e2e-7101-91ce-1884c5b7a1a3`,
+resposta `msg_0a2dfaea3c8695a6016abe3ea2e7f887d28da8b3b14b3295d9`, aceito pelo planejamento.
+Execução P1B: Codex, GPT-6.1 Sol / High. Closeout documental: Codex,
+`gpt-6.1-sol` / `medium`, confirmado nos metadados locais; nenhuma alteração de
+plano, billing, conta ou configuração global. Esta rodada registra a evidência já
+obtida; não repete instalação, inventário do toolchain ou prova operacional.
+
+**Classificação: P1B = PARTIAL — toolchain Apple preparado e funcional; desvios de
+evidência/manifesto não bloqueantes; device/signing/deployment/captura NOT_RUN.**
+Não promover para PASS: não foi demonstrada conformidade integral com o manifesto
+mínimo original. Não classificar como BLOCKED: Xcode abre, first launch passou e
+SDK/tooling estão presentes, sem bloqueio observado do toolchain local.
+
+### Evidência técnica da execução P1B
+
+| Item | Resultado verificado no checkpoint |
+|---|---|
+| Host | macOS 27.2, build `26B5091g`, arm64 |
+| Xcode | `/Applications/Xcode.app`; versão **27.0**, build **27A266a**; canal Mac App Store, recibo presente no bundle |
+| Versão | `xcodebuild -version`: `Xcode 27.0` / `Build version 27A266a` |
+| First launch | `xcodebuild -checkFirstLaunchStatus`: exit 0 |
+| SDK | iOS SDK **27.0** detectado; não equivale a deployment validado no iPhone com iOS 27.2 |
+| Tooling | `devicectl` e `simctl` encontrados; simulador não executado pelo agente |
+| Compiladores | Swift **6.4**, Clang **21.0.0** |
+| Instruments | `xctrace` **27.0 / 27A266a**, funcional |
+| CLT | Preservadas; pacote `27.0.0.0.1788430756` |
+| Espaço livre | Antes: **116,19 GiB**; após reinício: **103,99 GiB**; observações pontuais, não footprint atribuível somente ao Xcode |
+| Developer directory | Validações com `DEVELOPER_DIR` por comando; seleção global observada depois apontava para Xcode; o agente não executou alteração de `xcode-select` |
+
+### Documentação — confirmação humana
+
+O proprietário confirmou pessoalmente a conclusão do download de documentação.
+Versão exata, localização e footprint não foram tecnicamente confirmados. Essa
+confirmação humana não é inventário técnico nem PASS de componente específico.
+
+### Runtime adicional manual — desvio não bloqueante
+
+Runtime iOS Simulator **27.0**, build observado **24A434**, presente, com uma imagem
+registrada. A instalação/download foi iniciada manualmente pelo proprietário,
+fora do conjunto mínimo autorizado ao agente; o proprietário confirmou sua conclusão.
+O agente não executou o simulador. A presença do runtime não prova app, aparelho,
+deployment ou captura; registra-se desvio não bloqueante do manifesto, sem remoção
+ou nova instalação neste closeout.
+
+### CUA — observação visual do Mac
+
+Após o reinício, o acesso CUA à interface do Mac funcionou e mostrou “Welcome to
+Xcode 27.0”. É evidência de interface e prontidão local da ferramenta; não é prova
+de captura do produto, do iPhone ou de qualquer TAKE-A.
+
+### Estado e próximo gate separado
+
+**P1 NÃO READY.** Device, signing, pairing/trust, Developer Mode, app mínimo,
+build, deployment, debugger no device e captura: **NOT_RUN**. TAKE-A inalterados;
+produto **NÃO IMPLEMENTADO**; stack **NÃO selecionada**. Nenhuma beta instalada
+pelo agente; nenhuma beta autorizada por este closeout.
+
+Os próximos gates de device/signing/deployment exigem autorização própria. Nenhum
+threshold, baseline, protocolo ou requisito foi alterado. Nenhuma instalação,
+download, prova operacional, implementação ou operação no Vids nesta rodada
+documental. Revisão/spot-check do closeout pendente antes de qualquer merge;
+o PR DRAFT não autoriza próximos gates nem P2/P3.

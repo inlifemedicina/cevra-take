@@ -1,12 +1,12 @@
 # CEVRA Take — contexto canônico
 
-**Consolidação:** 30/09/2026. **Etapa:** NC-00 CLOSED; NC-01 INICIADO; P0/preflight documental CONCLUÍDO com revisão independente PASS; P1 NOT_RUN.
+**Consolidação:** 01/10/2026. **Etapa:** NC-00 CLOSED; NC-01 INICIADO; P0/preflight documental CONCLUÍDO com revisão independente PASS; P1B PARTIAL; P1 NÃO READY.
 **Nome aprovado:** CEVRA Take. **Alvo:** `inlifemedicina/cevra-take`, público por decisão do proprietário.
 **Produto executável:** não implementado. **Bootstrap:** publicado em `main` no commit `4c15ddf9a554e0c014772526476ec8830f17fbad`; PR #1 e reconciliação R2 incorporados pelo merge commit `8f61e41cb705d5505bd95695b86694d3467a0f89`.
 **Continuidade:** migração para o novo projeto ChatGPT e ensaio concluídos com sucesso, conforme relato do proprietário.
-**Plano atual:** [NC01_FEASIBILITY_PLAN.md](NC01_FEASIBILITY_PLAN.md) registra inventário, provas propostas e decisões D1–D8 do proprietário, incluindo a restrição de evolução da captura para a seleção técnica; nenhuma stack selecionada ou spike executado.
-**Preparação atual:** [NC01_IOS_READINESS.md](NC01_IOS_READINESS.md) registra P1A documental CONCLUÍDO com revisão independente PASS; manifesto aprovado para planejamento. P1 NÃO READY / NOT_RUN; instalação/preparação operacional pendente de autorização separada.
-**Próximo gate:** decisão/autorização enumerada de instalação/preparação iOS; o fechamento documental de P0/P1A não satisfaz o gate completo de NC-01 nem autoriza instalações/provas automaticamente.
+**Plano atual:** [NC01_FEASIBILITY_PLAN.md](NC01_FEASIBILITY_PLAN.md) registra inventário, provas propostas e decisões D1–D8 do proprietário, incluindo a restrição de evolução da captura para a seleção técnica; nenhuma stack selecionada ou spike de produto executado.
+**Preparação atual:** [NC01_IOS_READINESS.md](NC01_IOS_READINESS.md) registra P1A documental CONCLUÍDO com revisão independente PASS e P1B PARTIAL — toolchain Apple preparado e funcional; desvios de evidência/manifesto não bloqueantes. P1 NÃO READY; device/signing/deployment/captura NOT_RUN; nenhum TAKE-A promovido.
+**Próximo gate:** autorização própria de device/signing/deployment; nenhum desses gates iniciado por este closeout. P0/P1A e o preparo parcial P1B não satisfazem o gate completo de NC-01 nem autorizam próximas provas automaticamente.
 
 ## Autoridade
 
