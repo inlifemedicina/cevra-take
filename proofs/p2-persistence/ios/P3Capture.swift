@@ -442,7 +442,10 @@ private final class P3PlaybackController:ObservableObject {
             diagnostic="PLAYBACK_BLOCKED — arquivo local não legível";return
         }
         self.url=url;errorLogCount=0;lastErrorCode="none"
-        let item=AVPlayerItem(url:url)
+        // Store preserves originals under O.bin. Declare the known MOV container
+        // through the public SDK; never rename/copy/link or change stored metadata.
+        let asset=AVURLAsset(url:url,options:[AVURLAssetOverrideMIMETypeKey:"video/quicktime"])
+        let item=AVPlayerItem(asset:asset)
         player.replaceCurrentItem(with:item)
         observations.append(item.observe(\.status,options:[.initial,.new]) { [weak self] _,_ in
             Task { @MainActor [weak self] in self?.refresh() }

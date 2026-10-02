@@ -266,3 +266,28 @@ independente do checkpoint **PENDENTE** antes da publicação. Build assinado, i
 restart/launch e prova física **NOT_RUN nesta correção** e exigem coordenação humana
 posterior. Preparação de conexão por rede pertence à ponte, sem operação concorrente
 do executor. Nenhuma nova captura, reseed, exclusão, Vids ou TAKE-A PASS.
+
+
+## Achado reproduzido no Mac — tipo explícito de asset
+
+Antes de instalar o checkpoint anterior, a ponte comparou os arquivos locais
+byte-idênticos: capture.mov carregável; original publicado O.bin legível pelo
+filesystem, mas AVFoundation isPlayable=false e isReadable com erro -11828.
+FFmpeg decodificou vídeo/áudio completos sem erro; isso não comprovava AVPlayer.
+
+Executor repetiu comparação readonly com API pública
+[AVURLAssetOverrideMIMETypeKey](https://developer.apple.com/documentation/avfoundation/avurlassetoverridemimetypekey),
+suportada desde iOS 17/macOS 14: capture.mov baseline PASS; O.bin baseline reproduz
+-11828; **O.bin com video/quicktime isPlayable/isReadable=true**, duração 29,908 s,
+tracks vídeo/áudio/metadata, sem erro. Os dez arquivos mantiveram bytes/SHA antes/depois.
+Evidência privada sanitizada fora do Git. Resultado demonstra parsing nativo no Mac,
+**não reprodução no iPhone nem causa física definitivamente confirmada**.
+
+Correção mínima: AVPlayerItem recebe AVURLAsset com MIME conhecido do container MOV
+capturado neste protocolo. Nenhuma cópia derivada, rename, hardlink, alteração de
+original/metadata/Store ou critério novo. Player estável e tentativa isolada anteriores
+intactos. Revisão do novo checkpoint necessária antes da publicação/build assinado.
+Build assinado com recursos existentes foi autorizado para preparação offline;
+**instalação não autorizada nesta conferência**, aguardando disponibilidade e plano
+humano de preservação. PREPARED_CODE/NOT_PHYSICAL_READY; playback humano FAIL ainda
+não retestado. Nenhuma nova captura, sensor, TAKE-A PASS ou Vids.
