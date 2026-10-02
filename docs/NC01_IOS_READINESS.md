@@ -5,12 +5,12 @@
 [PR #3](https://github.com/inlifemedicina/cevra-take/pull/3) MERGED, fechamento P0 presente.
 **Implementador/configuração efetiva P1A:** Codex, `gpt-6.1-sol` / `high`, confirmados nos
 metadados locais do turno; nenhuma alteração de plano ou configuração global.
-**Estado:** P1A documental CONCLUÍDO com revisão independente PASS; manifesto
-aprovado para planejamento. Resultado operacional posterior: **P1B PARTIAL —
-toolchain Apple preparado e funcional; desvios de evidência/manifesto não bloqueantes;
-device/signing/deployment/captura NOT_RUN**. P1 permanece **NÃO READY**; os gates
-restantes exigem autorização própria. O inventário, manifesto e fechamento P1A
-abaixo são registros históricos; o resultado P1B está na seção final.
+**Estado atual:** **P1 READY**, após prova física P1D e revisão independente final
+APPROVE. P1A documental CONCLUÍDO/revisão independente PASS e P1B PARTIAL permanecem
+como checkpoints históricos. Captura/medição e P2/P3 continuam **NOT_RUN**; P2
+persistência é o próximo gate, não iniciado e não autorizado. O inventário e o
+manifesto P1A, assim como o resultado P1B, são históricos; as evidências posteriores
+que satisfazem o protocolo completo P1 estão na seção final.
 
 ## Revisão independente — checkpoint documental
 
@@ -128,7 +128,7 @@ instalação manual. Nenhum login/download executado; o tamanho do XIP permanece
 distinguem suporte de plataforma de runtimes de simulador; selecionar apenas iOS
 necessário ao device, sem Metal adicional, outros SO, modelos ou ferramentas terceiras.
 
-## Checklist humano e protocolo de P1 READY (futuro, NOT_RUN)
+## Checklist humano e protocolo de P1 READY — referência do checkpoint P1A
 
 [Pairing oficial](https://developer.apple.com/documentation/xcode/pairing-your-devices-with-your-mac):
 conectar iPhone ao Mac por cabo USB-C com dados, desbloquear e tocar **Confiar** se
@@ -243,7 +243,7 @@ Nenhuma instalação, dependência, simulador, IA/modelo, chamada paga, produto 
 alteração no Vids nesta tarefa. Nenhum TAKE-A promovido. Parar aguardando autorização
 explícita da instalação/preparação operacional. Merge não autorizado nesta rodada.
 
-## P1B — resultado do preparo do toolchain Apple
+## P1B — resultado do preparo do toolchain Apple — histórico de 01/10/2026
 
 **Checkpoint da execução:** 01/10/2026, após reinício do Mac; `main` local/remota
 em `20f60aebbfe4606f0567539eab7e486efe45ba60`, [PR #4](https://github.com/inlifemedicina/cevra-take/pull/4)
@@ -297,7 +297,7 @@ Após o reinício, o acesso CUA à interface do Mac funcionou e mostrou “Welco
 Xcode 27.0”. É evidência de interface e prontidão local da ferramenta; não é prova
 de captura do produto, do iPhone ou de qualquer TAKE-A.
 
-### Estado e próximo gate separado
+### Estado e próximo gate separado — no checkpoint P1B
 
 **P1 NÃO READY.** Device, signing, pairing/trust, Developer Mode, app mínimo,
 build, deployment, debugger no device e captura: **NOT_RUN**. TAKE-A inalterados;
@@ -313,3 +313,49 @@ independente do HEAD `1d4ca1a3b0f7fcd3a252692b1b8084f271fa0c2d`. Esse spot-check
 não foi CI nem GitHub Review formal. Os próximos gates permanecem separados,
 NOT_RUN e sujeitos às autorizações próprias; o merge documental não autorizou P2/P3
 nem qualquer gate operacional.
+
+## P1 READY — evidências posteriores e revisão final
+
+**Checkpoint:** 02/10/2026 (UTC); base do registro documental: `main` em
+`b4ecd2ee135c7e23083963f20b915274093a962e`. Executor: Codex,
+GPT-6.1 Sol / Medium. Registro das provas já concluídas, sem reexecução.
+
+**P1D physical readiness harness = PASS; revisão independente P1D = APPROVE.**
+O harness nativo mínimo `CEVRA Take Readiness`, isolado fora do repo e reutilizado
+com o mesmo bundle, teve build Debug físico, verificação oficial da assinatura e
+instalação **PASS**. O primeiro launch foi BLOCKED. Após autorização e confiança
+no perfil realizadas pessoalmente pelo proprietário, um único launch posterior
+foi **PASS**, com processo ativo na checagem técnica de 5 segundos. O proprietário
+confirmou visualmente a abertura. Signing/provisioning foram configurados pelo
+proprietário; o agente não usou atualização automática de provisioning.
+
+Debugger/fechamento: Attach inicialmente chegou a **Waiting**; após abrir
+manualmente o mesmo harness no iPhone, o proprietário relatou Xcode **Running**.
+Depois de usar Stop no Xcode, relatou o app fechado. Estes dois resultados são
+**evidência humana**, não trace automatizado, inspeção de memória/threads ou prova
+por PID. A confirmação inicial “Feito” isolada não foi usada como PASS. Uma query
+readonly complementar não verificável não prova nem invalida debugger/fechamento.
+
+**Revisão independente incremental final = APPROVE; P1 = READY.** A revisão
+considerou os critérios 1, 2, 3, 4, 6 e 7 previamente reconciliados como comprovados,
+e o critério 5 completo com debugger/fechamento. Os **sete critérios canônicos P1
+estão satisfeitos**, com os limites de evidência acima.
+
+Referências de evidência: preparação do harness, turno
+`01a0fa1d-4855-7dc0-97e3-c30f441118e4` / execução
+`exec-117cf7d8-4299-44da-ad05-23f409049a22`; build/assinatura/instalação,
+`01a0fa3f-c45d-7d71-9771-104375ea39b5` / execução
+`exec-cc925fed-f788-44c7-a07b-4a44e6c84aec`; launch posterior e estabilidade,
+`01a0fa51-646a-7b22-8dad-276a7d76689e` / execução
+`exec-62ab0bba-a408-4055-be9e-c20136a3cad8`; revisão P1D APPROVE,
+`01a0fa58-24f1-7602-a8f9-deea0153508c`; revisão final APPROVE,
+`01a0fa79-f351-7791-bdf1-8871179bf793`. Confirmações visuais e de debugger/Stop
+são relatos do proprietário na sequência revisada, sem dados pessoais registrados.
+
+**Limites e próximo gate:** captura/medição **NOT_RUN**; P2 persistência e P3 captura
+**NOT_RUN**, sujeitos a autorização própria. P1 READY não satisfaz o gate completo
+do NC-01 nem comprova câmera, áudio, persistência ou qualquer TAKE-A. Nenhum TAKE-A
+promovido; produto **NÃO IMPLEMENTADO**; stack **NÃO selecionada**. O harness não
+define Swift/SwiftUI como stack do produto. P1B continua PARTIAL no seu escopo
+histórico; a prontidão completa decorre das evidências posteriores. Nenhuma operação
+adicional de app, toolchain ou Vids foi realizada neste registro documental.
