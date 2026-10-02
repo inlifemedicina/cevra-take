@@ -106,6 +106,26 @@ Readonly info não é CAMERA READY nem prova de captura. Não tocar botões ou i
 6. Ponte coleta somente evidência autorizada fora do Git, confere fixtures P2 e reporta
    PASS/FAIL/PARTIAL/BLOCKED. Não repetir clipe, apagar originais ou iniciar próximo teste.
 
+## Encerramento limitado por prazo — correção da revisão
+
+O head inicial `cbb8fcd` recebeu REQUEST_CHANGES: Parar em STARTING mudava a fase
+para FINALIZING e desarmava o timeout se callback de início/fim não chegasse.
+Corrigido por gate de prazo separado da fase de UI: 5 s para confirmação de início,
+5 s para callback após stop explícito e teto de segurança 35 s (30 + 5) após início
+para callback final ausente. Stop-before-start mantém prazo; background/dismissal
+em finalização ainda sem callback invalida a operação, interrompe a sessão e preserva
+qualquer arquivo parcial. Callback tardio nunca autoriza persistência/sucesso.
+Arquivo só é inspecionado após didFinishRecording válido; finalização de metadata
+já depois de callback não reativa sensores. Esses prazos são contenção de sessão
+sem callback, não medição ou requisito comercial de latência.
+
+Quatro casos adicionais: stop-before-start/sem callback/late callback, ausência de
+finish depois de start e stop, background durante stop, finalização válida/duplicação.
+11 testes P3 PASS, zero falhas, 0,619 s. Store/SHA/Model não alterados nesse delta;
+regressão P2 não repetida sem motivo. Link iOS otimizado atualizado PASS sem execução.
+Revisão do novo head ainda PENDING; nenhum push/operação de aparelho autorizado por
+resultado unitário.
+
 ## Validação local e gate
 
 30 XCTest (23 regressões + 7 casos P3), zero falhas, 30,565 s. Regressão P2 justificada

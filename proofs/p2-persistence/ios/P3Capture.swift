@@ -107,6 +107,9 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private var failure:P3Error?
     private var observers:[NSObjectProtocol]=[]
     private var startTimeout:DispatchWorkItem?
+    private var finishTimeout:DispatchWorkItem?
+    private var captureTimeout:DispatchWorkItem?
+    private var deadline=P3RecordingDeadline()
     private var watchdog:DispatchSourceTimer?
     private var configured=false
     private var audioActive=false
@@ -219,25 +222,30 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             guard mkdir(dir.path,0o700)==0 else { throw P3Error.destinationExists }
             try p3ExclusiveJSON(["protocol":"P3-MIN-001","source":"capture.mov","freeBeforeBytes":String(free)],at:dir.appendingPathComponent("capture.claim.json"))
             let file=dir.appendingPathComponent("capture.mov")
-            guard !FileManager.default.fileExists(atPath:file.path),self.state.accept(.record) else { throw P3Error.destinationExists }
+            guard !FileManager.default.fileExists(atPath:file.path),self.state.accept(.record),self.deadline.begin() else { throw P3Error.destinationExists }
             self.run=dir;self.publish("STARTING — um clipe local, não repetir comando")
             self.output.startRecording(to:file,recordingDelegate:self)
             let timeout=DispatchWorkItem { [weak self] in
-                guard let self,self.state.phase == .starting else { return };self.fail(.recording)
+                guard let self,self.deadline.startExpired() else { return };self.fail(.recording)
             }
             self.startTimeout=timeout;self.q.asyncAfter(deadline:.now()+5,execute:timeout)
         } catch let e as P3Error { self.fail(e) } catch { self.fail(.io) }
     } }
-    func stopByHuman() { q.async {
-        guard self.state.accept(.stop) else { return }
+    func stopByHuman() { q.async { [self] in
+        guard self.state.accept(.stop),self.deadline.requestStop() else { return }
         self.publish("FINALIZING — parada solicitada; duração curta não recebe PASS")
+        let timeout=DispatchWorkItem { [weak self] in
+            guard let self,self.deadline.finishExpired() else { return };self.fail(.recording)
+        }
+        self.finishTimeout=timeout;self.q.asyncAfter(deadline:.now()+5,execute:timeout)
         if self.output.isRecording { self.output.stopRecording() }
     } }
     func suspend() { q.async {
-        if [.permission,.preparing,.ready,.starting,.recording].contains(self.state.phase) { self.fail(.interruption) }
+        if [.permission,.preparing,.ready,.starting,.recording].contains(self.state.phase) ||
+           (self.state.phase == .finalizing && !self.deadline.finished) { self.fail(.interruption) }
     } }
     private func fail(_ error:P3Error) {
-        failure=error;state.accept(.fail);startTimeout?.cancel();watchdog?.cancel();watchdog=nil
+        failure=error;deadline.cancel();state.accept(.fail);startTimeout?.cancel();finishTimeout?.cancel();captureTimeout?.cancel();watchdog?.cancel();watchdog=nil
         publish("FAIL: "+error.rawValue+" — original preservado, sem sucesso declarado")
         if output.isRecording { output.stopRecording() }
         shutdown()
@@ -252,11 +260,15 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     }
     func fileOutput(_ output:AVCaptureFileOutput,didStartRecordingTo url:URL,from connections:[AVCaptureConnection]) {
         q.async { [self] in
-            guard self.state.accept(.started) else {
-                if self.output.isRecording { self.output.stopRecording() }
-                self.shutdown();return
+            guard self.deadline.startCallback(),self.state.accept(.started) else {
+                self.fail(.recording);return
             }
             self.startTimeout?.cancel();self.publish("RECORDING — parada automática em 30 s")
+            let completeTimeout=DispatchWorkItem { [weak self] in
+                guard let self,self.deadline.completionExpired() else { return };self.fail(.recording)
+            }
+            self.captureTimeout=completeTimeout
+            self.q.asyncAfter(deadline:.now()+P3Limits.seconds+5,execute:completeTimeout)
             let timer=DispatchSource.makeTimerSource(queue:self.q)
             timer.schedule(deadline:.now()+0.5,repeating:0.5)
             timer.setEventHandler { [weak self] in
@@ -274,9 +286,9 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             (ns?.userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool == true)
         let good=error == nil || durationEnd
         q.async {
-            self.startTimeout?.cancel();self.watchdog?.cancel();self.watchdog=nil
+            self.startTimeout?.cancel();self.finishTimeout?.cancel();self.captureTimeout?.cancel();self.watchdog?.cancel();self.watchdog=nil
             self.shutdown()
-            guard self.failure == nil,good,self.state.accept(.finished),let root=self.run else { self.fail(self.failure ?? .recording);return }
+            guard self.failure == nil,good,self.deadline.finishCallback(),self.state.accept(.finished),let root=self.run else { self.fail(self.failure ?? .recording);return }
             self.publish("FINALIZING — validar arquivo e persistir")
             Task.detached(priority:.utility) {
                 do {

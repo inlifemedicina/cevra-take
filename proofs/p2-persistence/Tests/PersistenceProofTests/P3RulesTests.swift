@@ -54,6 +54,26 @@ final class P3RulesTests: XCTestCase {
         let multiple=Snapshot(formatVersion:1,projectID:p3.projectID,revisions:p3.revisions,takes:p3.takes+p3.takes,originals:p3.originals)
         XCTAssertThrowsError(try multiple.validate())
     }
+    func testStopBeforeStartKeepsDeadlineAndRejectsLateCallbacks() {
+        var d=P3RecordingDeadline();XCTAssertTrue(d.begin());XCTAssertTrue(d.requestStop())
+        XCTAssertTrue(d.startExpired());XCTAssertTrue(d.invalidated)
+        XCTAssertFalse(d.startCallback());XCTAssertFalse(d.finishCallback())
+    }
+    func testStopAfterStartWithoutFinishTimesOutAndBackgroundInvalidates() {
+        var d=P3RecordingDeadline();XCTAssertTrue(d.begin());XCTAssertTrue(d.startCallback())
+        XCTAssertTrue(d.requestStop());XCTAssertTrue(d.finishExpired());XCTAssertFalse(d.finishCallback())
+        var background=P3RecordingDeadline();XCTAssertTrue(background.begin());XCTAssertTrue(background.requestStop())
+        background.cancel();XCTAssertFalse(background.startCallback());XCTAssertFalse(background.finishCallback())
+    }
+    func testAbsentAutomaticFinishHasDeadlineAndNoLateSuccess() {
+        var d=P3RecordingDeadline();XCTAssertTrue(d.begin());XCTAssertTrue(d.startCallback())
+        XCTAssertTrue(d.completionExpired());XCTAssertFalse(d.finishCallback())
+    }
+    func testNormalFinishDisarmsDeadlinesAndDuplicateCallbacks() {
+        var d=P3RecordingDeadline();XCTAssertTrue(d.begin());XCTAssertTrue(d.startCallback())
+        XCTAssertTrue(d.requestStop());XCTAssertTrue(d.finishCallback());XCTAssertTrue(d.finished)
+        XCTAssertFalse(d.startExpired());XCTAssertFalse(d.finishExpired());XCTAssertFalse(d.completionExpired());XCTAssertFalse(d.finishCallback())
+    }
     func testP3FilePersistenceUsesUnchangedStoreWithRealFlag() throws {
         let dir=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at:dir,withIntermediateDirectories:false)

@@ -44,3 +44,37 @@ public enum P3Limits {
                  takes: [Take(id: "T", revisionID: "R1", originalID: "O", synthetic: false)], originals: [original])
     }
 }
+
+// Deadline eligibility survives stop-before-start, independently of UI phase.
+// Once invalidated, no late recording callback can authorize persistence/success.
+public struct P3RecordingDeadline: Sendable {
+    private var issued=false
+    private var started=false
+    private var stopped=false
+    public private(set) var finished=false
+    public private(set) var invalidated=false
+    public init() {}
+    public mutating func begin() -> Bool {
+        guard !issued,!invalidated else { return false };issued=true;return true
+    }
+    public mutating func startCallback() -> Bool {
+        guard issued,!started,!stopped,!finished,!invalidated else { return false }
+        started=true;return true
+    }
+    public mutating func requestStop() -> Bool {
+        guard issued,!stopped,!finished,!invalidated else { return false };stopped=true;return true
+    }
+    public mutating func finishCallback() -> Bool {
+        guard issued,!finished,!invalidated else { return false };finished=true;return true
+    }
+    public mutating func startExpired() -> Bool {
+        guard issued,!started,!finished,!invalidated else { return false };invalidated=true;return true
+    }
+    public mutating func finishExpired() -> Bool {
+        guard issued,stopped,!finished,!invalidated else { return false };invalidated=true;return true
+    }
+    public mutating func completionExpired() -> Bool {
+        guard issued,!finished,!invalidated else { return false };invalidated=true;return true
+    }
+    public mutating func cancel() { invalidated=true }
+}
