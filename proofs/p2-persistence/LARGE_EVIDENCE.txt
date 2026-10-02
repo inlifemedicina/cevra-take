@@ -50,3 +50,18 @@ No new security resource needed/claimed for signed bridge diagnostic builds.
 Integral hardening/documentary/sanitization gate PENDING; no merge/final physical PASS.
 P2_GLOBAL NOT_READY; TAKE-A unchanged; P3/capture/audio NOT_RUN.
 Private logs/provenance stay outside Git; this summary contains synthetic evidence only.
+
+2026-10-02 subsequent FIX-01 physical execution, frozen code ddb6329:
+Seed PASS49events5339bytes; traceSHA15d394820cd5c22d0395500388661db2ee9e601bc906e2b0eb04e97b0ae0c213.
+Stop P2/absence confirmed; separate-process roundtrip PASS285events30853bytes,8phases.
+TraceSHA947141b015cb179cbc6b69da85208808cf1538241a05443b9561e854282f1725.
+One physical content.recheck.pass; zero reject predicates.
+sourceRemoved/overwriteRejected=true; R1/R2,T->R1,33558528/expectedSHA preserved.
+Manifest v1 exact/self-contained; R2/export/restored metadata byte-identical.
+Prior small13/interrupted1/failed6+priorDIAG001/causalfailed7 preserved by bridge comparison.
+Executor verified51checksums; checksum manifestSHA6b232ee1d3c77fab021e7b0ee7b115344da57f853f622ad30482bb97fbe479d1.
+Executor also verified six originals/sources and metadata equality in captured local copies.
+Physical corrected synthetic proof PASS; integral technical review APPROVE for ddb6329/protocol.
+Final documentary/sanitized PR delta review PENDING in this checkpoint.
+No Mac tests repeated for this documentary delta; code unchanged.
+P2_GLOBAL NOT_READY; no TAKE-A promoted; P3/camera/audio/IA NOT_RUN; no Vids operation.

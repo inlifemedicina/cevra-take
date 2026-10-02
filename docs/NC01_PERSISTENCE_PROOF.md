@@ -414,7 +414,7 @@ constitui prova física corretiva.
 P2_GLOBAL NOT_READY, P3 NOT_RUN; prova física 4096 bytes anterior preservada.
 
 
-### Diagnóstico, reprodução e correção — checkpoint de 02/10/2026
+### Diagnóstico, reprodução e correção — checkpoint pré-prova de 02/10/2026
 
 **Base preservada:** main `ec441ad840a6209c2f43c1a2e53daee7cdc661bd`;
 branch `codex/p2-physical-evidence`; código corretivo congelado em
@@ -431,7 +431,7 @@ somente dados sintéticos e resultados delimitados.
 | `b205166` — uma nova fixture causal autorizada | `P2-LARGE-RUN-CAUSAL-01`, 49 eventos, seed completo e nenhum reject | PASS seed; não fecha roundtrip |
 | `0e4c7b6` — roundtrip instrumentado em processo novo | 103 eventos; R1 recuperada e R2 publicada, rejeição em postcommitR2 | FAIL: `reject.fstatChanged`, somente ctime diferente |
 | `ddb6329` — correção com revalidação | 23 XCTest Mac, zero falhas, 29,277 s; release build e typecheck iOS dos quatro fontes PASS | PASS Mac; revisão independente APPROVE do delta corretivo |
-| `ddb6329` — fixture corretiva `P2-LARGE-RUN-FIX-01` | Seed e roundtrip separados, aguardando disponibilidade coordenada do aparelho | NOT_RUN físico; gate integral/documental pendente |
+| `ddb6329` — fixture corretiva `P2-LARGE-RUN-FIX-01` | Seed e roundtrip separados executados; evidência consolidada abaixo | PASS observado; revisão integral/documental pendente |
 
 Na reprodução `0e4c7b6`, hash obtido e esperado foram
 `57b8d6a829e70202a5510092acdf47119ca9a803c5b8c5ca697b41a28bdc14d2`;
@@ -459,7 +459,7 @@ instrumentação/diagnósticos; 23 em `ddb6329`, todas sem falhas nas respectiva
 execuções Mac. Testes sintéticos/injetados não provam power loss, escrita parcial,
 ENOSPC/EACCES reais ou performance de mídia no iPhone.
 
-**Próximo protocolo, ainda NOT_RUN:** RUN corretivo novo e exclusivo; seed com relatório
+**Protocolo pré-registrado, histórico anterior à execução abaixo:** RUN corretivo novo e exclusivo; seed com relatório
 `FIX-SEED-001`; somente após PASS, encerrar exclusivamente P2, confirmar ausência e
 lançar roundtrip com `FIX-ROUNDTRIP-001` em novo processo. A ponte verifica modo pelo
 registro start; `--terminate-existing` evita instância anterior. Uma UI anterior não
@@ -471,8 +471,53 @@ As políticas aprovadas de recuperação com aviso, pacote portátil e retençã
 canônicas em [PRODUCT_AND_PROFILES.md](PRODUCT_AND_PROFILES.md); não implementadas
 pela UI sintética. O proof em pasta não é decisão de UX final.
 
-**Estado vigente:** física 4096 bytes PASS/APPROVE no snapshot anterior;
-large iOS tem FAIL reproduzido e correção física NOT_RUN. Gate integral do hardening e
+**Estado nesse checkpoint pré-prova — histórico:** física 4096 bytes PASS/APPROVE;
+large iOS tinha FAIL reproduzido e correção física NOT_RUN. Gate integral do hardening e
 sanitização/documentação **PENDING**; checkpoint apto a revisão, não a merge.
 P2_GLOBAL NOT_READY; NC-01 INICIADO; produto NÃO IMPLEMENTADO; nenhuma stack final,
 TAKE-A promovido, instalação adicional ou operação Vids. P3/câmera/áudio/IA NOT_RUN.
+
+
+### Prova física corretiva FIX-01 — PASS, revisão técnica integral APPROVE
+
+Executada pela ponte em 02/10/2026, após confirmação humana de disponibilidade;
+iPhone 16 Pro Max/iOS 27.2, fontes congelados `ddb6329`, perfil/identidade existentes.
+Seed em um processo; parada exclusiva P2 e ausência confirmadas; roundtrip em outro
+processo. Aparelho liberado após a coleta; o executor conferiu artefatos locais, sem
+operar o aparelho ou repetir testes Mac.
+
+| Evidência da fixture sintética | Resultado observado |
+|---|---|
+| Seed | PASS; 49 eventos, 5339 bytes; nenhum reject |
+| Roundtrip | PASS; 285 eventos, 30853 bytes; oito fases completas, nenhum reject |
+| Guarda corretiva | Uma ocorrência física `content.recheck.pass`, exercitando a releitura após mudança ctime |
+| Integridade/procedência | Originais de 33558528 bytes com SHA esperado; duas gerações R1/R2; T→R1 preservado |
+| Export/restore | Manifesto v1 com conjunto exato metadata/original; metadata R2/export/restored byte-idênticas; restaurado com uma geração |
+| Independência da fonte | Fonte sintética externa desse novo RUN removida só após export íntegro; restore posterior PASS |
+| Overwrite | Destino existente recusado; `overwriteRejected=true` |
+| Preservação | Fixture pequena (13 arquivos), interrompida (1), primeiro FAIL (6 + DIAG-001 anterior) e FAIL causal (7) inalterados conforme comparação da ponte |
+
+SHA-256 trace seed:
+`15d394820cd5c22d0395500388661db2ee9e601bc906e2b0eb04e97b0ae0c213`;
+trace roundtrip:
+`947141b015cb179cbc6b69da85208808cf1538241a05443b9561e854282f1725`.
+O executor recalculou os **51 checksums** do pacote final, sem divergências;
+manifesto de checksums SHA-256:
+`6b232ee1d3c77fab021e7b0ee7b115344da57f853f622ad30482bb97fbe479d1`.
+Também conferiu separadamente seis arquivos original/fonte nas capturas e a igualdade
+metadata/export/restore. Logs, capturas e proveniência privada permanecem fora do Git.
+
+**P2_LARGE_FIXED_PHYSICAL PASS observado** no protocolo sintético, não prova mídia real,
+power loss, escrita parcial iOS ou ENOSPC/EACCES reais. **Revisão técnica integral
+APPROVE**, restrita à correção `ddb6329` e ao protocolo sintético, incluindo os 51
+checksums e preservação. Proveniência privada retida fora do Git. Gate documental
+e delta final sanitizado do PR **PENDING** neste checkpoint. A falha inicial permanece
+com predicado historicamente UNRECORDED; o PASS corretivo não reescreve esse histórico.
+
+Publicação sanitizada de continuidade: [PR #10](https://github.com/inlifemedicina/cevra-take/pull/10),
+DRAFT/WIP; branch `codex/p2-storage-checkpoint`, snapshot inicial sanitizado
+`ddff7b484d65b613e3646ce443b1d0cfc0ed9014` sobre main `ec441ad`.
+História de execução local preservada e não publicada por conter proveniência privada;
+só deltas sanitizados entram na branch pública. Merge não é autorizado por este registro.
+P2_GLOBAL NOT_READY, NC-01 INICIADO, P3/captura/áudio/IA NOT_RUN; nenhum TAKE-A promovido,
+produto NÃO IMPLEMENTADO ou stack final escolhida. Limites e políticas anteriores mantidos.

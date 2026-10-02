@@ -367,5 +367,6 @@ NOT_RUN. O checkpoint P0 acima permanece histórico; nenhuma decisão D1–D8,
 threshold de captura ou aceite global foi alterado.
 
 Hardening posterior: large Mac PASS (23 testes); iOS roundtrip FAIL por guarda ctime,
-conteúdo íntegro; correção física NOT_RUN e gate integral pendente. Detalhes e limites
+conteúdo íntegro; correção física PASS no protocolo sintético e revisão técnica integral APPROVE;
+gate documental/delta final sanitizado pendente. Detalhes e limites
 no documento dono P2; P2_GLOBAL NOT_READY e P3 NOT_RUN permanecem.

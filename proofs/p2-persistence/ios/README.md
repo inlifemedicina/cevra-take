@@ -120,7 +120,7 @@ e, após reprodução/revisão corretiva, do protocolo FIX abaixo; não libera o
 ou integração sem os gates pertinentes.
 
 
-## Estado vigente e protocolo corretivo — código ddb6329
+## Protocolo corretivo pré-registrado — código ddb6329
 
 DIAG-001 read-only PASS; DIAG-002 NOT_RUN (Locked). Uma fixture causal posterior
 explicitamente autorizada teve seed PASS; roundtrip `0e4c7b6` FAIL postcommitR2 por
@@ -128,8 +128,8 @@ ctime isolado, com hash/tamanho/mtime corretos. Causa do primeiro FAIL historica
 não registrada; não extrapolar o predicado reproduzido para aquela execução.
 
 Correção `ddb6329` preserva guardas e rehash completo no mesmo fd se só ctime mudar.
-Mac 23 testes PASS e revisão independente do delta APPROVE; prova física corretiva
-**NOT_RUN**. A ponte já compilou/assinou o app corretivo com identidade e perfil
+Mac 23 testes PASS e revisão independente do delta APPROVE; no preparo histórico,
+a prova física corretiva estava **NOT_RUN**; resultado posterior abaixo. A ponte já compilou/assinou o app corretivo com identidade e perfil
 compatíveis existentes, sem provisioning updates ou novos recursos de segurança.
 Sem repetição de P1; a ponte coordena o aparelho.
 
@@ -154,3 +154,18 @@ integral após resultado; sem PASS automático por build, typecheck ou UI.
 P2_GLOBAL NOT_READY; gate integral e revisão documental/sanitização pendentes.
 Produto NÃO IMPLEMENTADO; P3/captura/áudio/IA NOT_RUN. Políticas de produto pertencem a
 [PRODUCT_AND_PROFILES.md](../../../docs/PRODUCT_AND_PROFILES.md); esse harness não as implementa.
+
+
+## Resultado FIX-01 — execução física concluída
+
+Seed PASS (49 eventos/5339 bytes); parada exclusiva P2/ausência comprovadas e roundtrip
+PASS em processo novo (285 eventos/30853 bytes), oito fases, sourceRemoved e
+overwriteRejected true. Uma revalidação física content.recheck.pass, nenhum reject.
+33558528 bytes/SHA esperado, T→R1, R1/R2, manifest v1 e metadata/export/restore iguais;
+RUNs anteriores preservados. Evidência/51 checksums conferidos pelo executor e
+registrados no [documento dono P2](../../../docs/NC01_PERSISTENCE_PROOF.md).
+
+PASS físico restrito à fixture, não mídia/câmera/áudio ou escrita parcial iOS.
+Revisão técnica integral APPROVE no recorte sintético; gate documental/delta final
+sanitizado pendente. PR #10 DRAFT/WIP; este documento não autoriza merge.
+P2_GLOBAL NOT_READY; P3 NOT_RUN. Não repetir FIX-01 ou iniciar próxima prova automaticamente.
