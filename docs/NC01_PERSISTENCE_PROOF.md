@@ -219,15 +219,22 @@ requer conta do Apple Developer Program para gerenciamento, com limitações par
 pessoal. Isso não verifica membership/entitlements da conta atual: nenhum Accounts,
 portal autenticado ou dado pessoal foi inspecionado.
 
-**BLOCKED no mecanismo de provisioning restrito:** não foi demonstrado caminho
-oficial para esta Personal Team que garanta somente App ID/profile, sem possibilidade
-de novo certificado. Não usar `-allowProvisioningUpdates` em automatic signing, não
+**BLOCKED na rota manual observada:** inspeção CUA do projeto P2 mostrou signing
+automático desativado, Provisioning Profile e Signing Certificate em `None`, e
+“requires a provisioning profile”. `Download Profile…` apresentou “No Valid Teams —
+Unable to find any valid teams”; Select Profile desabilitado e uma tentativa sem
+mudança. Cancel encerrou a seleção sem criar/baixar perfil, App ID ou certificado.
+Isso não prova inexistência de perfil no portal, ausência de certificado/chave no
+host ou impossibilidade universal. Uma rota oficial limitada aos recursos existentes
+ainda não foi estabelecida. Não usar `-allowProvisioningUpdates` em automatic signing, não
 ativar automaticamente esse fluxo ou contratar membership como contorno. Conforme
 STOP explícito do pacote, handoff pessoal no Xcode em vez de ampliar a autorização.
 
-**Handoff único:** abrir o projeto P2 existente, selecionar target `CEVRA Take
-Persistence Proof` → Signing & Capabilities e resolver pessoalmente o signing do bundle
-P2 com a Team/certificado atuais, sem Run; parar se não for possível manter o certificado
+**Próxima ação proposta, sem urgência:** no projeto P2 existente, target `CEVRA Take
+Persistence Proof` → Signing & Capabilities, disponibilizar/importar perfil oficial
+compatível ou identificar uma rota oficial limitada à Team, aparelho e certificado
+existentes. O handoff pessoal é a ação escolhida, não prova de exclusividade técnica.
+Não repetir Download Profile sem mudança de condição; não usar Run; parar se não for possível manter o certificado
 existente ou surgir criação de certificado, trust, componente, pagamento ou termo novo.
 Confirmar somente “signing P2 resolvido”; não transmitir identificadores de conta/perfil.
 Sem urgência para essa interação; nenhum processo fica aguardando o proprietário.
@@ -270,3 +277,19 @@ package e testes inalterados. P2_PHYSICAL BLOCKED/NOT_RUN; P2_GLOBAL NOT_READY; 
 NOT_RUN. Próxima ação humana pode ocorrer depois: resolver signing P2 no Xcode com
 recursos existentes, sem Run; não aguardar em processo/tool nem ampliar autorização.
 Revisão independente obrigatória antes de publicar o registro/fechar evidência física.
+
+## Revisão e fechamento documental desta rodada
+
+**Revisão independente: APPROVE**, restrita aos registros documentais, ao build local
+sem assinatura e aos limites de provisioning. Turno
+`01a0fad4-0e83-7770-a573-b6c782718fd5`, resposta
+`msg_00ea4dcf428faf0e016abf3084f8cc87d2b432eaba871f84b6`.
+A observação CUA acima veio do registro sanitizado do bridge, conferido pelo executor;
+não foi repetida pelo executor. Build e testes Mac não repetidos: código inalterado.
+
+A recusa pré-tool de coordenação é histórica e foi superada pelo reenvio da autorização
+humana original; não foi rejeição automática de sandbox/approval e não revogou a
+autorização de App ID/perfil P2. Ambos continuam autorizados, mas **não criados**.
+A revisão permite o fechamento documental planejado; não fecha a evidência física.
+P1 READY; P2_MAC_PROOF PASS; local_unsigned_iOS_build PASS; P2_PHYSICAL BLOCKED/NOT_RUN;
+P2_GLOBAL NOT_READY; P3 NOT_RUN. Nenhuma operação Apple/aparelho nesta rodada documental.
