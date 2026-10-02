@@ -56,6 +56,24 @@ Vídeo pro (foco/exposição/WB, instrumentos e depois Log/HDR/codecs) exige cap
 prova por aparelho. Usar câmera traseira com leitura pode precisar de segundo monitor
 ou equipamento; não fingir resolver uma limitação física só pela interface.
 
+## Recuperação, exportação e retenção — decisões aprovadas
+
+Decisões do proprietário em 02/10/2026, separadas da prova técnica:
+
+- Após interrupção, recuperar automaticamente o último commit válido e mostrar aviso
+  explícito; escrita incompleta nunca é apresentada como sucesso. Não iniciar gravação
+  automaticamente ao recuperar.
+- Exportação para o usuário: um único pacote portátil e self-contained com manifesto,
+  metadata e originais; restauração em destino novo. Pasta pode continuar como
+  representação interna/debug, sem substituir essa superfície de produto.
+- Nunca apagar originais automaticamente para liberar espaço. Só caches/derivados
+  descartáveis e regeneráveis são elegíveis para descarte automático; remover um
+  original exige ação explícita do usuário e confirmação.
+
+Essas políticas preservam confiança, portabilidade e procedência; não escolhem stack,
+formato final de banco ou container. Registro de decisão não implementa UX/lifecycle;
+[prova de persistência](NC01_PERSISTENCE_PROOF.md) delimita a evidência disponível.
+
 ## Não objetivos iniciais
 
 Segundo editor profissional/timeline, plataforma social própria, backend obrigatório,

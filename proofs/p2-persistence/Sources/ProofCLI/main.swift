@@ -17,6 +17,14 @@ if let spec=ProcessInfo.processInfo.environment["P2_FAULT"] {
 }
 do {
     switch a[1] {
+    case "large-seed": try LargeFixture.seed(URL(fileURLWithPath:a[2]))
+    case "large-roundtrip": try LargeFixture.recoverRoundtrip(URL(fileURLWithPath:a[2]))
+    case "large-verify":
+        try LargeFixture.verify(URL(fileURLWithPath:a[2]),expected:LargeFixture.snapshot(r2:true))
+        FileHandle.standardOutput.write(try canonical(LargeFixture.snapshot(r2:true)))
+    case "large-r2":
+        let (_,files)=try store.loadFiles()
+        try store.commitFiles(LargeFixture.snapshot(r2:true),sources:files,fault:fault)
     case "seed": try store.commit(Fixture.r1,payloads:["O":Fixture.original],fault:fault)
     case "r2": try store.commit(Fixture.r2,payloads:["O":Fixture.original],fault:fault)
     case "verify":

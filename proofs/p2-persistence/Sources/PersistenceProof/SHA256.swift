@@ -14,37 +14,65 @@ public enum SHA256 {
         0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
     ]
     private static func rotate(_ x: UInt32, _ n: UInt32) -> UInt32 { (x >> n) | (x << (32 - n)) }
-    public static func hex(_ data: Data) -> String {
-        var bytes = [UInt8](data)
-        let bits = UInt64(bytes.count) * 8
-        bytes.append(0x80)
-        while bytes.count % 64 != 56 { bytes.append(0) }
-        for n in stride(from: 56, through: 0, by: -8) { bytes.append(UInt8(truncatingIfNeeded: bits >> n)) }
-        var h: [UInt32] = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]
-        for offset in stride(from: 0, to: bytes.count, by: 64) {
+    public struct Incremental {
+        private var state: [UInt32] = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]
+        private var pending = [UInt8]() // At most one 64-byte block, never the payload.
+        private var count: UInt64 = 0
+        public init() { pending.reserveCapacity(64) }
+        public mutating func update(_ data: Data) {
+            data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
+                count = count &+ UInt64(bytes.count)
+                var offset = 0
+                if !pending.isEmpty {
+                    let n = min(64-pending.count, bytes.count)
+                    pending.append(contentsOf: bytes.prefix(n)); offset = n
+                    if pending.count == 64 {
+                        let block = pending
+                        block.withUnsafeBytes { compress($0) }; pending.removeAll(keepingCapacity:true)
+                    }
+                }
+                while bytes.count-offset >= 64 {
+                    compress(UnsafeRawBufferPointer(rebasing:bytes[offset..<offset+64])); offset += 64
+                }
+                pending.append(contentsOf:bytes.suffix(from:offset))
+            }
+        }
+        public func hex() -> String {
+            var final = self
+            let bits = count &* 8
+            var tail = Data([0x80])
+            while (pending.count+tail.count)%64 != 56 { tail.append(0) }
+            for n in stride(from:56,through:0,by:-8) { tail.append(UInt8(truncatingIfNeeded:bits >> n)) }
+            final.update(tail)
+            return final.state.map { String(format:"%08x",$0) }.joined()
+        }
+        private mutating func compress(_ block: UnsafeRawBufferPointer) {
             var w = [UInt32](repeating: 0, count: 64)
             for i in 0..<16 {
-                for j in 0..<4 { w[i] = (w[i] << 8) | UInt32(bytes[offset + i * 4 + j]) }
+                for j in 0..<4 { w[i] = (w[i] << 8) | UInt32(block[i * 4 + j]) }
             }
             for i in 16..<64 {
                 let a = w[i-15], b = w[i-2]
-                let s0 = rotate(a,7) ^ rotate(a,18) ^ (a >> 3)
-                let s1 = rotate(b,17) ^ rotate(b,19) ^ (b >> 10)
+                let s0 = SHA256.rotate(a,7) ^ SHA256.rotate(a,18) ^ (a >> 3)
+                let s1 = SHA256.rotate(b,17) ^ SHA256.rotate(b,19) ^ (b >> 10)
                 w[i] = w[i-16] &+ s0 &+ w[i-7] &+ s1
             }
-            var a=h[0], b=h[1], c=h[2], d=h[3], e=h[4], f=h[5], g=h[6], t=h[7]
+            var a=state[0], b=state[1], c=state[2], d=state[3], e=state[4], f=state[5], g=state[6], t=state[7]
             for i in 0..<64 {
-                let s1 = rotate(e,6) ^ rotate(e,11) ^ rotate(e,25)
+                let s1 = SHA256.rotate(e,6) ^ SHA256.rotate(e,11) ^ SHA256.rotate(e,25)
                 let ch = (e & f) ^ (~e & g)
-                let t1 = t &+ s1 &+ ch &+ k[i] &+ w[i]
-                let s0 = rotate(a,2) ^ rotate(a,13) ^ rotate(a,22)
+                let t1 = t &+ s1 &+ ch &+ SHA256.k[i] &+ w[i]
+                let s0 = SHA256.rotate(a,2) ^ SHA256.rotate(a,13) ^ SHA256.rotate(a,22)
                 let maj = (a & b) ^ (a & c) ^ (b & c)
                 let t2 = s0 &+ maj
                 t=g; g=f; f=e; e=d &+ t1; d=c; c=b; b=a; a=t1 &+ t2
             }
             let vals=[a,b,c,d,e,f,g,t]
-            for i in 0..<8 { h[i] = h[i] &+ vals[i] }
+            for i in 0..<8 { state[i] = state[i] &+ vals[i] }
+
         }
-        return h.map { String(format:"%08x", $0) }.joined()
+    }
+    public static func hex(_ data: Data) -> String {
+        var hash=Incremental();hash.update(data);return hash.hex()
     }
 }

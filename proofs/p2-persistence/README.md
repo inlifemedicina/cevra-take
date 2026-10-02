@@ -32,7 +32,8 @@ Hashes detectam corrupção; não autenticam atacante que possa recalculá-los.
 
 Falhas nos sete checkpoints de commit e dois de export são injetadas por `P2_FAULT`:
 `death` causa SIGKILL real do processo; `denied`/`noSpace` lançam EACCES/ENOSPC no ponto
-especificado. Durante escrita, a injeção ocorre após metade do payload, antes de fsync.
+especificado. Durante escrita inline, a injeção ocorre após metade do payload; no caminho de
+arquivo, após o primeiro chunk (até 64 KiB), antes de fsync.
 Não há disco preenchido nem permissão real revogada. Antes da publicação de CURRENT,
 recuperação deve retornar R1; depois, R2, mesmo se o comando interrompido não retornou
 sucesso. O chamador precisa reabrir para reconciliar esse resultado indeterminado.
@@ -53,8 +54,9 @@ P2_PROOF_EXECUTABLE="$scratch/debug/p2-proof" swift test --scratch-path "$scratc
 Testes criam apenas diretórios temporários próprios e os removem ao terminar. A CLI
 oferece `seed`, `r2`, `verify`, `export`, `restore`; argumentos são destinos de teste
 locais. Erros públicos são códigos, sem paths. `verify` emite somente fixture JSON.
-Não apontar para dados/projetos reais. Fixture, IDs e limite de leitura de 16 MiB
-são deliberadamente estreitos; não constituem formato de produto.
+Não apontar para dados/projetos reais. Fixtures e IDs são deliberadamente estreitos;
+não constituem formato de produto. `large-seed`, `large-roundtrip`, `large-verify` e
+`large-r2` são comandos explícitos para a nova fixture sintética separada.
 
 ## Limites
 
@@ -66,5 +68,32 @@ de implementação criptográfica de produto. No máximo um projeto sintético p
 K usa stub de IA ausente/falhando apenas no teste; não verifica provider/modelo real.
 
 Resultado e ownership: [NC01_PERSISTENCE_PROOF.md](../../docs/NC01_PERSISTENCE_PROOF.md).
-P2 físico DEFERRED/NOT_RUN por iPhone desconectado pelo proprietário. P2_GLOBAL
-NOT_READY; P3/captura não iniciado. Nenhum TAKE-A global é promovido por esses testes.
+P2 físico de 4096 bytes PASS/revisão APPROVE; desconexão é motivo histórico.
+P2_GLOBAL NOT_READY; P3/captura não iniciado. Nenhum TAKE-A global é promovido.
+
+## Hardening de originais grandes — contrato específico, formato v1 preservado
+
+`Store.MAX_INLINE_BYTES = 16 MiB`: orçamento **total** dos payloads de `commit(Data)`
+e `load(Data)`, mais limite por objeto metadata/head/manifest. Antes de qualquer
+staging, payload inline acima do orçamento ou metadata acima do limite lança
+`inlineTooLarge`. Uma coleção que exceda o orçamento total usa o caminho de arquivos,
+mesmo se cada arquivo for pequeno. Não é teto de mídia, nem limite novo para export/restore.
+
+`commitFiles`/`loadFiles` verificam originais por descritores de arquivo, tamanho
+representável por `Int` e hash; sem teto arbitrário de bytes. Stream de 64 KiB, leitura
+pelo fd validado (regular, `O_NOFOLLOW`, `fstat` antes/depois), rejeição de truncamento,
+bytes extras e mudança detectada durante leitura. SHA-256 incremental; buffers/chunks
+independentes do tamanho do arquivo. APIs Data pequenas permanecem disponíveis;
+`loadFiles` é o reader para qualquer original grande aceito. Não usar `load(Data)`
+para materializar mídia grande.
+
+Copiar/hash/fsync termina em staging antes de publicar CURRENT. Export e restore
+usam streaming e preservam manifest/schema v1, originais dentro do bundle e destino
+inexistente. Remover a fonte externa não quebra export/restore. Hash é integridade,
+não autenticação; alterações adversariais fora do lock não são prova de isolamento
+contra outro processo malicioso. URLs de `loadFiles` pertencem à geração validada;
+antes de usar conteúdo novamente, validar pelo store/describer.
+
+Nova fixture isolada: `P2-LARGE-001`, R1/R2, T→R1, O de 32 MiB + 4096 bytes;
+mesmo padrão determinístico. Nunca ampliar/resetar a fixture física antiga.
+Testes/resultados: [LARGE_EVIDENCE.txt](LARGE_EVIDENCE.txt).
