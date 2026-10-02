@@ -32,9 +32,10 @@ A etapa de criar R1 é explícita, sem reset/deleção de fixture existente.
 
 Não executado: não há perfil local compatível com o bundle P2 no checkpoint observado.
 Signing do P1 não autoriza nem habilita automaticamente outro bundle. Não reutilizar
-P1, alterar trust, criar/refresh perfil/certificado/App ID ou usar provisioning automático
-para contornar esse bloqueio. Uma autorização específica deve resolver o recurso
-faltante antes de prosseguir. Não instruir a usar Run ou signing automático enquanto
+P1, alterar trust ou criar certificado para contornar esse bloqueio. App ID/perfil P2
+foram posteriormente autorizados apenas com Team, aparelho e certificado existentes;
+ainda falta mecanismo oficial com esse escopo garantido ou resolução pessoal do
+signing. Não usar provisioning automático amplo. Não instruir a usar Run enquanto
 esse gate não estiver resolvido. Preparo inicial só validou sintaxe. Check posterior
 compilou o mesmo fonte/core com SDK iOS existente e destino genérico, signing
 desabilitado: build local PASS, artefato sem assinatura/profile. Nenhum install/launch
