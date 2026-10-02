@@ -3,7 +3,8 @@
 **Checkpoint:** 02/10/2026. **Base:** main `99f1de2a4b020cb75b8000e2ed335d3b72b0747d`,
 PR #10 incorporado. **Executor:** Codex / `gpt-6.1-sol` / `medium`, verificados nos
 metadados locais do turno; nenhuma configuração global alterada.
-**Estado:** P3 INICIADO somente em código/preparo; execução física **NOT_RUN**;
+**Estado:** P3 INICIADO; **P3_PREPARATION_READY** (instalação e informação readonly);
+câmera/microfone/gravação **NOT_RUN**, perfil físico e qualidade humana **PENDING**;
 revisão crítica **APPROVE** no fonte `702c20a86b5c8a0650dc4d5072db6d0c1534cd54`. P2_GLOBAL NOT_READY; produto NÃO IMPLEMENTADO;
 nenhuma stack final ou TAKE-A promovido. Este documento é dono do protocolo P3 mínimo.
 
@@ -150,3 +151,39 @@ Fontes oficiais Apple consultadas em 02/10/2026:
 API documentada não prova suporte ou execução do aparelho; essa evidência virá na etapa
 coordenada. Revisão independente crítica APPROVE no head `702c20a`; fontes congelados
 e manifesto verificados. Nenhuma gravação iniciada por esse gate.
+
+
+## Preparação no aparelho — instalação e readonly, sem sensores
+
+**Conferência de 02/10/2026:** ponte executou o preparo autorizado usando os seis fontes
+exatos `702c20a`; executor conferiu o consolidado privado e os dois manifestos de
+preservação, sem operar aparelho ou repetir testes. Fonte/testes/manifesto congelados.
+
+| Verificação de preparo | Resultado |
+|---|---|
+| Build assinado otimizado e assinatura strict no host | PASS |
+| Perfil, entitlements e cadeia do certificado existentes | Idênticos à baseline P2; sem provisioning updates, registro ou novo recurso |
+| Instalação | PASS no mesmo bundle; preservação das fixtures verificada |
+| Prontidão informativa P3-READY-001 | Relatório completo em processo confirmado; somente dados de espaço/estado, sem request/sessão/preview/captura |
+| Espaço medido no volume do container | **5.365.760.000 bytes**; mínimo requerido **1.208.741.824 bytes**; spaceGate PASS |
+| Estado das permissões | Câmera e microfone **notDetermined**; nenhuma solicitação feita |
+| Launch padrão em outro processo | Seguro, sem ativação de sensores |
+| Preservação P2 | Conjunto de caminhos, bytes e SHA dos **45 arquivos / 335.662.384 bytes** idêntico antes/depois; 13 pequenos e 32 large; nenhum reseed/deletion |
+
+Falha intermediária de sintaxe no verificador foi corrigida sem rebuild; verificação
+em sandbox encontrou erro de trust e a verificação strict no host confirmou o P3,
+sem relaxamento de strict ou mudança de trust. A cópia arquivada P2 com metadados
+Finder/resource-fork não é artefato de deployment, permaneceu intocada com hashes
+preservados. Logs, cadeias, dados do aparelho, PIDs e proveniência ficam fora do Git.
+
+**P3_PREPARATION_READY** significa somente harness instalado, gate de build/assinatura
+e leitura informativa concluídos; **não é CAMERA_READY nem CAPTURE_PASS**. Perfil real
+(back/1080p30/SDR/rota) ainda precisa ser verificado pelo fluxo humano de preparo.
+Permissões, preview, sessão e gravação aguardam disponibilidade e comandos explícitos
+do proprietário; áudio/imagem/reprodução humana PENDING. Espaço será medido novamente
+no código imediatamente antes da tomada; o valor acima não é reserva permanente.
+
+Nenhuma mudança de fonte/teste/harness nesta consolidação, nova execução Mac ou TAKE-A
+promovido. Produto NÃO IMPLEMENTADO; stack final não escolhida; P2_GLOBAL NOT_READY.
+O próximo passo é coordenar o momento humano do único clipe já autorizado, sem gravar
+agora, repetir P2 ou iniciar qualquer outro slice.
