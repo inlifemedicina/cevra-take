@@ -11,7 +11,7 @@
 **Revisão P2 Mac:** APPROVE, restrita à fixture declarada; limites em [NC01_PERSISTENCE_PROOF.md](NC01_PERSISTENCE_PROOF.md).
 **Fechamento documental P2 — snapshot físico 4096 bytes:** revisão independente do delta APPROVE; registro local concluído antes da publicação posterior no PR #10. Revisão física APPROVE recebida. Signing automático exclusivo P2 foi posteriormente autorizado e perfil compatível obtido/usado; não afirmar criação de novos recursos sem evidência. P3/captura NOT_RUN; P2 não fechado, NC-01 não concluído. Nenhuma stack final selecionada ou produto implementado.
 
-**Preparo P3 atual:** [NC01_CAPTURE_PROOF.md](NC01_CAPTURE_PROOF.md) registra harness mínimo opt-in e protocolo pré-registrado; código preparado e revisão crítica APPROVE no fonte `702c20a`; build/assinatura/install e readiness readonly pela ponte PASS — P3_PREPARATION_READY; sensores/captura NOT_RUN, perfil real e qualidade humana PENDING, aguardando comando humano coordenado. Nenhum PASS de produto ou próxima etapa automática.
+**P3 atual:** [NC01_CAPTURE_PROOF.md](NC01_CAPTURE_PROOF.md) registra protocolo e histórico: arquivo existente com perfil/integridade técnica PASS; reprodução humana FAIL (vídeo preto/não inicia), causa desconhecida; preview físico/sincronismo pendentes. Player estável/diagnóstico e uma nova tentativa isolada autorizada em preparação offline, NOT_PHYSICAL_READY; nenhum novo clipe executado ou aceite de produto promovido.
 
 ## Autoridade
 

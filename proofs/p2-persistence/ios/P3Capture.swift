@@ -114,6 +114,15 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private var watchdog:DispatchSourceTimer?
     private var configured=false
     private var audioActive=false
+    private let isRetry:Bool
+    private let baseURL:URL
+    private var previewConfirmed=false
+    @Published private(set) var previewHumanConfirmed=false
+    init(isRetry:Bool=false) {
+        self.isRetry=isRetry
+        self.baseURL=isRetry ? p3Base().appendingPathComponent("P3-RETRY-001",isDirectory:true) : p3Base()
+        super.init()
+    }
     private func publish(_ text:String) {
         let phase=state.phase
         DispatchQueue.main.async { self.phase=phase;self.status=text }
@@ -127,8 +136,15 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     }
     func prepareByHuman() {
         q.async {
-            guard !FileManager.default.fileExists(atPath:p3Base().appendingPathComponent("LATEST.json").path) else {
+            guard !FileManager.default.fileExists(atPath:self.baseURL.appendingPathComponent("LATEST.json").path) else {
                 self.publish("P3 já salvo — reabra sem ativar sensores; não repetir captura");return
+            }
+            guard self.state.phase == .idle else { return }
+            if self.isRetry {
+                do {
+                    try FileManager.default.createDirectory(at:self.baseURL,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
+                    try p3ExclusiveJSON(["protocol":"P3-MIN-001","attempt":"P3-RETRY-001"],at:self.baseURL.appendingPathComponent("ATTEMPT-RESERVED.json"))
+                } catch { self.fail(.io);return }
             }
             guard self.state.accept(.prepare) else { return }
             self.publish("PERMISSÕES — comando humano")
@@ -152,7 +168,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     }
     private func prepareSession() throws {
         guard safeThermal() else { throw P3Error.thermal }
-        let base=p3Base();try FileManager.default.createDirectory(at:base,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
+        let base=baseURL;try FileManager.default.createDirectory(at:base,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
         guard try p3Free(base)>=P3Limits.startSpace else { throw P3Error.lowSpace }
         guard let device=AVCaptureDevice.default(.builtInWideAngleCamera,for:.video,position:.back),
               let audio=AVCaptureDevice.default(for:.audio) else { throw P3Error.unsupportedFormat }
@@ -221,10 +237,15 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         }
     }
     func refreshPreviewDiagnosticByHuman() { q.async { self.publishPreviewSessionStatus() } }
+    func confirmPreviewByHuman(signalReady:Bool) { q.async {
+        guard self.isRetry,self.state.phase == .ready,self.session.isRunning,signalReady else { return }
+        self.previewConfirmed=true
+        DispatchQueue.main.async { self.previewHumanConfirmed=true }
+    } }
     func recordByHuman() { q.async { [self] in
-        guard self.state.phase == .ready,self.configured,self.session.isRunning else { return }
+        guard self.state.phase == .ready,self.configured,self.session.isRunning,(!self.isRetry || self.previewConfirmed) else { return }
         do {
-            let base=p3Base();let free=try p3Free(base)
+            let base=baseURL;let free=try p3Free(base)
             guard P3Limits.mayStart(free:free,internalMic:self.internalRoute(),
                 permissions:AVCaptureDevice.authorizationStatus(for:.video) == .authorized && AVCaptureDevice.authorizationStatus(for:.audio) == .authorized,
                 thermalSafe:self.safeThermal()) else { throw P3Error.lowSpace }
@@ -317,7 +338,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
                         "takeRevision":"R1","synthetic":"false","profile":media.profileOK ? "PASS":"FAIL",
                         "playbackHuman":"PENDING","sync":"NOT_MEASURED","frameLoss":"NOT_MEASURED"]
                     try p3ExclusiveJSON(report,at:root.appendingPathComponent("result.json"))
-                    try p3ExclusiveJSON(["protocol":"P3-MIN-001","run":root.lastPathComponent],at:p3Base().appendingPathComponent("LATEST.json"))
+                    try p3ExclusiveJSON(["protocol":"P3-MIN-001","run":root.lastPathComponent],at:self.baseURL.appendingPathComponent("LATEST.json"))
                     self.q.async {
                         guard self.state.accept(.persisted) else { return }
                         self.publish(media.profileOK ? "FILE_PROFILE_PERSISTENCE_PASS — reprodução humana PENDING" : "FILE_SAVED_PROFILE_FAIL — original preservado")
@@ -347,11 +368,11 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         do {
             let root:URL
             if let existing=self.run { root=existing } else {
-                let pointer=try p3SmallJSON(p3Base().appendingPathComponent("LATEST.json"))
+                let pointer=try p3SmallJSON(self.baseURL.appendingPathComponent("LATEST.json"))
                 guard
                       pointer["protocol"] == "P3-MIN-001",let name=pointer["run"],name.hasPrefix("P3-RUN-"),
                       let uuid=UUID(uuidString:String(name.dropFirst(7))),name == "P3-RUN-"+uuid.uuidString else { throw P3Error.integrity }
-                root=p3Base().appendingPathComponent(name,isDirectory:true)
+                root=self.baseURL.appendingPathComponent(name,isDirectory:true)
             }
             let (s,files)=try Store(root.appendingPathComponent("project")).loadFiles()
             guard s.projectID == "P3-CAPTURE-001",!s.takes[0].synthetic,let url=files["O"],
@@ -367,7 +388,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
 private final class P3PreviewView:UIView {
     override class var layerClass:AnyClass { AVCaptureVideoPreviewLayer.self }
     var previewLayer:AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
-    var report:((String)->Void)?
+    var report:((String,Bool)->Void)?
     private var lastReport:String?
     override func layoutSubviews() {
         super.layoutSubviews()
@@ -380,13 +401,14 @@ private final class P3PreviewView:UIView {
         lastReport=text
         // Do not mutate SwiftUI state during layout/updateUIView.
         let callback=report
-        DispatchQueue.main.async { callback?(text) }
+        let ready=bounds.width>0 && bounds.height>0 && c?.isEnabled == true && c?.isActive == true && previewLayer.isPreviewing
+        DispatchQueue.main.async { callback?(text,ready) }
     }
 }
 private struct P3Preview:UIViewRepresentable {
     let session:AVCaptureSession
     let diagnosticRevision:Int
-    let report:(String)->Void
+    let report:(String,Bool)->Void
     func makeUIView(context:Context)->P3PreviewView {
         let view=P3PreviewView()
         view.previewLayer.videoGravity = .resizeAspect
@@ -399,19 +421,109 @@ private struct P3Preview:UIViewRepresentable {
         view.reportDiagnostic()
     }
 }
+// Retained independently of SwiftUI body recomputation. The URL is supplied only
+// after the human reopen command has passed Store/hash validation; no autoplay.
+@MainActor
+private final class P3PlaybackController:ObservableObject {
+    let player=AVPlayer()
+    @Published private(set) var diagnostic="Playback NOT_RUN"
+    private var url:URL?
+    private var errorLogCount=0
+    private var lastErrorCode="none"
+    private var observations:[NSKeyValueObservation]=[]
+    private var notifications:[NSObjectProtocol]=[]
+    func loadVerifiedLocalFile(_ url:URL) {
+        guard self.url != url else { return }
+        player.pause()
+        observations.removeAll()
+        for token in notifications { NotificationCenter.default.removeObserver(token) }
+        notifications.removeAll()
+        guard url.isFileURL,FileManager.default.isReadableFile(atPath:url.path) else {
+            diagnostic="PLAYBACK_BLOCKED — arquivo local não legível";return
+        }
+        self.url=url;errorLogCount=0;lastErrorCode="none"
+        let item=AVPlayerItem(url:url)
+        player.replaceCurrentItem(with:item)
+        observations.append(item.observe(\.status,options:[.initial,.new]) { [weak self] _,_ in
+            Task { @MainActor [weak self] in self?.refresh() }
+        })
+        observations.append(player.observe(\.timeControlStatus,options:[.initial,.new]) { [weak self] _,_ in
+            Task { @MainActor [weak self] in self?.refresh() }
+        })
+        for name in [AVPlayerItem.failedToPlayToEndTimeNotification,AVPlayerItem.newErrorLogEntryNotification] {
+            notifications.append(NotificationCenter.default.addObserver(forName:name,object:item,queue:.main) { [weak self] _ in
+                Task { @MainActor [weak self] in self?.refresh() }
+            })
+        }
+        refresh()
+    }
+    private func errorCode(_ error:Error?)->String {
+        guard let e=error as NSError? else { return "none" }
+        // Raw descriptions/userInfo/log URI can expose container paths. Never print.
+        let domain=[AVFoundationErrorDomain,NSCocoaErrorDomain,NSURLErrorDomain,NSOSStatusErrorDomain].contains(e.domain) ? e.domain : "other"
+        return "\(domain):\(e.code)"
+    }
+    func refresh() {
+        guard let item=player.currentItem else { return }
+        report(item)
+        item.fetchErrorLog { [weak self,weak item] log in
+            let count=log?.events.count ?? 0
+            let code=log?.events.last.map { String($0.errorStatusCode) } ?? "none"
+            Task { @MainActor [weak self,weak item] in
+                guard let self,let item,self.player.currentItem === item else { return }
+                self.errorLogCount=count;self.lastErrorCode=code;self.report(item)
+            }
+        }
+    }
+    private func report(_ item:AVPlayerItem) {
+        let state:String
+        switch item.status { case .unknown:state="unknown";case .readyToPlay:state="readyToPlay";case .failed:state="failed";@unknown default:state="unrecognized" }
+        let time=player.currentTime().seconds
+        let seconds=time.isFinite ? String(format:"%.2f",time) : "unknown"
+        diagnostic="Item=\(state), control=\(player.timeControlStatus.rawValue), rate=\(player.rate), time=\(seconds)s, error=\(errorCode(item.error ?? player.error)), errorLogCount=\(errorLogCount), lastErrorCode=\(lastErrorCode) — qualidade humana não aprovada"
+    }
+    func playByHuman() { player.play();refresh() }
+    func pause() { player.pause();refresh() }
+    deinit { for token in notifications { NotificationCenter.default.removeObserver(token) } }
+}
+private struct P3PlaybackView:View {
+    let url:URL
+    let suspended:Bool
+    @StateObject private var playback=P3PlaybackController()
+    @Environment(\.scenePhase) private var scene
+    var body:some View { VStack {
+        VideoPlayer(player:playback.player).frame(height:240)
+        Text(playback.diagnostic).accessibilityIdentifier("p3-playback-diagnostic")
+        Button("Play do original reaberto — comando humano") { playback.playByHuman() }
+        Button("Pausar reprodução") { playback.pause() }
+        Button("Atualizar diagnóstico de reprodução — sem gravar") { playback.refresh() }
+    }.onAppear { playback.loadVerifiedLocalFile(url) }
+    .onChange(of:url) { _,value in playback.loadVerifiedLocalFile(value) }
+    .onChange(of:suspended) { _,value in if value { playback.pause() } }
+    .onChange(of:scene) { _,value in if value != .active { playback.pause() } }
+    .onDisappear { playback.pause() }
+    }
+}
 struct P3CaptureScreen:View {
-    @StateObject private var controller=P3CaptureController()
+    private let isRetry:Bool
+    @StateObject private var controller:P3CaptureController
+    init(isRetry:Bool=false) {
+        self.isRetry=isRetry
+        _controller=StateObject(wrappedValue:P3CaptureController(isRetry:isRetry))
+    }
     @Environment(\.scenePhase) private var scene
     @State private var previewDiagnostic="Preview: não verificado"
     @State private var diagnosticRevision=0
+    @State private var previewSignalReady=false
+    @State private var showRetry=false
     var body:some View { ScrollView { VStack(spacing:16) {
-        Text("P3 mínimo — captura local").font(.title2)
+        Text(isRetry ? "P3 — nova tentativa isolada" : "P3 mínimo — captura local").font(.title2)
         Text("Somente após coordenação: objeto neutro e contagem. Sem Photos, upload, IA ou rede.")
         Text(controller.status).accessibilityIdentifier("p3-status")
         Button("1. Preparar permissões e câmera — comando humano") { controller.prepareByHuman() }.disabled(controller.phase != .idle)
         if controller.canPreview {
             P3Preview(session:controller.session,diagnosticRevision:diagnosticRevision) {
-                previewDiagnostic=$0
+                previewDiagnostic=$0;previewSignalReady=$1
             }.frame(height:220)
             Text(controller.previewSessionStatus)
             Text(previewDiagnostic).accessibilityIdentifier("p3-preview-diagnostic")
@@ -419,11 +531,23 @@ struct P3CaptureScreen:View {
                 controller.refreshPreviewDiagnosticByHuman();diagnosticRevision += 1
             }
         }
-        Button("2. Gravar um clipe de 30 s") { controller.recordByHuman() }.disabled(controller.phase != .ready)
+        if isRetry {
+            Text("Primeira tomada preservada. Esta tentativa não apaga nem substitui LATEST/original anterior.")
+            Button("Confirmo imagem real visível no preview — comando humano") {
+                controller.confirmPreviewByHuman(signalReady:previewSignalReady)
+            }.disabled(!previewSignalReady || controller.phase != .ready)
+        }
+        Button("2. Gravar um clipe de 30 s") { controller.recordByHuman() }
+            .disabled(controller.phase != .ready || (isRetry && (!previewSignalReady || !controller.previewHumanConfirmed)))
         Button("Parar antecipadamente — duração não aprovada") { controller.stopByHuman() }.disabled(![.starting,.recording].contains(controller.phase))
         Button("3. Reabrir original e habilitar Play") { controller.reopenByHuman() }.disabled(![.idle,.saved].contains(controller.phase))
-        if let url=controller.playbackURL { VideoPlayer(player:AVPlayer(url:url)).frame(height:240) }
+        if let url=controller.playbackURL { P3PlaybackView(url:url,suspended:showRetry) }
+        if !isRetry {
+            Button("Abrir única nova tentativa autorizada — original preservado") { showRetry=true }
+                .disabled(![.idle,.saved].contains(controller.phase))
+        }
     }.padding() }.onChange(of:scene) { _,value in if value == .background { controller.suspend() } }
     .onDisappear { controller.suspend() }
+    .sheet(isPresented:$showRetry) { P3CaptureScreen(isRetry:true) }
     }
 }

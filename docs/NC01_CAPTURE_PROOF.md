@@ -3,10 +3,11 @@
 **Checkpoint:** 02/10/2026. **Base:** main `99f1de2a4b020cb75b8000e2ed335d3b72b0747d`,
 PR #10 incorporado. **Executor:** Codex / `gpt-6.1-sol` / `medium`, verificados nos
 metadados locais do turno; nenhuma configuração global alterada.
-**Estado:** P3 INICIADO; preparo readonly anterior concluído; **PREVIEW_BLOCKED**
-na tentativa humana posterior. Permissões/preparo foram acionados pelo proprietário;
-gravação **NOT_RUN**, perfil físico e qualidade humana **PENDING**;
-revisão crítica **APPROVE** no fonte `702c20a86b5c8a0650dc4d5072db6d0c1534cd54`. P2_GLOBAL NOT_READY; produto NÃO IMPLEMENTADO;
+**Estado:** P3 INICIADO; arquivo existente observado com perfil/integridade técnica PASS;
+**reprodução humana FAIL** (vídeo preto/não inicia, relato do proprietário em 02/10/2026),
+causa desconhecida. Preview corrigido ainda não confirmado fisicamente;
+sincronismo NOT_MEASURED. Correção/diagnóstico offline e única nova tentativa isolada
+em preparação, **NOT_PHYSICAL_READY**. Revisão crítica anterior APPROVE no fonte `702c20a`. P2_GLOBAL NOT_READY; produto NÃO IMPLEMENTADO;
 nenhuma stack final ou TAKE-A promovido. Este documento é dono do protocolo P3 mínimo.
 
 ## Autorização e limites
@@ -218,3 +219,50 @@ Verificação física da imagem e do diagnóstico **NOT_RUN**. Depois de APPROVE
 poderá preparar atualização com os mesmos recursos de assinatura; qualquer ação de
 sensores no aparelho continua exigindo disponibilidade e comando do proprietário.
 Nenhum novo RUN, captura, resultado PASS de câmera ou TAKE-A promovido.
+
+
+## Reprodução humana FAIL e preparo offline de única nova tentativa
+
+O proprietário voltou e executou Reabrir/Play: relatou vídeo preto e ausência de início
+em 02/10/2026. **FAIL observado de reprodução humana**, sem causa confirmada. Hashes,
+container e tracks aprovados anteriormente não comprovam playback nem qualidade.
+Inspeção readonly anterior registrou clipe existente de 29,908 s / 45.633.543 bytes,
+perfil de arquivo e integridade técnica PASS; o relato não apaga essas evidências nem
+é substituído por elas. Fonte/processo/comando de captura não são atestados pelo
+result.json; não presumir atribuição histórica. Originais e evidências preservados.
+
+Achado de código: AVPlayer era construído dentro do body SwiftUI, sujeito a recriação
+quando phase/status atualizam. Defeito de lifetime/observabilidade corrigido com
+controller @StateObject; **não é prova da causa física**. Player só carrega URL local
+legível, proveniente da reabertura Store/hash; nunca autoplay. Play manual, pausa no
+background/saída e diagnóstico de status, timeControl/rate/tempo, domínio/código de
+erro e contagem/último código do error log. Sem URL, raw descriptions, userInfo, URI
+ou mídia nos diagnósticos/Git; callback obsoleto não atualiza outro item.
+
+O proprietário autorizou preparar **uma** nova tentativa, mesmos critérios congelados,
+sem executar agora. Namespace fixo separado `P3CaptureSandbox/P3-RETRY-001`, claim
+`ATTEMPT-RESERVED.json` exclusiva antes do preparo humano, próprios RUN/LATEST/projeto.
+O LATEST e primeiro original não são apagados, sobrescritos ou burlados. Claim já
+existente bloqueia outra preparação, inclusive depois de falha; nenhum retry/reset
+silencioso. Reabrir continua possível para cada original salvo, no respectivo namespace.
+
+Abrir nova tentativa apenas exibe a tela. Permissões/sessão continuam exigindo botão
+humano de preparo. Gravar só habilita com preview não zero/conexão ativa/previewing,
+sessão running e confirmação explícita **“Confirmo imagem real visível no preview”**.
+Esses sinais instrumentais não substituem imagem real; sem imagem, não confirmar nem
+gravar. Mesmo baseline traseira/1080p30 SDR/mic interno/30 s/objeto neutro+contagem,
+sem novos limiares depois do FAIL. Store/SHA/Model/regras/deadlines/aceites intactos.
+
+Typecheck e link iOS otimizado sem assinatura PASS, sem executar. Correção inicial
+resolveu qualificadores self e substituiu API de errorLog depreciada pela fetch oficial;
+checkpoint final sem warning. Helper p3ExclusiveJSON extraído diretamente do fonte
+foi compilado/exercitado no Mac em diretório temporário sintético: primeira reserva
+PASS, segunda tentativa rejeitada sem alterar claim, symlink rejeitado e sentinel do
+primeiro LATEST preservado. Isso prova o helper de reserva, não preview/captura física
+nem todo o controller. Primeiro comando de compilação omitiu Store requerido pelo
+Model e falhou no setup; comando completo passou. Sem leitura da mídia real pelo
+executor. Não repetir regressões sem delta nas regras/P2. Gate
+independente do checkpoint **PENDENTE** antes da publicação. Build assinado, instalação,
+restart/launch e prova física **NOT_RUN nesta correção** e exigem coordenação humana
+posterior. Preparação de conexão por rede pertence à ponte, sem operação concorrente
+do executor. Nenhuma nova captura, reseed, exclusão, Vids ou TAKE-A PASS.
