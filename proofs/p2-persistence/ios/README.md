@@ -35,7 +35,10 @@ Signing do P1 não autoriza nem habilita automaticamente outro bundle. Não reut
 P1, alterar trust, criar/refresh perfil/certificado/App ID ou usar provisioning automático
 para contornar esse bloqueio. Uma autorização específica deve resolver o recurso
 faltante antes de prosseguir. Não instruir a usar Run ou signing automático enquanto
-esse gate não estiver autorizado. Preparação não comprova compilação/portabilidade iOS.
+esse gate não estiver resolvido. Preparo inicial só validou sintaxe. Check posterior
+compilou o mesmo fonte/core com SDK iOS existente e destino genérico, signing
+desabilitado: build local PASS, artefato sem assinatura/profile. Nenhum install/launch
+ou teste físico; compilação não comprova portabilidade completa ou lifecycle iOS.
 
 Core Mac permanece byte a byte aprovado. P2_GLOBAL NOT_READY. ENOSPC real, permissão
 real revogada, power loss, throughput de mídia e P3 continuam NOT_RUN.

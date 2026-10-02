@@ -360,7 +360,8 @@ P1 READY conforme [prontidão iOS](NC01_IOS_READINESS.md). P2 INICIADO:
 [prova de persistência](NC01_PERSISTENCE_PROOF.md) registra P2_MAC_PROOF PASS,
 P2_PHYSICAL BLOCKED/NOT_RUN por ausência de perfil local compatível com o bundle P2 e
 P2_GLOBAL NOT_READY. P2 não fechado; revisão independente Mac APPROVE. Harness físico
-separado preparado/revisão independente APPROVE; App ID/perfil exclusivos autorizados
+separado preparado/revisão independente APPROVE e build local genérico iOS PASS sem
+assinatura/execução física; App ID/perfil exclusivos autorizados
 somente com recursos existentes, fluxo restrito ainda BLOCKED e handoff pessoal pendente.
 Desconexão é motivo histórico da execução Mac; aparelho agora confirmado disponível
 por leitura mínima, sem executar prova física. P3/captura
