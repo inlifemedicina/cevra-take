@@ -357,13 +357,15 @@ P1 e demais spikes exigem autorização própria. O merge do PR #3 não autoriza
 ## Execuções posteriores — estado atual
 
 P1 READY conforme [prontidão iOS](NC01_IOS_READINESS.md). P2 INICIADO:
-[prova de persistência](NC01_PERSISTENCE_PROOF.md) registra P2_MAC_PROOF PASS,
-P2_PHYSICAL BLOCKED/NOT_RUN por ausência de perfil local compatível com o bundle P2 e
-P2_GLOBAL NOT_READY. P2 não fechado; revisão independente Mac APPROVE. Harness físico
-separado preparado/revisão independente APPROVE e build local genérico iOS PASS sem
-assinatura/execução física; App ID/perfil exclusivos autorizados
-somente com recursos existentes, fluxo restrito ainda BLOCKED e handoff pessoal pendente.
-Desconexão é motivo histórico da execução Mac; aparelho agora confirmado disponível
-por leitura mínima, sem executar prova física. P3/captura
+[prova de persistência](NC01_PERSISTENCE_PROOF.md) registra P2_MAC_PROOF PASS/revisão
+APPROVE, build local iOS sem assinatura PASS e protocolo físico sintético executado
+no iPhone 16 Pro Max/iOS 27.2 com resultados observados PASS. Revisão independente
+física APPROVE; P2_GLOBAL NOT_READY; P2 não fechado. Signing automático exclusivo P2
+foi posteriormente autorizado e perfil compatível obtido/usado; não afirmar criação
+de novos recursos sem evidência. Bloqueios anteriores são históricos. P3/captura
 NOT_RUN. O checkpoint P0 acima permanece histórico; nenhuma decisão D1–D8,
 threshold de captura ou aceite global foi alterado.
+
+Hardening posterior: large Mac PASS (23 testes); iOS roundtrip FAIL por guarda ctime,
+conteúdo íntegro; correção física NOT_RUN e gate integral pendente. Detalhes e limites
+no documento dono P2; P2_GLOBAL NOT_READY e P3 NOT_RUN permanecem.

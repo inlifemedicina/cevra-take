@@ -5,13 +5,12 @@
 branch local `feat/p2-persistence-proof`. Registro P1 previamente revisado preservado
 byte a byte e separado em commit local. Sem fetch/pull ou publicação na execução
 inicial da prova; registro de revisão e publicação autorizados posteriormente.
-**Estado atual:** P1 READY; P2 INICIADO; P2_MAC_PROOF PASS; P2_PHYSICAL
-**BLOCKED / NOT_RUN** por ausência de perfil local compatível com o bundle próprio P2;
-P2_GLOBAL **NOT_READY**. Compilação local genérica iOS **PASS**, sem assinatura ou
-execução física. Motivo histórico do deferimento na execução Mac:
-`P2_PHYSICAL_REASON = iPhone disconnected by owner`.
-P2 não está fechado; revisão independente da prova Mac **APPROVE** no HEAD
-`99bd1b68603dd09a197254495a300b208f92aecd`. P3/captura NOT_RUN.
+**Estado atual:** P1 READY; P2 INICIADO; P2_MAC_PROOF PASS/revisão independente
+APPROVE; compilação local genérica iOS sem assinatura PASS. P2_PHYSICAL: protocolo
+sintético executado no iPhone 16 Pro Max/iOS 27.2, resultados observados PASS,
+**P2_PHYSICAL PASS / revisão independente APPROVE**. P2_GLOBAL **NOT_READY**; P2 não fechado;
+P3/captura NOT_RUN. Os bloqueios anteriores de desconexão/provisioning são históricos,
+superados no recorte autorizado; não são bloqueios atuais da execução já realizada.
 
 ## Ownership, hipótese e limite
 
@@ -112,11 +111,12 @@ testes: turno `01a0faa0-f0f5-77b0-b014-d8fdf2a3f2a1`, resposta
 execução original `exec-1838a98b-8b48-45a4-ac0d-6c284e82aeb2`: 13 testes XCTest,
 zero falhas, 16,160 segundos. Nenhum finding material para esse escopo.
 
-Limite não bloqueante: `read` recusa arquivos acima de **16 MiB**, mas `commit` não
+Limite não bloqueante histórico — SUPERSEDED pela correção streaming abaixo:
+`read` recusava arquivos acima de **16 MiB**, mas `commit` não
 impõe o mesmo limite antes de publicar. Uso direto com metadata/original maior
 poderia publicar estado ilegível para `load`. A CLI/fixture fixa não expõe esse caso;
-a aprovação não cobre ampliar as entradas. Não corrigido neste fechamento: futura
-ampliação exige limite simétrico e teste próprio. Injeções, stub IA e ausência de
+a aprovação não cobre ampliar as entradas. Não corrigido naquele fechamento; a autorização posterior abaixo cobre limite
+simétrico, streaming e testes próprios. Injeções, stub IA e ausência de
 prova de power loss/concorrência adversarial/lifecycle iOS permanecem limites.
 
 Após o checkpoint da execução, o proprietário relatou o iPhone reconectado; não houve
@@ -189,7 +189,7 @@ Publicação/merge desse preparo não libera provisioning ou execução física.
 Mac proof PASS e P3 NOT_RUN preservados. Próximo gate: compatibilidade do perfil P2
 oficial já existente, ou consentimento específico para os recursos faltantes.
 
-## P2 físico — autorização restrita de App ID/perfil e handoff
+## P2 físico — autorização restrita de App ID/perfil e handoff — histórico pré-prova
 
 **Data:** 02/10/2026. **Base:** `main` local/remota confirmada em
 `2eec01c00cc53473388d97ed4b9f7a9398ac8ac5`, PR #8 incorporado, árvore inicial limpa.
@@ -248,7 +248,7 @@ P2_PHYSICAL BLOCKED/NOT_RUN; P2_GLOBAL NOT_READY; P3/captura NOT_RUN. Qualquer p
 obtido pessoalmente deverá ser validado quanto aos quatro critérios antes do build;
 revisão independente da evidência física continua obrigatória. Sem push/PR/merge.
 
-## P2 iOS — compilação local sem assinatura
+## P2 iOS — compilação local sem assinatura — checkpoint pré-prova física
 
 **Data:** 02/10/2026; mesma base `2eec01c00cc53473388d97ed4b9f7a9398ac8ac5`,
 branch `codex/p2-scoped-provisioning-handoff`. Steering autorizou este check independente
@@ -278,7 +278,7 @@ NOT_RUN. Próxima ação humana pode ocorrer depois: resolver signing P2 no Xcod
 recursos existentes, sem Run; não aguardar em processo/tool nem ampliar autorização.
 Revisão independente obrigatória antes de publicar o registro/fechar evidência física.
 
-## Revisão e fechamento documental desta rodada
+## Revisão e fechamento documental — checkpoint PR #9
 
 **Revisão independente: APPROVE**, restrita aos registros documentais, ao build local
 sem assinatura e aos limites de provisioning. Turno
@@ -293,3 +293,186 @@ autorização de App ID/perfil P2. Ambos continuam autorizados, mas **não criad
 A revisão permite o fechamento documental planejado; não fecha a evidência física.
 P1 READY; P2_MAC_PROOF PASS; local_unsigned_iOS_build PASS; P2_PHYSICAL BLOCKED/NOT_RUN;
 P2_GLOBAL NOT_READY; P3 NOT_RUN. Nenhuma operação Apple/aparelho nesta rodada documental.
+
+## P2 físico — protocolo executado; revisão independente APPROVE
+
+**Data:** 02/10/2026. **Base:** `main` local/remota
+`ec441ad840a6209c2f43c1a2e53daee7cdc661bd`. Execução: ponte Mac delegada pelo
+proprietário; registro documental
+pelo Codex. Este registro confere artefatos já produzidos, não repete ações físicas.
+
+**Autorização posterior:** o proprietário autorizou signing automático oficial
+somente do P2 na Personal Team/aparelho atuais, inclusive Apple Development se
+necessário. A restrição anterior de certificado exclusivamente existente/provisioning
+manual fica **SUPERSEDED nesse escopo**. Permanecem excluídos revogação, alterações
+P1, pagamento, ampliação de segurança, novos termos e extração de credenciais.
+A rota manual Download Profile não foi repetida.
+
+Build assinado com Xcode 27.0/27A266a, SDK iphoneos e destino físico exato:
+`CODE_SIGN_STYLE=Automatic -allowProvisioningUpdates`, override somente do target P2,
+DerivedData separado; sem `-allowProvisioningDeviceRegistration` ou configuração
+global. Assinatura verificada e perfil embutido compatível com bundle P2, Team e
+aparelho atuais, development entitlements padrão; validade observada até 09/10/2026
+10:51:10 UTC. Identidade Apple Development usada. **Não foi separadamente verificado
+se certificado, App ID ou perfil novos foram criados ou recursos reutilizados**;
+registrar somente perfil compatível obtido/usado. Avisos de AppIntents/orientação iPad
+não impediram esta fixture portrait; não demonstram suporte iPad completo.
+CoreDevice observou transporte localNetwork/túnel; não afirmar conexão wired.
+
+| Prova física sintética | Evidência | Resultado observado |
+|---|---|---|
+| Build/sign/install/launch do bundle exclusivo P2 | Build e assinatura/profile compatíveis; instalação/launch oficiais, confirmação humana | PASS |
+| R1 salva | Snapshot exato, uma geração, T→R1, original O de 4096 bytes/hash | PASS |
+| Retorno normal e recuperação R1 | Mesmo PID; sequência humana instruída de recuperação antes de R2; sem screenshot distinta de R1_RECOVERED_PASS | PARTIAL isoladamente; evidência humana delimitada |
+| R2 salva preservando T→R1 | R1+R2, duas gerações, metadata e O exatos | PASS |
+| SIGKILL/reabertura | Somente executable/PID P2; ausência confirmada; novo PID e screenshot R2_RECOVERED_T_TO_R1_PASS; arquivos iguais | PASS |
+| Export/restauração | Destinos antes inexistentes; manifesto versão 1 com conjunto exato de metadata/O; metadata, vínculo e bytes/hashes iguais; restored com uma geração | PASS |
+| Rejeição de destino existente | Confirmação humana e screenshot EXISTING_DESTINATION_REJECTED_PASS; source/export/restored sem arquivo adicionado/removido/modificado | PASS |
+
+Retorno normal **não é morte de processo**. SIGKILL foi **após commit R2 completo**;
+não testa escrita parcial iOS nem power loss. R1_RECOVERED tem evidência da sequência
+humana, não screenshot específica; a captura de retorno mostra R1_SAVED_PASS.
+A primeira invocação de reopen rejeitou argumentos antes do launch; foi corrigida
+sem repetir kill. As três capturas retidas mostram somente P2. Dados privados de
+CoreDevice e capturas de outros apps foram excluídos do pacote sanitizado.
+
+**Pacote de evidência local:** `p2-physical-evidence`, entregue pela ponte; OUTCOME,
+JSON sanitizados, cópias apenas da fixture e três screenshots P2. Não copiar logs
+privados nem identificadores de signing/dispositivo para Git. O executor verificou
+os **60 checksums do snapshot inicial revisado**, igualdade de arquivos antes/depois
+de SIGKILL e overwrite, e hashes dos quatro fontes contra o repo. O pacote atual
+contém **61 entradas**, após inclusão de `INDEPENDENT_REVIEW.txt`; os 61 checksums
+foram conferidos nesta rodada. CHECKSUMS.json SHA-256:
+`415efa790658356e49cc1a132011ec2b3b291824fe4c056e0c294decb2382987`. Fontes UI/core byte-idênticos; hash P1 preservado conforme
+registro da ponte. Nenhum acesso/mutação de container P1 ou outros apps pela prova.
+
+**Revisão física final: APPROVE**, restrita ao protocolo sintético autorizado.
+Proveniência completa da revisão conservada no pacote privado fora do Git.
+O revisor recalculou comparações finais e 60 checksums, sem achados materiais;
+R1_RECOVERED isoladamente PARTIAL, mas protocolo físico integral aceito.
+**P2_PHYSICAL PASS** no recorte sintético; P2_GLOBAL **NOT_READY** mantido nesta
+reconciliação sem ampliar garantias. Gate documental concluído com revisão APPROVE.
+Nenhum TAKE-A promovido; produto NÃO IMPLEMENTADO; stack final não selecionada.
+Não executar próximos slices automaticamente.
+
+**NOT_RUN:** ENOSPC real, permissão revogada, file protection/power loss, interrupção
+mid-write iOS, concorrência adversarial/throughput de mídia, outros alvos, captura,
+áudio, IA e P3. Mac proof não repetido; 13 testes/27 combinações/9 SIGKILL históricos
+continuam separados da prova iOS. Nenhuma mudança de código/dependência/workflow,
+threshold, decisão D1–D8, P1 ou Vids neste registro documental.
+
+**Revisão documental final: APPROVE** no HEAD
+`c529d635d1f20fbf1644d3c4848542276758963a`. Proveniência privada retida fora do Git. Sem achados materiais;
+os dois ajustes não bloqueantes de contagem do pacote e wording de signing foram
+aplicados. Fechamento documental local, sem publicação nesta rodada; P2_GLOBAL
+NOT_READY e P3 NOT_RUN preservados. Não autoriza próxima prova automaticamente.
+
+## Hardening de armazenamento antes de vídeo — checkpoint em revisão
+
+**Baseline:** HEAD `678a920bf9d3081d3aeca410934a5781fbda200f`, preservando os dois
+commits documentais; main `ec441ad840a6209c2f43c1a2e53daee7cdc661bd`. Proprietário
+aprovou corrigir arquivos maiores, testar preservação/recuperação e integrar o registro
+físico anterior somente após testes/revisão; não autorizou P3 ou stack definitiva.
+
+Contrato implementado no proof: 16 MiB **total** no adaptador inline/Data, simétrico
+em commit/load, limite por metadata/head/manifest; rejeição `inlineTooLarge` antes de
+staging/publicação. Para qualquer tamanho de original representável e validável,
+`commitFiles`/`loadFiles`, hash/copy/export/restore por chunks de 64 KiB, sem teto
+arbitrário de mídia e sem materialização integral. Formato/manifesto v1, fixture
+antiga 4096 bytes, T→R1 e regras de publicação/destino novo preservados. A correção
+substitui a limitação antiga que podia publicar um original não reabrível.
+
+**P2_LARGE_MAC PASS:** regressão inicial 13 testes/zero falhas, depois 20 testes/zero
+falhas (13 regressões + 7 novos), fronteiras, roundtrip 32 MiB + 4096 em novo processo,
+export self-contained após remoção da fonte, corrupção/truncamento, falhas parciais
+de streaming e retry sem duplicação. Typecheck dos quatro fontes para iOS PASS;
+**P2_LARGE_IOS inicialmente NOT_RUN** nesse checkpoint; execuções posteriores estão
+registradas abaixo. Nenhuma operação física pelo executor. [Resultado](../proofs/p2-persistence/LARGE_EVIDENCE.txt)
+e [protocolo proporcional](../proofs/p2-persistence/ios/README.md) são donos dos detalhes.
+Revisão independente do hardening pendente após prova proporcional da ponte.
+
+A prova física anterior PASS/APPROVE continua separada e válida para o snapshot
+anterior. P2_GLOBAL NOT_READY; NC-01 INICIADO; produto NÃO IMPLEMENTADO; nenhum
+TAKE-A promovido. Não repetir signing/readiness P1 ou fixture física antiga. Nenhuma
+dependência, autorização adicional de segurança, mudança de thresholds ou operação
+no Vids. Captura/áudio/throughput real, ENOSPC/EACCES reais, power loss e P3 NOT_RUN.
+
+### iOS large — falha postcommit preservada e diagnóstico restrito
+
+Na ponte, o HEAD `967c971f9a215506381f1b118726db53e6f77c67` gerou/commitou a
+fixture grande no RUN `P2-LARGE-RUN-77C89E04`, mas verify/loadFiles após commit
+retornou **corruptOriginal**. **P2_LARGE_IOS FAIL no seed; roundtrip NOT_RUN**.
+Source/original capturados têm 33558528 bytes e hash esperado, metadata/CURRENT
+válidos; reader/export Mac abre a cópia. Predicado exato dessa falha inicial **historicamente não registrado**;
+não atribuir à conexão nem tratar o conteúdo capturado como corrompido sem evidência.
+
+RUN falho e RUN anterior interrompido preservados. O executor não operou o aparelho. No checkpoint seguinte foi preparado diagnóstico
+explícito read-only,
+com tags por leitura/predicado e `fstat` do mesmo fd, relatório novo O_EXCL bounded;
+sem lock, commit, reseed, nova fixture ou afrouxamento de verificações. O resultado e a correção posterior estão discriminados abaixo; esse preparo não
+constitui prova física corretiva.
+P2_GLOBAL NOT_READY, P3 NOT_RUN; prova física 4096 bytes anterior preservada.
+
+
+### Diagnóstico, reprodução e correção — checkpoint de 02/10/2026
+
+**Base preservada:** main `ec441ad840a6209c2f43c1a2e53daee7cdc661bd`;
+branch `codex/p2-physical-evidence`; código corretivo congelado em
+`ddb6329e42500b3e37bb1740d2015ca16ae94567`. Build/sign dos diagnósticos pela ponte
+usou perfil compatível existente, sem flags de atualização de provisioning; não
+atribuir criação de certificado/perfil a essas execuções. Evidência completa e
+proveniência da autorização/revisão ficam fora do Git; o resumo público contém
+somente dados sintéticos e resultados delimitados.
+
+| Checkpoint | Evidência observada | Estado |
+|---|---|---|
+| `80878f2` — diagnóstico read-only DIAG-001 | RUN falho reaberto, hash/tamanho corretos, nenhum predicado rejeitado | PASS da leitura, não explica a falha histórica |
+| DIAG-002 | Launch bloqueado pelo aparelho travado, sem execução/arquivo de resultado | NOT_RUN, não FAIL de armazenamento |
+| `b205166` — uma nova fixture causal autorizada | `P2-LARGE-RUN-CAUSAL-01`, 49 eventos, seed completo e nenhum reject | PASS seed; não fecha roundtrip |
+| `0e4c7b6` — roundtrip instrumentado em processo novo | 103 eventos; R1 recuperada e R2 publicada, rejeição em postcommitR2 | FAIL: `reject.fstatChanged`, somente ctime diferente |
+| `ddb6329` — correção com revalidação | 23 XCTest Mac, zero falhas, 29,277 s; release build e typecheck iOS dos quatro fontes PASS | PASS Mac; revisão independente APPROVE do delta corretivo |
+| `ddb6329` — fixture corretiva `P2-LARGE-RUN-FIX-01` | Seed e roundtrip separados, aguardando disponibilidade coordenada do aparelho | NOT_RUN físico; gate integral/documental pendente |
+
+Na reprodução `0e4c7b6`, hash obtido e esperado foram
+`57b8d6a829e70202a5510092acdf47119ca9a803c5b8c5ca697b41a28bdc14d2`;
+33558528 bytes, EOF, tamanho e mtime corretos. Ctime mudou **8.418.573 ns** durante
+leitura no mesmo fd. Isso identifica o predicado dessa reprodução; não identifica o
+agente/serviço causador da mudança, nem prova que a falha inicial `967c971` teve a
+mesma causa. Não atribuir a conexão, xattr ou serviço do sistema sem evidência.
+
+R1/R2 e fonte sintética capturadas permanecem íntegras; CURRENT aponta para R2,
+T continua ligado a R1. Export/remoção de fonte/restore não foram alcançados nessa
+execução FAIL. RUNs anteriores e fixture pequena preservados; RUN causal falho não
+será reseeded, apagado ou repetido para obter PASS.
+
+A correção mantém regularidade, identidade dev/inode, tamanho, mtime e SHA. Se ctime
+sozinho mudar, reposiciona o **mesmo fd** e faz **uma** releitura streaming completa,
+compara hash ao conteúdo já lido e valida novamente os atributos. Divergência de
+hash/atributos continua erro explícito; não há retry de escrita nem loop aberto.
+Dois testes adicionais cobrem mudança só de metadata e adulteração de mesmo tamanho
+após o primeiro hash, com mtime restaurado: esta última continua rejeitada. Chunks de
+64 KiB; não há benchmark de RAM. O_NOFOLLOW protege o componente final, não demonstra
+segurança contra substituição hostil de diretórios ancestrais.
+
+**Regressões por checkpoint:** 13 antes do hardening; 20 em `967c971`; 21 com
+instrumentação/diagnósticos; 23 em `ddb6329`, todas sem falhas nas respectivas
+execuções Mac. Testes sintéticos/injetados não provam power loss, escrita parcial,
+ENOSPC/EACCES reais ou performance de mídia no iPhone.
+
+**Próximo protocolo, ainda NOT_RUN:** RUN corretivo novo e exclusivo; seed com relatório
+`FIX-SEED-001`; somente após PASS, encerrar exclusivamente P2, confirmar ausência e
+lançar roundtrip com `FIX-ROUNDTRIP-001` em novo processo. A ponte verifica modo pelo
+registro start; `--terminate-existing` evita instância anterior. Uma UI anterior não
+comprovou os argumentos efetivos daquele processo, portanto não atribuir causa por
+suposição. Não ler originais durante hashing; relatório sibling exclusivo O_EXCL,
+phase/reject/summary com fsync e limites definidos no [protocolo](../proofs/p2-persistence/ios/README.md).
+
+As políticas aprovadas de recuperação com aviso, pacote portátil e retenção são
+canônicas em [PRODUCT_AND_PROFILES.md](PRODUCT_AND_PROFILES.md); não implementadas
+pela UI sintética. O proof em pasta não é decisão de UX final.
+
+**Estado vigente:** física 4096 bytes PASS/APPROVE no snapshot anterior;
+large iOS tem FAIL reproduzido e correção física NOT_RUN. Gate integral do hardening e
+sanitização/documentação **PENDING**; checkpoint apto a revisão, não a merge.
+P2_GLOBAL NOT_READY; NC-01 INICIADO; produto NÃO IMPLEMENTADO; nenhuma stack final,
+TAKE-A promovido, instalação adicional ou operação Vids. P3/câmera/áudio/IA NOT_RUN.

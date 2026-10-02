@@ -1,0 +1,52 @@
+CEVRA Take P2 large synthetic storage hardening — 2026-10-02
+Baseline code/docs: 678a920bf9d3081d3aeca410934a5781fbda200f
+Baseline main: ec441ad840a6209c2f43c1a2e53daee7cdc661bd
+Executor: Codex (model/configuration for this slice specified GPT-6.1 Sol/Medium by plan).
+Existing Mac suite BEFORE changes: 13 XCTest, 0 failures, 16.177 s.
+After changes (release, Apple toolchain existing, no dependencies):
+20 XCTest (13 regression + 7 storage hardening), 0 failures, 29.916 s.
+7 new tests 14.755 s; 13 regression 15.161 s.
+New tests: inline16MiB-1/exact accepted+load+export+restore;
+inline16MiB+1 and aggregate >16MiB rejected before publication;
+metadata cap rejects update, CURRENT unchanged; file-backed aggregate remains readable.
+32MiB+4096 ingest -> new CLI process recover/edit/export/delete-source/restore PASS.
+Size33558528, SHA25657b8d6a829e70202a5510092acdf47119ca9a803c5b8c5ca697b41a28bdc14d2.
+T->R1 preserved, manifest v1 exact, bytes/hash/metadata match after restore.
+Corrupt exported original and truncated stored original: explicit corruptOriginal,
+no invalid destination/export published; source remains intact after failed restore.
+Large streaming first chunk fault: EACCES/ENOSPC injected and real SIGKILL subprocess;
+prior CURRENT unchanged, R1 readable, retryR2 then idempotent retry no duplicate.
+File symlink/directory/hash mismatch unsafe input rejected before store publication.
+SHA incremental chunk-boundary/finalization tests + previous known vectors PASS.
+Stream chunks64KiB, no full-media Data/[UInt8]; no RAM benchmark claimed.
+iOS four-source swiftc typecheck arm64/iOS27.0 SDK PASS; no signed build or device action.
+Initial checkpoint: P2_LARGE_MAC PASS; P2_LARGE_IOS then NOT_RUN; review pending.
+Previous 4096-byte physical P2 PASS/APPROVE preserved, not rerun.
+P2_GLOBAL NOT_READY; product NOT_IMPLEMENTED; no final stack, no TAKE-A promotion.
+Real ENOSPC/EACCES/powerloss/media throughput/capture/audio/IA/P3 NOT_RUN.
+
+Physical checkpoint (bridge evidence, sourceCodeCommit967c971):
+P2-LARGE-RUN-77C89E04 seed FAIL corruptOriginal after commit, postcommit loadFiles.
+Captured source/published original33558528 bytes and expectedSHA; metadata/CURRENT valid;
+Mac reader/export of captured store PASS. Exact iPhone predicate NOT_IDENTIFIED.
+Earlier interrupted RUN and failed finalized RUN preserved, no reseed/overwrite.
+Read-only per-fd diagnostic prepared; no check relaxed, no cause assigned to connectivity.
+Proportional iOS roundtrip still NOT_RUN, integral review/integration pending.
+
+2026-10-02 consolidated checkpoint, corrective source ddb6329e42500b3e37bb1740d2015ca16ae94567:
+Readonly DIAG001 PASS, no reject; DIAG002 NOT_RUN Locked, no output.
+One authorized causal seed b205166: PASS,49 events; old runs unchanged.
+Roundtrip 0e4c7b6: FAIL postcommitR2 reject.fstatChanged,103 events11229 bytes.
+Trace SHA256 bf5732d85044519da41c46735f5fe97c7529a78c4cf83a3d6cb40251fa1f1517.
+Observed size/mtime/hash correct; ctime only changed8418573ns during same-fd read.
+Agent causing metadata change UNKNOWN; original967c971 precise predicate UNRECORDED.
+R1/R2 originals/source valid; T->R1; no export/source-removal/restore reached.
+Corrective ddb6329 rehashes same fd once on isolated ctime change, validates hash/stat.
+Mac23 XCTest (10 hardening+13 regression),0fail29.277s; release build PASS.
+iOS four-source typecheck PASS; corrective independent delta review APPROVE.
+ctime-only chmod test PASS; same-size mutation after hash with mtime restored rejected.
+FIX-01 seed/roundtrip physical NOT_RUN, awaiting coordinated owner device availability.
+No new security resource needed/claimed for signed bridge diagnostic builds.
+Integral hardening/documentary/sanitization gate PENDING; no merge/final physical PASS.
+P2_GLOBAL NOT_READY; TAKE-A unchanged; P3/capture/audio NOT_RUN.
+Private logs/provenance stay outside Git; this summary contains synthetic evidence only.
