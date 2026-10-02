@@ -65,3 +65,7 @@ Physical corrected synthetic proof PASS; integral technical review APPROVE for d
 Final documentary/sanitized PR delta review PENDING in this checkpoint.
 No Mac tests repeated for this documentary delta; code unchanged.
 P2_GLOBAL NOT_READY; no TAKE-A promoted; P3/camera/audio/IA NOT_RUN; no Vids operation.
+
+Subsequent documentary/sanitization review APPROVE, no material findings, synthetic scope only.
+Final PR body APPROVE; concrete publication head/tree verification required before integration.
+No additional test/build/device action; frozen source unchanged; P2_GLOBAL NOT_READY/P3 NOT_RUN.

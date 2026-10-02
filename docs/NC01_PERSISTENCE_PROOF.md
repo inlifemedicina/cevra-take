@@ -510,8 +510,8 @@ metadata/export/restore. Logs, capturas e proveniência privada permanecem fora 
 **P2_LARGE_FIXED_PHYSICAL PASS observado** no protocolo sintético, não prova mídia real,
 power loss, escrita parcial iOS ou ENOSPC/EACCES reais. **Revisão técnica integral
 APPROVE**, restrita à correção `ddb6329` e ao protocolo sintético, incluindo os 51
-checksums e preservação. Proveniência privada retida fora do Git. Gate documental
-e delta final sanitizado do PR **PENDING** neste checkpoint. A falha inicial permanece
+checksums e preservação. Proveniência privada retida fora do Git. Revisão documental e sanitização **APPROVE**,
+restritas a esse recorte; a publicação/integração exige conferência do head concreto. A falha inicial permanece
 com predicado historicamente UNRECORDED; o PASS corretivo não reescreve esse histórico.
 
 Publicação sanitizada de continuidade: [PR #10](https://github.com/inlifemedicina/cevra-take/pull/10),
@@ -521,3 +521,12 @@ História de execução local preservada e não publicada por conter proveniênc
 só deltas sanitizados entram na branch pública. Merge não é autorizado por este registro.
 P2_GLOBAL NOT_READY, NC-01 INICIADO, P3/captura/áudio/IA NOT_RUN; nenhum TAKE-A promovido,
 produto NÃO IMPLEMENTADO ou stack final escolhida. Limites e políticas anteriores mantidos.
+
+
+**Fechamento documental do hardening — 02/10/2026:** revisão independente APPROVE do
+consolidado e corpo final do PR, sem achados materiais; aprovação técnica integral
+restrita a `ddb6329`/protocolo sintético. Registro da decisão não repete teste ou aparelho.
+A branch pública recebe somente o delta documental sanitizado, preservando o código
+já revisado e a história local privada. Gate de integração verifica parent/tree/head
+exatos do PR; nenhum merge executado por este registro. P2_GLOBAL NOT_READY, P3 NOT_RUN,
+limites históricos e próximos gates preservados.

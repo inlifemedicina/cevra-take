@@ -151,7 +151,7 @@ argumentos pela UI. Durante hashing, copiar apenas relatório sibling: inventár
 adicional de originais aguarda summary. Capturar comparação/preservação e revisão
 integral após resultado; sem PASS automático por build, typecheck ou UI.
 
-P2_GLOBAL NOT_READY; gate integral e revisão documental/sanitização pendentes.
+No checkpoint pré-prova, P2_GLOBAL NOT_READY e gates de revisão estavam pendentes.
 Produto NÃO IMPLEMENTADO; P3/captura/áudio/IA NOT_RUN. Políticas de produto pertencem a
 [PRODUCT_AND_PROFILES.md](../../../docs/PRODUCT_AND_PROFILES.md); esse harness não as implementa.
 
@@ -166,6 +166,6 @@ RUNs anteriores preservados. Evidência/51 checksums conferidos pelo executor e
 registrados no [documento dono P2](../../../docs/NC01_PERSISTENCE_PROOF.md).
 
 PASS físico restrito à fixture, não mídia/câmera/áudio ou escrita parcial iOS.
-Revisão técnica integral APPROVE no recorte sintético; gate documental/delta final
-sanitizado pendente. PR #10 DRAFT/WIP; este documento não autoriza merge.
+Revisão técnica integral e documental/sanitização APPROVE no recorte sintético;
+incorporação exige conferência do head final do PR. PR #10 DRAFT/WIP; este documento não autoriza merge.
 P2_GLOBAL NOT_READY; P3 NOT_RUN. Não repetir FIX-01 ou iniciar próxima prova automaticamente.

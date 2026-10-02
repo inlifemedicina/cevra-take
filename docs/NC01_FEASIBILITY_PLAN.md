@@ -368,5 +368,5 @@ threshold de captura ou aceite global foi alterado.
 
 Hardening posterior: large Mac PASS (23 testes); iOS roundtrip FAIL por guarda ctime,
 conteúdo íntegro; correção física PASS no protocolo sintético e revisão técnica integral APPROVE;
-gate documental/delta final sanitizado pendente. Detalhes e limites
+revisão documental/sanitização APPROVE; incorporação sujeita ao head final do PR #10. Detalhes e limites
 no documento dono P2; P2_GLOBAL NOT_READY e P3 NOT_RUN permanecem.
