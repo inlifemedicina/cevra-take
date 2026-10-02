@@ -155,7 +155,9 @@ fora do Git, sem identificadores pessoais nesta documentação.
 fonte UI PASS; igualdade dos fontes copiados e preservação do projeto P1 verificadas.
 Parse não é typecheck, build, assinatura, deployment ou prova de portabilidade iOS.
 Regressão Mac não repetida nesta rodada, pois seu core/testes/package não mudaram;
-a evidência anterior continua restrita à prova Mac. Revisão do novo harness pendente.
+a evidência anterior continua restrita à prova Mac. Revisão do preparo do novo harness
+**APPROVE**, restrita a isolamento, UI/protocolo e STOP por provisioning; não comprova
+typecheck, build ou execução física.
 
 **P2_PHYSICAL = BLOCKED / NOT_RUN; P2_GLOBAL = NOT_READY.** Build físico, assinatura
 do novo app, install, launch, salvar/fechar/reabrir, process kill, export/restore no
@@ -169,3 +171,19 @@ resolver seu App ID. Alternativamente, disponibilização oficial de perfil comp
 já existente. Não usar o bundle/container P1 como contorno. Sem essa compatibilidade,
 parar antes de build/install; “Vamos” ao pacote físico não autoriza recursos de signing
 expressamente excluídos. Nenhum push/PR/merge antes da revisão independente do harness.
+
+### Revisão independente do preparo iOS
+
+**APPROVE** no HEAD `8e1f3581e05d49eb145a1f2033b0122342fb591c`, base
+`63577f83ece79edda994db4f803cb79dc718d485`: turno
+`01a0fab4-57bb-73b1-9109-f49ee01cca41`, resposta
+`msg_00ea4dcf428faf0e016abf288689cc87d2a8d5814d17f23af1`.
+Escopo: somente preparo local do harness e decisão de STOP. Nenhum finding material;
+revisor não repetiu suíte Mac ou prova física. Evidência de provisioning consultada:
+`exec-c35dcf29-aeb5-49bb-bb68-1a3a589989aa`, sem inferir recursos do portal Apple.
+Registro posterior altera somente documentação, preservando código/harness revisados.
+
+**P2 iOS prep APPROVE; P2_PHYSICAL BLOCKED / NOT_RUN; P2_GLOBAL NOT_READY.**
+Publicação/merge desse preparo não libera provisioning ou execução física. P1 READY,
+Mac proof PASS e P3 NOT_RUN preservados. Próximo gate: compatibilidade do perfil P2
+oficial já existente, ou consentimento específico para os recursos faltantes.
