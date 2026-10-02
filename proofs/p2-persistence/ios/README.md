@@ -169,3 +169,8 @@ PASS físico restrito à fixture, não mídia/câmera/áudio ou escrita parcial 
 Revisão técnica integral e documental/sanitização APPROVE no recorte sintético;
 incorporação exige conferência do head final do PR. PR #10 DRAFT/WIP; este documento não autoriza merge.
 P2_GLOBAL NOT_READY; P3 NOT_RUN. Não repetir FIX-01 ou iniciar próxima prova automaticamente.
+
+## P3 mínimo — opt-in, físico NOT_RUN
+
+Handoff, protocolo e gate críticos em [NC01_CAPTURE_PROOF.md](../../../docs/NC01_CAPTURE_PROOF.md).
+Default/readonly não ativam sensores; não operar o novo fluxo antes da revisão e coordenação.
