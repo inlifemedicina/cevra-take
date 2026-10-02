@@ -1,12 +1,14 @@
 # NC-01/P2 — persistência mínima de prova
 
 **Data:** 02/10/2026. **Executor:** Codex / GPT-6.1 Sol / Medium.
-**Baseline:** `main` em `b4ecd2ee135c7e23083963f20b915274093a962e`;
+**Baseline da prova Mac:** `main` em `b4ecd2ee135c7e23083963f20b915274093a962e`;
 branch local `feat/p2-persistence-proof`. Registro P1 previamente revisado preservado
 byte a byte e separado em commit local. Sem fetch/pull ou publicação na execução
 inicial da prova; registro de revisão e publicação autorizados posteriormente.
-**Estado:** P1 READY; P2 INICIADO; P2_MAC_PROOF PASS; P2_PHYSICAL **DEFERRED / NOT_RUN**;
-`P2_PHYSICAL_REASON = iPhone disconnected by owner`; P2_GLOBAL **NOT_READY**.
+**Estado atual:** P1 READY; P2 INICIADO; P2_MAC_PROOF PASS; P2_PHYSICAL
+**BLOCKED / NOT_RUN** por ausência de perfil local compatível com o bundle próprio P2;
+P2_GLOBAL **NOT_READY**. Motivo histórico do deferimento na execução Mac:
+`P2_PHYSICAL_REASON = iPhone disconnected by owner`.
 P2 não está fechado; revisão independente da prova Mac **APPROVE** no HEAD
 `99bd1b68603dd09a197254495a300b208f92aecd`. P3/captura NOT_RUN.
 
@@ -92,7 +94,8 @@ de processo Mac e erros injetados; A18: preservação do original; A19: export/r
 metadata+original e rejeição de versão. K é recorte sintético de independência de IA
 (A01/parte de A10), sem prova de IA/captura. [Catálogo](ACCEPTANCE_TESTS.md) inalterado.
 
-P2_PHYSICAL DEFERRED/NOT_RUN; nenhuma query de aparelho, simulador, build/install/
+No checkpoint da execução Mac, P2_PHYSICAL DEFERRED/NOT_RUN; nenhuma query de
+aparelho, simulador, build/install/
 launch/debug iOS. Permanecem não provados: lifecycle mobile, permissão/espaço reais
 por alvo, corrupção em escrita de hardware, power loss e throughput de mídia real.
 Não converter CLI/fixture/simulador em prova física. P2_GLOBAL NOT_READY; retomada
@@ -100,7 +103,7 @@ física e revisão de sua evidência exigem gates próprios; P3/captura NÃO INI
 Nenhum provider/rede/IA real, instalação, código Vids, sync/P2P, contrato Take→Vids
 ou updater nesta prova. P1 READY preservado; stack final não selecionada.
 
-## Revisão independente e continuidade
+## Revisão independente e continuidade — checkpoint pós-PR #7
 
 Revisão independente Mac **APPROVE**, restrita à fixture declarada, sem reexecutar
 testes: turno `01a0faa0-f0f5-77b0-b014-d8fdf2a3f2a1`, resposta
@@ -121,3 +124,48 @@ permanece a origem histórica do deferimento, sem afirmar desconexão atual obse
 **P2_PHYSICAL continua DEFERRED / NOT_RUN, agora aguardando autorização física
 concreta; P2_GLOBAL NOT_READY.** Publicação/merge da prova Mac não autoriza instalação,
 build, launch, debug ou qualquer outro efeito no aparelho. P3 não iniciado.
+
+## P2 físico — harness preparado, provisioning BLOCKED
+
+**Data:** 02/10/2026. **Base:** `main` local em
+`63577f83ece79edda994db4f803cb79dc718d485`, após PR #7; branch local
+`codex/p2-ios-persistence-proof`. Executor Codex / GPT-6.1 Sol / Medium.
+Autorização específica permite harness separado, build/install e lifecycle somente
+com signing existente; não permite criar/refresh perfil, App ID, certificado,
+registro de aparelho, trust ou outros recursos de segurança. Sem fetch/pull.
+
+Leitura mínima oficial confirmou um iPhone 16 Pro Max disponível, wired e já pareado.
+Não houve nova operação de pairing/trust nem bateria de P1/signing/debugger. A
+configuração P1 existente e seu perfil embutido foram lidos sem expor identificadores.
+Esse perfil **não cobre** `org.cevra.take.persistence.p2`; nos diretórios locais oficiais
+examinados, **zero perfis válidos de desenvolvimento compatíveis com esse bundle**.
+Isso não afirma inexistência de App ID/perfil no portal Apple. Nenhum acesso ao portal,
+Accounts, chave privada ou criação/refresh foi realizado. Sem flags de provisioning.
+
+Harness único **PREPARED**, fora do repo, em
+`/private/tmp/cevra-take-p2-ios/CEVRA Take Persistence Proof.xcodeproj`, com diretório
+restrito e bundle P2 próprio. O projeto P1 e seu app/container não foram modificados.
+[UI e protocolo](../proofs/p2-persistence/ios/README.md) versionados para revisão;
+três fontes do core Mac copiados byte a byte para o projeto local. Nenhuma alteração
+no core/package/tests Mac aprovado nem escolha definitiva de stack. Signing manual
+sem profile selecionado; configuração de equipe existente somente no projeto local,
+fora do Git, sem identificadores pessoais nesta documentação.
+
+**Checks executados:** sintaxe do plist e scheme nativos PASS; parse Swift do novo
+fonte UI PASS; igualdade dos fontes copiados e preservação do projeto P1 verificadas.
+Parse não é typecheck, build, assinatura, deployment ou prova de portabilidade iOS.
+Regressão Mac não repetida nesta rodada, pois seu core/testes/package não mudaram;
+a evidência anterior continua restrita à prova Mac. Revisão do novo harness pendente.
+
+**P2_PHYSICAL = BLOCKED / NOT_RUN; P2_GLOBAL = NOT_READY.** Build físico, assinatura
+do novo app, install, launch, salvar/fechar/reabrir, process kill, export/restore no
+iPhone: **NOT_RUN**. Nenhum dado da fixture foi escrito no aparelho. O novo harness
+não foi instalado e não tocou P1/outros apps. Sem simulator, câmera, áudio, IA,
+captura, P3 ou Vids. Nenhum recurso de signing/security criado ou alterado.
+
+**Gate faltante:** autorização específica para obter/criar um perfil de desenvolvimento
+compatível com o bundle P2 usando o certificado existente e, somente se necessário,
+resolver seu App ID. Alternativamente, disponibilização oficial de perfil compatível
+já existente. Não usar o bundle/container P1 como contorno. Sem essa compatibilidade,
+parar antes de build/install; “Vamos” ao pacote físico não autoriza recursos de signing
+expressamente excluídos. Nenhum push/PR/merge antes da revisão independente do harness.

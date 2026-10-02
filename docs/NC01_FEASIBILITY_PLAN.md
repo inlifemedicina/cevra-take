@@ -358,9 +358,10 @@ P1 e demais spikes exigem autorização própria. O merge do PR #3 não autoriza
 
 P1 READY conforme [prontidão iOS](NC01_IOS_READINESS.md). P2 INICIADO:
 [prova de persistência](NC01_PERSISTENCE_PROOF.md) registra P2_MAC_PROOF PASS,
-P2_PHYSICAL DEFERRED/NOT_RUN por iPhone desconectado pelo proprietário e
-P2_GLOBAL NOT_READY. P2 não fechado; revisão independente Mac APPROVE, prova física
-aguardando autorização concreta. Desconexão é motivo do checkpoint, sem afirmar
-estado atual observado. P3/captura
+P2_PHYSICAL BLOCKED/NOT_RUN por ausência de perfil local compatível com o bundle P2 e
+P2_GLOBAL NOT_READY. P2 não fechado; revisão independente Mac APPROVE. Harness físico
+separado preparado; revisão do harness e gate específico de provisioning pendentes.
+Desconexão é motivo histórico da execução Mac; aparelho agora confirmado disponível
+por leitura mínima, sem executar prova física. P3/captura
 NOT_RUN. O checkpoint P0 acima permanece histórico; nenhuma decisão D1–D8,
 threshold de captura ou aceite global foi alterado.
