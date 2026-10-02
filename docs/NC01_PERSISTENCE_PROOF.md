@@ -3,10 +3,12 @@
 **Data:** 02/10/2026. **Executor:** Codex / GPT-6.1 Sol / Medium.
 **Baseline:** `main` em `b4ecd2ee135c7e23083963f20b915274093a962e`;
 branch local `feat/p2-persistence-proof`. Registro P1 previamente revisado preservado
-byte a byte e separado em commit local. Sem fetch/pull ou publicação nesta execução.
+byte a byte e separado em commit local. Sem fetch/pull ou publicação na execução
+inicial da prova; registro de revisão e publicação autorizados posteriormente.
 **Estado:** P1 READY; P2 INICIADO; P2_MAC_PROOF PASS; P2_PHYSICAL **DEFERRED / NOT_RUN**;
 `P2_PHYSICAL_REASON = iPhone disconnected by owner`; P2_GLOBAL **NOT_READY**.
-P2 não está fechado; revisão independente desta prova pendente. P3/captura NOT_RUN.
+P2 não está fechado; revisão independente da prova Mac **APPROVE** no HEAD
+`99bd1b68603dd09a197254495a300b208f92aecd`. P3/captura NOT_RUN.
 
 ## Ownership, hipótese e limite
 
@@ -93,7 +95,29 @@ metadata+original e rejeição de versão. K é recorte sintético de independê
 P2_PHYSICAL DEFERRED/NOT_RUN; nenhuma query de aparelho, simulador, build/install/
 launch/debug iOS. Permanecem não provados: lifecycle mobile, permissão/espaço reais
 por alvo, corrupção em escrita de hardware, power loss e throughput de mídia real.
-Não converter CLI/fixture/simulador em prova física. P2_GLOBAL NOT_READY; revisão
-independente e retomada física exigem gates próprios; P3/captura NÃO INICIADO.
+Não converter CLI/fixture/simulador em prova física. P2_GLOBAL NOT_READY; retomada
+física e revisão de sua evidência exigem gates próprios; P3/captura NÃO INICIADO.
 Nenhum provider/rede/IA real, instalação, código Vids, sync/P2P, contrato Take→Vids
 ou updater nesta prova. P1 READY preservado; stack final não selecionada.
+
+## Revisão independente e continuidade
+
+Revisão independente Mac **APPROVE**, restrita à fixture declarada, sem reexecutar
+testes: turno `01a0faa0-f0f5-77b0-b014-d8fdf2a3f2a1`, resposta
+`msg_00ea4dcf428faf0e016abf2394745087d2be804bbfc95de295`. A revisão consultou a
+execução original `exec-1838a98b-8b48-45a4-ac0d-6c284e82aeb2`: 13 testes XCTest,
+zero falhas, 16,160 segundos. Nenhum finding material para esse escopo.
+
+Limite não bloqueante: `read` recusa arquivos acima de **16 MiB**, mas `commit` não
+impõe o mesmo limite antes de publicar. Uso direto com metadata/original maior
+poderia publicar estado ilegível para `load`. A CLI/fixture fixa não expõe esse caso;
+a aprovação não cobre ampliar as entradas. Não corrigido neste fechamento: futura
+ampliação exige limite simétrico e teste próprio. Injeções, stub IA e ausência de
+prova de power loss/concorrência adversarial/lifecycle iOS permanecem limites.
+
+Após o checkpoint da execução, o proprietário relatou o iPhone reconectado; não houve
+query técnica para verificar esse relato. O motivo `iPhone disconnected by owner`
+permanece a origem histórica do deferimento, sem afirmar desconexão atual observada.
+**P2_PHYSICAL continua DEFERRED / NOT_RUN, agora aguardando autorização física
+concreta; P2_GLOBAL NOT_READY.** Publicação/merge da prova Mac não autoriza instalação,
+build, launch, debug ou qualquer outro efeito no aparelho. P3 não iniciado.
