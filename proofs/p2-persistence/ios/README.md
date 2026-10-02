@@ -173,4 +173,5 @@ P2_GLOBAL NOT_READY; P3 NOT_RUN. Não repetir FIX-01 ou iniciar próxima prova a
 ## P3 mínimo — opt-in, físico NOT_RUN
 
 Handoff, protocolo e gate críticos em [NC01_CAPTURE_PROOF.md](../../../docs/NC01_CAPTURE_PROOF.md).
-Default/readonly não ativam sensores; não operar o novo fluxo antes da revisão e coordenação.
+Default/readonly não ativam sensores; revisão crítica APPROVE no fonte `702c20a`.
+Ponte pode preparar build/install/readiness; sensores só por comando humano coordenado.

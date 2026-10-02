@@ -4,7 +4,7 @@
 PR #10 incorporado. **Executor:** Codex / `gpt-6.1-sol` / `medium`, verificados nos
 metadados locais do turno; nenhuma configuração global alterada.
 **Estado:** P3 INICIADO somente em código/preparo; execução física **NOT_RUN**;
-revisão crítica do head concreto **PENDING**. P2_GLOBAL NOT_READY; produto NÃO IMPLEMENTADO;
+revisão crítica **APPROVE** no fonte `702c20a86b5c8a0650dc4d5072db6d0c1534cd54`. P2_GLOBAL NOT_READY; produto NÃO IMPLEMENTADO;
 nenhuma stack final ou TAKE-A promovido. Este documento é dono do protocolo P3 mínimo.
 
 ## Autorização e limites
@@ -123,8 +123,10 @@ Quatro casos adicionais: stop-before-start/sem callback/late callback, ausência
 finish depois de start e stop, background durante stop, finalização válida/duplicação.
 11 testes P3 PASS, zero falhas, 0,619 s. Store/SHA/Model não alterados nesse delta;
 regressão P2 não repetida sem motivo. Link iOS otimizado atualizado PASS sem execução.
-Revisão do novo head ainda PENDING; nenhum push/operação de aparelho autorizado por
-resultado unitário.
+Revisão crítica do novo head `702c20a`: **APPROVE**, sem achados materiais. Preparo,
+build/install e readiness readonly pela ponte liberados no escopo autorizado; permissão,
+preview e gravação continuam aguardando comando humano coordenado. Resultado unitário
+não substitui autorização nem prova física.
 
 ## Validação local e gate
 
@@ -146,4 +148,5 @@ Fontes oficiais Apple consultadas em 02/10/2026:
 [Output settings](https://developer.apple.com/documentation/avfoundation/avcapturemoviefileoutput/setoutputsettings(_:for:)),
 [Preferred input e currentRoute](https://developer.apple.com/documentation/avfaudio/avaudiosession/setpreferredinput(_:)).
 API documentada não prova suporte ou execução do aparelho; essa evidência virá na etapa
-coordenada. Revisão independente crítica PENDING antes de push e operações pela ponte.
+coordenada. Revisão independente crítica APPROVE no head `702c20a`; fontes congelados
+e manifesto verificados. Nenhuma gravação iniciada por esse gate.
