@@ -125,7 +125,7 @@ permanece a origem histórica do deferimento, sem afirmar desconexão atual obse
 concreta; P2_GLOBAL NOT_READY.** Publicação/merge da prova Mac não autoriza instalação,
 build, launch, debug ou qualquer outro efeito no aparelho. P3 não iniciado.
 
-## P2 físico — harness preparado, provisioning BLOCKED
+## P2 físico — harness preparado, provisioning BLOCKED — checkpoint pré-PR #8
 
 **Data:** 02/10/2026. **Base:** `main` local em
 `63577f83ece79edda994db4f803cb79dc718d485`, após PR #7; branch local
@@ -187,3 +187,55 @@ Registro posterior altera somente documentação, preservando código/harness re
 Publicação/merge desse preparo não libera provisioning ou execução física. P1 READY,
 Mac proof PASS e P3 NOT_RUN preservados. Próximo gate: compatibilidade do perfil P2
 oficial já existente, ou consentimento específico para os recursos faltantes.
+
+## P2 físico — autorização restrita de App ID/perfil e handoff
+
+**Data:** 02/10/2026. **Base:** `main` local/remota confirmada em
+`2eec01c00cc53473388d97ed4b9f7a9398ac8ac5`, PR #8 incorporado, árvore inicial limpa.
+Branch local `codex/p2-scoped-provisioning-handoff`; Codex / GPT-6.1 Sol / Medium.
+O proprietário autorizou obter oficialmente **somente** App ID P2, se necessário,
+e development profile do bundle `org.cevra.take.persistence.p2`, selecionando Team,
+iPhone e certificado Apple Development **existentes**. A exclusão anterior de App ID/
+perfil fica SUPERSEDED nesse escopo. Permanecem proibidos novo/renew/revoke/delete de
+certificado, trust/keychain/security, autenticação pelo agente, componente/runtime,
+pagamento/termo novo e provisioning automático amplo sem garantia de escopo.
+
+Nova leitura mínima: harness exato presente com signing manual e Team existente
+configurada; um iPhone 16 Pro Max disponível. Nos diretórios locais oficiais examinados,
+nenhum perfil válido cobre bundle P2 + dispositivo + certificado do perfil P1 existente.
+`compatible_profile_available = no`; os três matches exigidos para build não puderam
+ser confirmados em um perfil P2. Nenhum recurso remoto foi consultado por login;
+nenhum profile/App ID/certificado foi criado, renovado ou baixado. Não inferir ausência
+no portal. A seleção do certificado P1 por referência pública não é nova prova de chave.
+
+Fontes oficiais consultadas em 02/10/2026:
+[Personal Team](https://developer.apple.com/help/account/basics/about-your-developer-account)
+é gerida diretamente no Xcode; o acesso a Certificates, Identifiers & Profiles é
+recurso de membership. O [fluxo manual de desenvolvimento](https://developer.apple.com/help/account/provisioning-profiles/create-a-development-provisioning-profile)
+permite escolher App ID, certificados e dispositivos, com papel Account Holder/Admin.
+A [orientação para profiles manuais](https://help.apple.com/xcode/mac/current/en.lproj/deva899b4fe5.html)
+requer conta do Apple Developer Program para gerenciamento, com limitações para conta
+pessoal. Isso não verifica membership/entitlements da conta atual: nenhum Accounts,
+portal autenticado ou dado pessoal foi inspecionado.
+
+**BLOCKED no mecanismo de provisioning restrito:** não foi demonstrado caminho
+oficial para esta Personal Team que garanta somente App ID/profile, sem possibilidade
+de novo certificado. Não usar `-allowProvisioningUpdates` em automatic signing, não
+ativar automaticamente esse fluxo ou contratar membership como contorno. Conforme
+STOP explícito do pacote, handoff pessoal no Xcode em vez de ampliar a autorização.
+
+**Handoff único:** abrir o projeto P2 existente, selecionar target `CEVRA Take
+Persistence Proof` → Signing & Capabilities e resolver pessoalmente o signing do bundle
+P2 com a Team/certificado atuais, sem Run; parar se não for possível manter o certificado
+existente ou surgir criação de certificado, trust, componente, pagamento ou termo novo.
+Confirmar somente “signing P2 resolvido”; não transmitir identificadores de conta/perfil.
+Sem urgência para essa interação; nenhum processo fica aguardando o proprietário.
+
+**Resultados desta rodada:** App ID/profile provisionados NOT_RUN; build físico,
+signed artifact, install, normal_close_reopen, process_kill_reopen, R1_recovered,
+T_to_R1_preserved_after_R2, export, restore, hash_equality, no_overwrite,
+no_duplication no iPhone: **NOT_RUN**. Nenhuma operação no sandbox P2/P1.
+Core/harness/P1 inalterados; nenhum teste repetido, pois só documentação mudou.
+P2_PHYSICAL BLOCKED/NOT_RUN; P2_GLOBAL NOT_READY; P3/captura NOT_RUN. Qualquer perfil
+obtido pessoalmente deverá ser validado quanto aos quatro critérios antes do build;
+revisão independente da evidência física continua obrigatória. Sem push/PR/merge.
