@@ -3,8 +3,9 @@
 **Checkpoint:** 02/10/2026. **Base:** main `99f1de2a4b020cb75b8000e2ed335d3b72b0747d`,
 PR #10 incorporado. **Executor:** Codex / `gpt-6.1-sol` / `medium`, verificados nos
 metadados locais do turno; nenhuma configuração global alterada.
-**Estado:** P3 INICIADO; **P3_PREPARATION_READY** (instalação e informação readonly);
-câmera/microfone/gravação **NOT_RUN**, perfil físico e qualidade humana **PENDING**;
+**Estado:** P3 INICIADO; preparo readonly anterior concluído; **PREVIEW_BLOCKED**
+na tentativa humana posterior. Permissões/preparo foram acionados pelo proprietário;
+gravação **NOT_RUN**, perfil físico e qualidade humana **PENDING**;
 revisão crítica **APPROVE** no fonte `702c20a86b5c8a0650dc4d5072db6d0c1534cd54`. P2_GLOBAL NOT_READY; produto NÃO IMPLEMENTADO;
 nenhuma stack final ou TAKE-A promovido. Este documento é dono do protocolo P3 mínimo.
 
@@ -185,5 +186,35 @@ no código imediatamente antes da tomada; o valor acima não é reserva permanen
 
 Nenhuma mudança de fonte/teste/harness nesta consolidação, nova execução Mac ou TAKE-A
 promovido. Produto NÃO IMPLEMENTADO; stack final não escolhida; P2_GLOBAL NOT_READY.
-O próximo passo é coordenar o momento humano do único clipe já autorizado, sem gravar
-agora, repetir P2 ou iniciar qualquer outro slice.
+O próximo passo descrito nesse checkpoint era coordenar o momento humano do único
+clipe autorizado; a tentativa posterior e o bloqueio atual estão registrados abaixo.
+
+
+## Bloqueio posterior do preview e correção proposta
+
+Após o preparo readonly, o proprietário acionou permissões/preparo e informou
+PREPARED/botão de gravação disponível, mas nenhuma imagem no preview. **Nenhum clipe
+foi iniciado**. O relato não é evidência instrumental de session.isRunning ou de
+perfil físico aprovado. O proprietário pode sair do app; não precisa mantê-lo aberto
+aguardando a correção. Estado atual PREVIEW_BLOCKED; captura NOT_RUN.
+
+Inspeção encontrou uma sublayer dimensionada somente em updateUIView, que pode
+ocorrer antes de SwiftUI atribuir bounds: defeito concreto compatível com preview
+zero, **causa física ainda não confirmada**. Correção mínima: UIView com backing layer
+AVCaptureVideoPreviewLayer, dimensionada pelo próprio UIKit após layout, sem sublayer
+com frame obsoleto. Diagnóstico visível somente na tela opt-in de preparo: dimensões,
+existência/estado da conexão e isPreviewing; botão humano atualiza leitura da sessão
+running/interrupted na fila serial. Não contém mídia, identificadores ou escrita de
+telemetria; não pede acesso, configura, inicia sessão ou grava.
+
+Typecheck iOS e link otimizado sem assinatura PASS, sem executar o binário. Primeiro
+link usou resolução de ferramenta do host e avisou sysroot incompatível; repetição
+com xcrun --sdk iphoneos passou sem warning. Nenhuma alteração em Store/SHA/Model,
+regras, deadlines, thresholds ou testes; regressões já aprovadas não repetidas por
+delta apenas de view/diagnóstico. Manifesto dos seis fontes atualizado; cinco intactos.
+
+Gate crítico do novo checkpoint **PENDENTE** antes de push/build assinado/install.
+Verificação física da imagem e do diagnóstico **NOT_RUN**. Depois de APPROVE, ponte
+poderá preparar atualização com os mesmos recursos de assinatura; qualquer ação de
+sensores no aparelho continua exigindo disponibilidade e comando do proprietário.
+Nenhum novo RUN, captura, resultado PASS de câmera ou TAKE-A promovido.

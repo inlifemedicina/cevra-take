@@ -98,6 +98,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     @Published private(set) var phase=P3Phase.idle
     @Published private(set) var status="P3 NOT_RUN — aguarde coordenação humana"
     @Published private(set) var canPreview=false
+    @Published private(set) var previewSessionStatus="Sessão: não verificada"
     @Published private(set) var playbackURL:URL?
     let session=AVCaptureSession()
     private let q=DispatchQueue(label:"org.cevra.proof.p3.session")
@@ -196,6 +197,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         q.async {
             guard self.state.phase == .ready else { return }
             self.session.startRunning()
+            self.publishPreviewSessionStatus()
             if !self.session.isRunning { self.fail(.recording) }
         }
         for name in [AVCaptureSession.wasInterruptedNotification,AVCaptureSession.runtimeErrorNotification,
@@ -211,6 +213,14 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             })
         }
     }
+    // Read-only diagnostic. Never requests access, configures or starts a session.
+    private func publishPreviewSessionStatus() {
+        let running=session.isRunning, interrupted=session.isInterrupted
+        DispatchQueue.main.async {
+            self.previewSessionStatus="Sessão running=\(running), interrupted=\(interrupted)"
+        }
+    }
+    func refreshPreviewDiagnosticByHuman() { q.async { self.publishPreviewSessionStatus() } }
     func recordByHuman() { q.async { [self] in
         guard self.state.phase == .ready,self.configured,self.session.isRunning else { return }
         do {
@@ -352,23 +362,63 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         } catch { self.fail(.integrity) }
     } }
 }
+// Main-thread view layout owns the backing preview layer's dimensions. A sublayer
+// sized in updateUIView can remain zero-sized after SwiftUI's initial layout.
+private final class P3PreviewView:UIView {
+    override class var layerClass:AnyClass { AVCaptureVideoPreviewLayer.self }
+    var previewLayer:AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+    var report:((String)->Void)?
+    private var lastReport:String?
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        reportDiagnostic()
+    }
+    func reportDiagnostic() {
+        let c=previewLayer.connection
+        let text="Preview bounds=\(Int(bounds.width))×\(Int(bounds.height)), connection=\(c != nil), enabled=\(c?.isEnabled ?? false), active=\(c?.isActive ?? false), previewing=\(previewLayer.isPreviewing)"
+        guard text != lastReport else { return }
+        lastReport=text
+        // Do not mutate SwiftUI state during layout/updateUIView.
+        let callback=report
+        DispatchQueue.main.async { callback?(text) }
+    }
+}
 private struct P3Preview:UIViewRepresentable {
     let session:AVCaptureSession
-    func makeUIView(context:Context)->UIView {
-        let v=UIView();let layer=AVCaptureVideoPreviewLayer(session:session);layer.videoGravity = .resizeAspect
-        v.layer.addSublayer(layer);return v
+    let diagnosticRevision:Int
+    let report:(String)->Void
+    func makeUIView(context:Context)->P3PreviewView {
+        let view=P3PreviewView()
+        view.previewLayer.videoGravity = .resizeAspect
+        view.previewLayer.session=session
+        view.report=report
+        return view
     }
-    func updateUIView(_ view:UIView,context:Context) { view.layer.sublayers?.first?.frame=view.bounds }
+    func updateUIView(_ view:P3PreviewView,context:Context) {
+        view.report=report
+        view.reportDiagnostic()
+    }
 }
 struct P3CaptureScreen:View {
     @StateObject private var controller=P3CaptureController()
     @Environment(\.scenePhase) private var scene
+    @State private var previewDiagnostic="Preview: não verificado"
+    @State private var diagnosticRevision=0
     var body:some View { ScrollView { VStack(spacing:16) {
         Text("P3 mínimo — captura local").font(.title2)
         Text("Somente após coordenação: objeto neutro e contagem. Sem Photos, upload, IA ou rede.")
         Text(controller.status).accessibilityIdentifier("p3-status")
         Button("1. Preparar permissões e câmera — comando humano") { controller.prepareByHuman() }.disabled(controller.phase != .idle)
-        if controller.canPreview { P3Preview(session:controller.session).frame(height:220) }
+        if controller.canPreview {
+            P3Preview(session:controller.session,diagnosticRevision:diagnosticRevision) {
+                previewDiagnostic=$0
+            }.frame(height:220)
+            Text(controller.previewSessionStatus)
+            Text(previewDiagnostic).accessibilityIdentifier("p3-preview-diagnostic")
+            Button("Atualizar diagnóstico de preview — sem gravar") {
+                controller.refreshPreviewDiagnosticByHuman();diagnosticRevision += 1
+            }
+        }
         Button("2. Gravar um clipe de 30 s") { controller.recordByHuman() }.disabled(controller.phase != .ready)
         Button("Parar antecipadamente — duração não aprovada") { controller.stopByHuman() }.disabled(![.starting,.recording].contains(controller.phase))
         Button("3. Reabrir original e habilitar Play") { controller.reopenByHuman() }.disabled(![.idle,.saved].contains(controller.phase))
