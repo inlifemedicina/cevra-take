@@ -7,7 +7,8 @@ byte a byte e separado em commit local. Sem fetch/pull ou publicação na execu�
 inicial da prova; registro de revisão e publicação autorizados posteriormente.
 **Estado atual:** P1 READY; P2 INICIADO; P2_MAC_PROOF PASS; P2_PHYSICAL
 **BLOCKED / NOT_RUN** por ausência de perfil local compatível com o bundle próprio P2;
-P2_GLOBAL **NOT_READY**. Motivo histórico do deferimento na execução Mac:
+P2_GLOBAL **NOT_READY**. Compilação local genérica iOS **PASS**, sem assinatura ou
+execução física. Motivo histórico do deferimento na execução Mac:
 `P2_PHYSICAL_REASON = iPhone disconnected by owner`.
 P2 não está fechado; revisão independente da prova Mac **APPROVE** no HEAD
 `99bd1b68603dd09a197254495a300b208f92aecd`. P3/captura NOT_RUN.
@@ -125,7 +126,7 @@ permanece a origem histórica do deferimento, sem afirmar desconexão atual obse
 concreta; P2_GLOBAL NOT_READY.** Publicação/merge da prova Mac não autoriza instalação,
 build, launch, debug ou qualquer outro efeito no aparelho. P3 não iniciado.
 
-## P2 físico — harness preparado, provisioning BLOCKED
+## P2 físico — harness preparado, provisioning BLOCKED — checkpoint pré-PR #8
 
 **Data:** 02/10/2026. **Base:** `main` local em
 `63577f83ece79edda994db4f803cb79dc718d485`, após PR #7; branch local
@@ -187,3 +188,108 @@ Registro posterior altera somente documentação, preservando código/harness re
 Publicação/merge desse preparo não libera provisioning ou execução física. P1 READY,
 Mac proof PASS e P3 NOT_RUN preservados. Próximo gate: compatibilidade do perfil P2
 oficial já existente, ou consentimento específico para os recursos faltantes.
+
+## P2 físico — autorização restrita de App ID/perfil e handoff
+
+**Data:** 02/10/2026. **Base:** `main` local/remota confirmada em
+`2eec01c00cc53473388d97ed4b9f7a9398ac8ac5`, PR #8 incorporado, árvore inicial limpa.
+Branch local `codex/p2-scoped-provisioning-handoff`; Codex / GPT-6.1 Sol / Medium.
+O proprietário autorizou obter oficialmente **somente** App ID P2, se necessário,
+e development profile do bundle `org.cevra.take.persistence.p2`, selecionando Team,
+iPhone e certificado Apple Development **existentes**. A exclusão anterior de App ID/
+perfil fica SUPERSEDED nesse escopo. Permanecem proibidos novo/renew/revoke/delete de
+certificado, trust/keychain/security, autenticação pelo agente, componente/runtime,
+pagamento/termo novo e provisioning automático amplo sem garantia de escopo.
+
+Nova leitura mínima: harness exato presente com signing manual e Team existente
+configurada; um iPhone 16 Pro Max disponível. Nos diretórios locais oficiais examinados,
+nenhum perfil válido cobre bundle P2 + dispositivo + certificado do perfil P1 existente.
+`compatible_profile_available = no`; os três matches exigidos para build não puderam
+ser confirmados em um perfil P2. Nenhum recurso remoto foi consultado por login;
+nenhum profile/App ID/certificado foi criado, renovado ou baixado. Não inferir ausência
+no portal. A seleção do certificado P1 por referência pública não é nova prova de chave.
+
+Fontes oficiais consultadas em 02/10/2026:
+[Personal Team](https://developer.apple.com/help/account/basics/about-your-developer-account)
+é gerida diretamente no Xcode; o acesso a Certificates, Identifiers & Profiles é
+recurso de membership. O [fluxo manual de desenvolvimento](https://developer.apple.com/help/account/provisioning-profiles/create-a-development-provisioning-profile)
+permite escolher App ID, certificados e dispositivos, com papel Account Holder/Admin.
+A [orientação para profiles manuais](https://help.apple.com/xcode/mac/current/en.lproj/deva899b4fe5.html)
+requer conta do Apple Developer Program para gerenciamento, com limitações para conta
+pessoal. Isso não verifica membership/entitlements da conta atual: nenhum Accounts,
+portal autenticado ou dado pessoal foi inspecionado.
+
+**BLOCKED na rota manual observada:** inspeção CUA do projeto P2 mostrou signing
+automático desativado, Provisioning Profile e Signing Certificate em `None`, e
+“requires a provisioning profile”. `Download Profile…` apresentou “No Valid Teams —
+Unable to find any valid teams”; Select Profile desabilitado e uma tentativa sem
+mudança. Cancel encerrou a seleção sem criar/baixar perfil, App ID ou certificado.
+Isso não prova inexistência de perfil no portal, ausência de certificado/chave no
+host ou impossibilidade universal. Uma rota oficial limitada aos recursos existentes
+ainda não foi estabelecida. Não usar `-allowProvisioningUpdates` em automatic signing, não
+ativar automaticamente esse fluxo ou contratar membership como contorno. Conforme
+STOP explícito do pacote, handoff pessoal no Xcode em vez de ampliar a autorização.
+
+**Próxima ação proposta, sem urgência:** no projeto P2 existente, target `CEVRA Take
+Persistence Proof` → Signing & Capabilities, disponibilizar/importar perfil oficial
+compatível ou identificar uma rota oficial limitada à Team, aparelho e certificado
+existentes. O handoff pessoal é a ação escolhida, não prova de exclusividade técnica.
+Não repetir Download Profile sem mudança de condição; não usar Run; parar se não for possível manter o certificado
+existente ou surgir criação de certificado, trust, componente, pagamento ou termo novo.
+Confirmar somente “signing P2 resolvido”; não transmitir identificadores de conta/perfil.
+Sem urgência para essa interação; nenhum processo fica aguardando o proprietário.
+
+**Resultados desta rodada:** App ID/profile provisionados NOT_RUN; build físico,
+signed artifact, install, normal_close_reopen, process_kill_reopen, R1_recovered,
+T_to_R1_preserved_after_R2, export, restore, hash_equality, no_overwrite,
+no_duplication no iPhone: **NOT_RUN**. Nenhuma operação no sandbox P2/P1.
+Core/harness/P1 inalterados; nenhum teste repetido, pois só documentação mudou.
+P2_PHYSICAL BLOCKED/NOT_RUN; P2_GLOBAL NOT_READY; P3/captura NOT_RUN. Qualquer perfil
+obtido pessoalmente deverá ser validado quanto aos quatro critérios antes do build;
+revisão independente da evidência física continua obrigatória. Sem push/PR/merge.
+
+## P2 iOS — compilação local sem assinatura
+
+**Data:** 02/10/2026; mesma base `2eec01c00cc53473388d97ed4b9f7a9398ac8ac5`,
+branch `codex/p2-scoped-provisioning-handoff`. Steering autorizou este check independente
+sem exigir os quatro matches de perfil; esses matches continuam obrigatórios antes
+de build **assinado**/install. Sem interação humana aguardada ou nova tentativa de
+provisioning; mecanismo restrito ainda não demonstrado, conforme seção anterior.
+
+**local_unsigned_iOS_build = PASS**: Xcode existente, SDK iphoneos existente, destino
+`generic/platform=iOS`, configuração Debug, DerivedData próprio fora do repo em
+`/private/tmp/cevra-take-p2-ios/UnsignedDerivedData`. Flags:
+`CODE_SIGNING_ALLOWED=NO`, `CODE_SIGNING_REQUIRED=NO`, `CODE_SIGN_IDENTITY=` e
+`DEVELOPMENT_TEAM=`; package resolution automática desabilitada e updates de pacotes
+omitidos. Projeto não contém packages externos ou scripts de build. Nenhuma flag
+`-allowProvisioningUpdates`/device registration, download ou componente adicional.
+
+O mesmo UI/core compilou sem erro; nenhuma correção de código foi necessária. Artifact
+`.app` local presente, bundle P2 exato; inspeção readonly oficial confirmou **assinatura
+ausente** e **nenhum embedded profile**. Fontes locais continuam byte a byte iguais
+aos aprovados. Esse resultado comprova compilação pelo SDK, não execução/portabilidade
+completa, signing válido ou comportamento de persistência no SO real.
+
+Signed build, install, launch, background/reopen, process kill/reopen, recuperação e
+export/restore no iPhone continuam **NOT_RUN**; nenhuma query/operação de aparelho
+neste check, nem novo recurso de signing/security. Testes Mac não repetidos: core,
+package e testes inalterados. P2_PHYSICAL BLOCKED/NOT_RUN; P2_GLOBAL NOT_READY; P3
+NOT_RUN. Próxima ação humana pode ocorrer depois: resolver signing P2 no Xcode com
+recursos existentes, sem Run; não aguardar em processo/tool nem ampliar autorização.
+Revisão independente obrigatória antes de publicar o registro/fechar evidência física.
+
+## Revisão e fechamento documental desta rodada
+
+**Revisão independente: APPROVE**, restrita aos registros documentais, ao build local
+sem assinatura e aos limites de provisioning. Turno
+`01a0fad4-0e83-7770-a573-b6c782718fd5`, resposta
+`msg_00ea4dcf428faf0e016abf3084f8cc87d2b432eaba871f84b6`.
+A observação CUA acima veio do registro sanitizado do bridge, conferido pelo executor;
+não foi repetida pelo executor. Build e testes Mac não repetidos: código inalterado.
+
+A recusa pré-tool de coordenação é histórica e foi superada pelo reenvio da autorização
+humana original; não foi rejeição automática de sandbox/approval e não revogou a
+autorização de App ID/perfil P2. Ambos continuam autorizados, mas **não criados**.
+A revisão permite o fechamento documental planejado; não fecha a evidência física.
+P1 READY; P2_MAC_PROOF PASS; local_unsigned_iOS_build PASS; P2_PHYSICAL BLOCKED/NOT_RUN;
+P2_GLOBAL NOT_READY; P3 NOT_RUN. Nenhuma operação Apple/aparelho nesta rodada documental.
