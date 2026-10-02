@@ -1,12 +1,13 @@
 # CEVRA Take — contexto canônico
 
-**Consolidação:** 02/10/2026 (UTC). **Etapa:** NC-00 CLOSED; NC-01 INICIADO; P0/preflight documental CONCLUÍDO com revisão independente PASS; P1 READY após revisão independente final APPROVE; P1B PARTIAL preservado como histórico.
+**Consolidação:** 02/10/2026 (UTC). **Etapa:** NC-00 CLOSED; NC-01 INICIADO; P0/preflight documental CONCLUÍDO com revisão independente PASS; P1 READY após revisão independente final APPROVE; P2 INICIADO, Mac synthetic proof PASS, physical DEFERRED/NOT_RUN, global NOT_READY; P1B PARTIAL preservado como histórico.
 **Nome aprovado:** CEVRA Take. **Alvo:** `inlifemedicina/cevra-take`, público por decisão do proprietário.
 **Produto executável:** não implementado. **Bootstrap:** publicado em `main` no commit `4c15ddf9a554e0c014772526476ec8830f17fbad`; PR #1 e reconciliação R2 incorporados pelo merge commit `8f61e41cb705d5505bd95695b86694d3467a0f89`.
 **Continuidade:** migração para o novo projeto ChatGPT e ensaio concluídos com sucesso, conforme relato do proprietário.
 **Plano atual:** [NC01_FEASIBILITY_PLAN.md](NC01_FEASIBILITY_PLAN.md) registra inventário, provas propostas e decisões D1–D8 do proprietário, incluindo a restrição de evolução da captura para a seleção técnica; nenhuma stack selecionada ou spike de produto executado.
 **Preparação atual:** [NC01_IOS_READINESS.md](NC01_IOS_READINESS.md) registra P1 READY: evidência física mínima de build, assinatura, instalação, launch e confirmação visual concluída; debugger/fechamento sustentados por evidência humana, com revisão independente final APPROVE. P1A/P1B preservados como histórico; captura/medição NOT_RUN; nenhum TAKE-A promovido.
-**Próximo gate:** P2 persistência, NÃO INICIADO / NOT_RUN e não autorizado. P1 READY não satisfaz o gate completo de NC-01 nem autoriza P2/P3 automaticamente; nenhuma stack selecionada e nenhum produto implementado.
+**Persistência atual:** [NC01_PERSISTENCE_PROOF.md](NC01_PERSISTENCE_PROOF.md) registra P2_MAC_PROOF PASS no Mac, sem dependências externas, e P2_PHYSICAL DEFERRED/NOT_RUN por iPhone desconectado pelo proprietário. P2_GLOBAL NOT_READY; P2 não fechado.
+**Próximo gate:** revisão independente P2 e posterior prova física sob autorização própria. P3/captura NÃO INICIADO / NOT_RUN; o resultado Mac não satisfaz o gate completo de NC-01 nem autoriza próxima prova automaticamente. Nenhuma stack selecionada ou produto implementado.
 
 ## Autoridade
 

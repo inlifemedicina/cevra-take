@@ -1,6 +1,6 @@
 # NC-01/P0 — inventário e plano de provas
 
-**Data do inventário:** 30/09/2026. **Estado:** P0 documental CONCLUÍDO; inventário concluído para o ambiente observado, plano de provas concluído e decisões D1–D8 registradas; revisão independente PASS. P1 e demais spikes NOT_RUN e sujeitos a autorização própria.
+**Data do inventário:** 30/09/2026. **Estado no checkpoint P0 — histórico:** P0 documental CONCLUÍDO; inventário concluído para o ambiente observado, plano de provas concluído e decisões D1–D8 registradas; revisão independente PASS. P1 e demais spikes NOT_RUN e sujeitos a autorização própria.
 **Baseline:** `main` em `20c5c9a69b1fcd49bb052ac275b8ee31d38c9ba0`, fechamento NC-00 incorporado pelo [PR #2](https://github.com/inlifemedicina/cevra-take/pull/2).
 **Implementador:** Codex. **Configuração efetiva:** `gpt-6.1-sol`, esforço `high`, verificados nos metadados locais do turno. Configuração mantida conforme orientação posterior do proprietário; nenhuma configuração global, plano ou cobrança foi alterado.
 
@@ -353,3 +353,12 @@ P0 encerra planejamento/preflight; não satisfaz o gate completo de NC-01, que c
 INICIADO. Nenhuma stack selecionada, produto implementado, TAKE-A promovido a PASS
 ou spike técnico executado. P1 é o próximo slice proposto, NOT_RUN / NÃO INICIADO;
 P1 e demais spikes exigem autorização própria. O merge do PR #3 não autoriza P1 automaticamente.
+
+## Execuções posteriores — estado atual
+
+P1 READY conforme [prontidão iOS](NC01_IOS_READINESS.md). P2 INICIADO:
+[prova de persistência](NC01_PERSISTENCE_PROOF.md) registra P2_MAC_PROOF PASS,
+P2_PHYSICAL DEFERRED/NOT_RUN por iPhone desconectado pelo proprietário e
+P2_GLOBAL NOT_READY. P2 não fechado; revisão independente pendente. P3/captura
+NOT_RUN. O checkpoint P0 acima permanece histórico; nenhuma decisão D1–D8,
+threshold de captura ou aceite global foi alterado.

@@ -1,0 +1,99 @@
+# NC-01/P2 — persistência mínima de prova
+
+**Data:** 02/10/2026. **Executor:** Codex / GPT-6.1 Sol / Medium.
+**Baseline:** `main` em `b4ecd2ee135c7e23083963f20b915274093a962e`;
+branch local `feat/p2-persistence-proof`. Registro P1 previamente revisado preservado
+byte a byte e separado em commit local. Sem fetch/pull ou publicação nesta execução.
+**Estado:** P1 READY; P2 INICIADO; P2_MAC_PROOF PASS; P2_PHYSICAL **DEFERRED / NOT_RUN**;
+`P2_PHYSICAL_REASON = iPhone disconnected by owner`; P2_GLOBAL **NOT_READY**.
+P2 não está fechado; revisão independente desta prova pendente. P3/captura NOT_RUN.
+
+## Ownership, hipótese e limite
+
+[NC01_FEASIBILITY_PLAN.md](NC01_FEASIBILITY_PLAN.md) mantém decisões D1–D8 e sequência.
+Este documento é dono da execução P2; [proof](../proofs/p2-persistence/README.md)
+descreve o contrato, layout, falhas e reprodução. Hipótese: revisão/tomada/original
+preservam identidade e integridade em restart, export/restore e falhas sintéticas no
+Mac. Não seleciona stack ou formato definitivo; não escolhe nem rejeita SQLite futuro.
+Produto NÃO IMPLEMENTADO; nenhum TAKE-A global promovido.
+
+Fixture fictícia fixa: projeto `P2-FIXTURE-001`, roteiro S/R1, tomada sintética T→R1,
+original O determinístico de 4.096 bytes, R2 posterior. Nenhuma mídia/dado pessoal.
+Metadata JSON/Codable versionada; originais separados e read-only por geração;
+SHA-256; staging + publicação atômica, lock de escritor liberado pelo SO no SIGKILL.
+Export inclui metadata, originais e manifesto/hash; restore nunca sobrescreve destino
+existente, inclusive vazio. Falha depois de publicar CURRENT pode deixar R2 committed
+sem sucesso retornado: reabrir/reconciliar, nunca presumir rollback pelo exit code.
+
+## Protocolo e resultados Mac
+
+Critérios A–K do prompt foram fixados antes da execução: igualdade exata de metadata,
+vínculos, bytes e hashes; zero sobrescrita/duplicação; nenhuma referência válida para
+original ausente/corrompido. Tempos observados não são thresholds de produto.
+
+| Caso | Evidência no Mac | Resultado |
+|---|---|---|
+| A — criar/importar, salvar, fechar/reabrir | CLI seed encerra; outra execução/processo recupera R1 exatamente | PASS |
+| B — revisão e procedência | T→R1 antes/depois de R2; retry de R2 sem duplicar revisão/geração | PASS |
+| C — original e derivados | Bytes/hash O preservados ao apagar cache; alteração de histórico recusada | PASS |
+| D — export declarado | Metadata + O + manifesto com conjunto exato de hashes validados | PASS |
+| E — restore | Destino novo; revisões/vínculos/bytes/hashes iguais ao export/source | PASS |
+| F — zero overwrite | Restore recusa projeto existente e pasta vazia; export recusa bundle existente | PASS |
+| G — ausência/adulteração | Erros explícitos; nenhum destino/export final declarado válido | PASS |
+| H — versão incompatível | Diagnóstico sem reescrever fonte ou criar destino | PASS |
+| I — export interrompido | Dois checkpoints × três modos; bundle final ausente, source preservado | PASS |
+| J — escrita/finalização interrompida | Sete checkpoints × três modos; restart recupera estado íntegro, retry sem duplicar | PASS |
+| K — IA ausente/falhando | Stub sintético no teste; persistência/export/restore independentes | PASS |
+
+Adicionais: vetores SHA-256 (vazio, `abc`, um milhão de `a`) e rejeição de IDs inseguros,
+duplicados e original symlink. Total: **13 testes XCTest, zero falhas** na execução final.
+O footer da Swift Testing informa zero testes porque esta suíte usa XCTest; não é
+substituto para os 13 casos executados. Não havia suíte de produto preexistente.
+
+### Matriz de falhas e recuperação
+
+Em cada linha, modos: SIGKILL real do subprocesso, EACCES injetado, ENOSPC injetado.
+Teste reabre em novo processo, verifica O e repete R2 com zero duplicação.
+
+| Checkpoint commit | Estado recuperado |
+|---|---|
+| beforeOriginalWrite | R1 |
+| duringOriginalWrite — payload parcial | R1 |
+| beforeMetadataWrite | R1 |
+| duringMetadataWrite — payload parcial | R1 |
+| beforeGenerationPublish | R1 |
+| beforeHeadPublish | R1 |
+| afterHeadPublish | R2 |
+
+Export: `exportPayloadWritten` e `beforeExportPublish`, mesmos três modos: nenhum
+bundle final publicado. Total **27 combinações**, incluindo **9 encerramentos SIGKILL**.
+EACCES/ENOSPC são injeções, não falhas reais do disco/volume ou lifecycle iOS.
+Staging/gerações órfãos ficam invisíveis; sem limpeza/GC automático do store no proof.
+
+### Evidência e ressalva operacional
+
+Execução macOS arm64 com toolchain Apple existente, sem dependências externas.
+Build/test artefatos fora do repo em scratch próprio. Primeira tentativa de XCTest
+foi bloqueada antes dos testes por metadados Finder no test bundle em Documents;
+não contou como PASS. Scratch em diretório temporário fora de Documents evitou
+esse bloqueio, sem remover metadados ou alterar configuração de signing do host.
+
+[Resultado sanitizado](../proofs/p2-persistence/EVIDENCE.txt) contém resultados por
+caso, hashes somente da fixture e recuperação por ponto. Tempo total final da suíte
+registrado nesse resultado; I/O, bateria/memória/performance de produto **NOT_MEASURED**.
+Tamanhos de fixture são dados declarados, não instrumentação de I/O.
+
+## Recortes de aceite, sem promoção global
+
+TAKE-A01/A02/A03: núcleo local sintético, restart e revisão; A06/A07: interrupção real
+de processo Mac e erros injetados; A18: preservação do original; A19: export/restore
+metadata+original e rejeição de versão. K é recorte sintético de independência de IA
+(A01/parte de A10), sem prova de IA/captura. [Catálogo](ACCEPTANCE_TESTS.md) inalterado.
+
+P2_PHYSICAL DEFERRED/NOT_RUN; nenhuma query de aparelho, simulador, build/install/
+launch/debug iOS. Permanecem não provados: lifecycle mobile, permissão/espaço reais
+por alvo, corrupção em escrita de hardware, power loss e throughput de mídia real.
+Não converter CLI/fixture/simulador em prova física. P2_GLOBAL NOT_READY; revisão
+independente e retomada física exigem gates próprios; P3/captura NÃO INICIADO.
+Nenhum provider/rede/IA real, instalação, código Vids, sync/P2P, contrato Take→Vids
+ou updater nesta prova. P1 READY preservado; stack final não selecionada.

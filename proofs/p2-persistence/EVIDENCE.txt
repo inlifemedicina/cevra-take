@@ -1,0 +1,60 @@
+NC-01/P2 synthetic Mac proof — 2026-10-02
+Source: final XCTest execution; 13 tests, 0 failures.
+No device operations; no simulator; no real media or provider.
+P2_MAC_PROOF=PASS
+P2_PHYSICAL=DEFERRED/NOT_RUN
+P2_PHYSICAL_REASON=iPhone disconnected by owner
+P2_GLOBAL=NOT_READY
+Permission denied / ENOSPC: injected errno, not real disk exhaustion or iOS failures.
+Process death: actual SIGKILL subprocesses. I/O/resource metrics: NOT_MEASURED.
+
+Test Case '-[PersistenceProofTests.ProofTests testARealProcessRestartExactRecovery]' passed (0.496 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testBRevisionProvenanceAndIdempotentRetry]' passed (0.394 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testCOriginalSurvivesCacheDeletionAndHistoryRewriteRejected]' passed (0.291 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testDDeclaredExportManifestAndHashes]' passed (0.280 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testERestoreInNewDestinationExactEquality]' passed (0.451 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testFRestoreAndExportNeverOverwriteExistingDestination]' passed (0.671 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testGMissingOrTamperedOriginalExplicitFailure]' passed (0.645 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testHIncompatibleVersionDiagnosedWithoutOverwrite]' passed (0.387 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testIInterruptedExportHasNoPublishedBundle]' passed (1.215 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testJFailureMatrixRecoveryAndRetry]' passed (9.827 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testKAbsentOrFailingSyntheticAILeavesPersistenceIndependent]' passed (0.904 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testRejectSymlinksUnsafeIDsAndDuplicateIDs]' passed (0.273 seconds).
+Test Case '-[PersistenceProofTests.ProofTests testSHA256KnownAnswerVectors]' passed (0.326 seconds).
+Executed 13 tests, with 0 failures (0 unexpected) in 16.160 (16.163) seconds
+EVIDENCE A separate_process_restart=yes exact_recovery=yes
+EVIDENCE B T_to_R1_before=yes after_R2=yes duplicates=0
+EVIDENCE C original_byte_equality=yes original_hash=f1a9116e64d5ce92231de69558afad42a650a9ee7ad481813ef824d649784ded
+EVIDENCE D manifest_exact=yes metadata_R2_hash=adfb7b2992b143055cbaba59d6dee6d7462b3e7346fbe044306bb1494ccf17dd
+EVIDENCE E export_restore_metadata_links_bytes_hashes_equal=yes
+EVIDENCE F overwrite=0 existing_empty_destination_rejected=yes
+EVIDENCE G missing_tampered_error=yes false_success=0
+EVIDENCE H incompatible_version_error=yes overwrite=0
+EVIDENCE I exportPayloadWritten death final_bundle_absent=yes source_preserved=yes
+EVIDENCE I exportPayloadWritten denied final_bundle_absent=yes source_preserved=yes
+EVIDENCE I exportPayloadWritten noSpace final_bundle_absent=yes source_preserved=yes
+EVIDENCE I beforeExportPublish death final_bundle_absent=yes source_preserved=yes
+EVIDENCE I beforeExportPublish denied final_bundle_absent=yes source_preserved=yes
+EVIDENCE I beforeExportPublish noSpace final_bundle_absent=yes source_preserved=yes
+EVIDENCE J beforeOriginalWrite death recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeOriginalWrite denied recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeOriginalWrite noSpace recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J duringOriginalWrite death recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J duringOriginalWrite denied recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J duringOriginalWrite noSpace recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeMetadataWrite death recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeMetadataWrite denied recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeMetadataWrite noSpace recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J duringMetadataWrite death recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J duringMetadataWrite denied recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J duringMetadataWrite noSpace recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeGenerationPublish death recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeGenerationPublish denied recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeGenerationPublish noSpace recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeHeadPublish death recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeHeadPublish denied recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J beforeHeadPublish noSpace recovered=R1 original_preserved=yes retry_duplicates=0
+EVIDENCE J afterHeadPublish death recovered=R2 original_preserved=yes retry_duplicates=0
+EVIDENCE J afterHeadPublish denied recovered=R2 original_preserved=yes retry_duplicates=0
+EVIDENCE J afterHeadPublish noSpace recovered=R2 original_preserved=yes retry_duplicates=0
+EVIDENCE K synthetic_AI_absent_failing=yes persistence_unchanged=yes real_AI=NOT_RUN
