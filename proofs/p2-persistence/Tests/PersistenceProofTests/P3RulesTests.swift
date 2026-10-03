@@ -142,3 +142,62 @@ extension P3RulesTests {
         XCTAssertFalse(consent.mayRecord(phase:.ready,sessionRunning:true))
     }
 }
+
+
+extension P3RulesTests {
+    func testOrientationRecognizesBothAxesAndRejectsFlatOrUnknownDevice() {
+        XCTAssertEqual(P3Posture.device(rawValue:1),.portrait)
+        XCTAssertEqual(P3Posture.device(rawValue:2),.portraitUpsideDown)
+        XCTAssertEqual(P3Posture.device(rawValue:3),.landscapePortRight)
+        XCTAssertEqual(P3Posture.device(rawValue:4),.landscapePortLeft)
+        for raw in [0,5,6,99] { XCTAssertNil(P3Posture.device(rawValue:raw).axis) }
+        for posture in [P3Posture.portrait,.portraitUpsideDown,.landscapePortLeft,.landscapePortRight] {
+            let f=P3OrientationFrame(posture:posture,previewAngle:90,captureAngle:180)
+            XCTAssertTrue(f.supported(for:posture.axis,previewSupported:true,captureSupported:true))
+            XCTAssertFalse(f.supported(for:posture.axis == .vertical ? .horizontal : .vertical,previewSupported:true,captureSupported:true))
+        }
+    }
+    func testNativePreviewCapturePairNeedNotHaveEqualAnglesButMustBothBeSupported() {
+        let f=P3OrientationFrame(posture:.portrait,previewAngle:90,captureAngle:180)
+        XCTAssertTrue(f.supported(for:.vertical,previewSupported:true,captureSupported:true))
+        XCTAssertFalse(f.supported(for:.vertical,previewSupported:false,captureSupported:true))
+        XCTAssertFalse(f.supported(for:.vertical,previewSupported:true,captureSupported:false))
+        XCTAssertFalse(f.supported(for:nil,previewSupported:true,captureSupported:true))
+        XCTAssertFalse(P3OrientationFrame(posture:.unknown,previewAngle:0,captureAngle:0).supported(for:.vertical,previewSupported:true,captureSupported:true))
+        for bad in [Double.nan,Double.infinity,-1,360] {
+            XCTAssertFalse(P3OrientationFrame(posture:.portrait,previewAngle:bad,captureAngle:90).supported(for:.vertical,previewSupported:true,captureSupported:true))
+            XCTAssertFalse(P3OrientationFrame(posture:.portrait,previewAngle:90,captureAngle:bad).supported(for:.vertical,previewSupported:true,captureSupported:true))
+        }
+    }
+    func testOrientationCannotFreezeUnsupportedAndCannotRotateFrozenClip() {
+        let vertical=P3OrientationFrame(posture:.portrait,previewAngle:90,captureAngle:90)
+        let horizontal=P3OrientationFrame(posture:.landscapePortRight,previewAngle:0,captureAngle:0)
+        var lock=P3OrientationFreeze()
+        XCTAssertFalse(lock.lock(horizontal,axis:.vertical,previewSupported:true,captureSupported:true))
+        XCTAssertNil(lock.frame)
+        XCTAssertFalse(lock.lock(vertical,axis:.vertical,previewSupported:true,captureSupported:false))
+        XCTAssertNil(lock.frame)
+        XCTAssertTrue(lock.lock(vertical,axis:.vertical,previewSupported:true,captureSupported:true))
+        XCTAssertFalse(lock.lock(horizontal,axis:.horizontal,previewSupported:true,captureSupported:true))
+        XCTAssertFalse(lock.lock(vertical,axis:.vertical,previewSupported:true,captureSupported:true))
+        XCTAssertEqual(lock.frame,vertical)
+    }
+    func testOrientationProofsHaveExactlyTwoFixedDistinctNamespacesAndHumanGates() {
+        let root=URL(fileURLWithPath:"/unused-test-root")
+        let scopes:[P3AttemptScope]=[.original,.retry001,.retry002,.vertical,.horizontal]
+        XCTAssertEqual(Set(scopes.map { $0.base(in:root).path }).count,5)
+        XCTAssertEqual(scopes.filter(\.isOrientationProof),[.vertical,.horizontal])
+        XCTAssertNil(P3AttemptScope(rawValue:"P3-ORIENTATION-VERTICAL-002"))
+        for scope in [P3AttemptScope.vertical,.horizontal] {
+            var c=P3PreparationConsent(scope:scope)
+            XCTAssertFalse(c.mayPrepare(phase:.idle));c.acknowledgeInstructions()
+            XCTAssertTrue(c.mayPrepare(phase:.idle));c.observePreview(ready:true)
+            XCTAssertFalse(c.mayRecord(phase:.ready,sessionRunning:true))
+            XCTAssertTrue(c.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:true))
+            XCTAssertTrue(c.mayRecord(phase:.ready,sessionRunning:true))
+            c.observePreview(ready:false) // unknown posture, changed pair or lost preview clears the human gate
+            c.observePreview(ready:true)
+            XCTAssertFalse(c.mayRecord(phase:.ready,sessionRunning:true))
+        }
+    }
+}

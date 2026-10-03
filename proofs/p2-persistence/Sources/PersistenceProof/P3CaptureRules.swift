@@ -83,7 +83,10 @@ public struct P3RecordingDeadline: Sendable {
 // Fixed protocol namespaces, not a user-provided ID or an automatic retry counter.
 public enum P3AttemptScope:String, Sendable {
     case original="P3-ORIGINAL", retry001="P3-RETRY-001", retry002="P3-RETRY-002"
-    public var requiresInstructions:Bool { self == .retry002 }
+    case vertical="P3-ORIENTATION-VERTICAL-001", horizontal="P3-ORIENTATION-HORIZONTAL-001"
+    public var requiresInstructions:Bool { self == .retry002 || isOrientationProof }
+    public var isOrientationProof:Bool { self == .vertical || self == .horizontal }
+    public var axis:P3OrientationAxis? { self == .vertical ? .vertical : (self == .horizontal ? .horizontal : nil) }
     public var requiresPreview:Bool { self != .original }
     public func base(in root:URL)->URL {
         self == .original ? root : root.appendingPathComponent(rawValue,isDirectory:true)
@@ -114,4 +117,41 @@ public struct P3PreparationConsent:Sendable {
         (!scope.requiresPreview || (previewSignal && previewConfirmed))
     }
     public mutating func invalidate() { invalidated=true;previewConfirmed=false;previewSignal=false }
+}
+
+
+public enum P3OrientationAxis:String, Sendable { case vertical,horizontal }
+public enum P3Posture:String, Sendable {
+    case portrait,portraitUpsideDown,landscapePortRight,landscapePortLeft,unknown
+    // UIDevice raw values. The landscape names refer to the physical connector side,
+    // which is opposite the UIKit landscape orientation name used for device rotation.
+    public static func device(rawValue:Int)->Self {
+        switch rawValue { case 1:return .portrait;case 2:return .portraitUpsideDown
+        case 3:return .landscapePortRight;case 4:return .landscapePortLeft;default:return .unknown }
+    }
+    public var axis:P3OrientationAxis? {
+        switch self { case .portrait,.portraitUpsideDown:return .vertical
+        case .landscapePortRight,.landscapePortLeft:return .horizontal;case .unknown:return nil }
+    }
+}
+public struct P3OrientationFrame:Equatable, Sendable {
+    public let posture:P3Posture
+    public let previewAngle:Double
+    public let captureAngle:Double
+    public init(posture:P3Posture,previewAngle:Double,captureAngle:Double) {
+        self.posture=posture;self.previewAngle=previewAngle;self.captureAngle=captureAngle
+    }
+    public func supported(for axis:P3OrientationAxis?,previewSupported:Bool,captureSupported:Bool)->Bool {
+        guard let axis,posture.axis == axis else { return false }
+        return previewSupported && captureSupported && previewAngle.isFinite && captureAngle.isFinite &&
+            (0..<360).contains(previewAngle) && (0..<360).contains(captureAngle)
+    }
+}
+public struct P3OrientationFreeze:Sendable {
+    public private(set) var frame:P3OrientationFrame?
+    public init() {}
+    public mutating func lock(_ candidate:P3OrientationFrame,axis:P3OrientationAxis?,previewSupported:Bool,captureSupported:Bool)->Bool {
+        guard frame == nil,candidate.supported(for:axis,previewSupported:previewSupported,captureSupported:captureSupported) else { return false }
+        frame=candidate;return true
+    }
 }

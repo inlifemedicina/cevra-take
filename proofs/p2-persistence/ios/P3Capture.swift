@@ -60,7 +60,7 @@ private func p3SmallJSON(_ path:URL) throws -> [String:String] {
     guard let value=try JSONSerialization.jsonObject(with:data) as? [String:String] else { throw P3Error.integrity }
     return value
 }
-private enum P3Error: String, Error { case spaceUnknown, lowSpace, destinationExists, io, permission, unsupportedFormat, route, thermal, interruption, recording, profile, integrity }
+private enum P3Error: String, Error { case orientation, spaceUnknown, lowSpace, destinationExists, io, permission, unsupportedFormat, route, thermal, interruption, recording, profile, integrity }
 
 // Readonly opt-in report: does not construct a capture controller or activate any sensor.
 struct P3ReadinessScreen: View {
@@ -103,6 +103,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     @Published private(set) var phase=P3Phase.idle
     @Published private(set) var status="P3 NOT_RUN — aguarde coordenação humana"
     @Published private(set) var canPreview=false
+    @Published private(set) var previewDevice:AVCaptureDevice?
     @Published private(set) var previewSessionStatus="Sessão: não verificada"
     @Published private(set) var playbackURL:URL?
     let session=AVCaptureSession()
@@ -121,6 +122,9 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private var audioActive=false
     private let scope:P3AttemptScope
     private let baseURL:URL
+    private var videoDevice:AVCaptureDevice?
+    private var orientationCandidate:P3OrientationFrame?
+    private var orientationFreeze=P3OrientationFreeze()
     private var consent:P3PreparationConsent
     @Published private(set) var instructionsAcknowledged=false
     @Published private(set) var previewHumanConfirmed=false
@@ -143,6 +147,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     }
     func prepareByHuman() {
         q.async {
+            guard self.scope.isOrientationProof else { self.publish("Histórico — somente Reabrir/Play; sem novo preparo");return }
             guard !FileManager.default.fileExists(atPath:self.baseURL.appendingPathComponent("LATEST.json").path) else {
                 self.publish("P3 já salvo — reabra sem ativar sensores; não repetir captura");return
             }
@@ -179,7 +184,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
                         guard self.state.accept(.permitted) else { return }
                         do { try self.prepareSession();guard self.state.accept(.prepared) else { throw P3Error.recording }
                             self.publish("PREPARED — traseira/1080p30 SDR/microfone interno; captura NOT_RUN")
-                            DispatchQueue.main.async { self.canPreview=true }
+                            DispatchQueue.main.async { self.previewDevice=self.videoDevice;self.canPreview=true }
                         } catch let e as P3Error { self.fail(e) } catch { self.fail(.recording) }
                     }
                 }
@@ -214,7 +219,8 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         device.activeColorSpace = .sRGB
         device.unlockForConfiguration()
         guard let connection=output.connection(with:.video),output.availableVideoCodecTypes.contains(.h264) else { throw P3Error.unsupportedFormat }
-        if connection.isVideoRotationAngleSupported(0) { connection.videoRotationAngle=0 }
+        // Rotation is chosen explicitly at the human start, never by fallback to 0.
+        videoDevice=device
         let supported=output.supportedOutputSettingsKeys(for:connection)
         guard supported.contains(AVVideoCodecKey),supported.contains(AVVideoCompressionPropertiesKey) else { throw P3Error.unsupportedFormat }
         output.setOutputSettings([AVVideoCodecKey:AVVideoCodecType.h264,
@@ -265,8 +271,13 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         let acknowledged=self.consent.instructionsAcknowledged
         DispatchQueue.main.async { self.instructionsAcknowledged=acknowledged }
     } }
-    func observePreviewSignal(ready:Bool) { q.async {
-        self.consent.observePreview(ready:ready)
+    func observePreviewSignal(ready:Bool,orientation:P3OrientationFrame?) { q.async {
+        if self.orientationFreeze.frame == nil && self.orientationCandidate != orientation {
+            self.consent.observePreview(ready:false)
+        }
+        if self.orientationFreeze.frame == nil { self.orientationCandidate=orientation }
+        let supported=orientation?.supported(for:self.scope.axis,previewSupported:true,captureSupported:true) == true
+        self.consent.observePreview(ready:ready && supported)
         let confirmed=self.consent.previewConfirmed
         DispatchQueue.main.async { self.previewHumanConfirmed=confirmed }
     } }
@@ -274,9 +285,14 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         guard signalReady,self.consent.confirmPreview(phase:self.state.phase,sessionRunning:self.session.isRunning,humanVisible:true) else { return }
         DispatchQueue.main.async { self.previewHumanConfirmed=true }
     } }
-    func recordByHuman() { q.async { [self] in
+    func recordByHuman(orientation:P3OrientationFrame) { q.async { [self] in
         guard self.configured,self.consent.mayRecord(phase:self.state.phase,sessionRunning:self.session.isRunning) else { return }
         do {
+            guard self.orientationCandidate == orientation,let connection=self.output.connection(with:.video),
+                  self.orientationFreeze.lock(orientation,axis:self.scope.axis,previewSupported:true,
+                    captureSupported:connection.isVideoRotationAngleSupported(CGFloat(orientation.captureAngle))) else { throw P3Error.orientation }
+            connection.videoRotationAngle=CGFloat(orientation.captureAngle)
+            guard Double(connection.videoRotationAngle)==orientation.captureAngle else { throw P3Error.orientation }
             let base=baseURL;let free=try p3Free(base)
             guard P3Limits.mayStart(free:free,internalMic:self.internalRoute(),
                 permissions:AVCaptureDevice.authorizationStatus(for:.video) == .authorized && AVCaptureDevice.authorizationStatus(for:.audio) == .authorized,
@@ -320,7 +336,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             try? AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation)
             audioActive=false
         }
-        DispatchQueue.main.async { self.canPreview=false }
+        DispatchQueue.main.async { self.canPreview=false;self.previewDevice=nil }
     }
     func fileOutput(_ output:AVCaptureFileOutput,didStartRecordingTo url:URL,from connections:[AVCaptureConnection]) {
         q.async { [self] in
@@ -369,7 +385,11 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
                         "nominalFPS":String(media.fps),"videoTracks":String(media.videos),"audioTracks":String(media.audios),
                         "sdrVerified":String(media.sdr),"sha256":original.sha256,"bytes":String(original.byteCount),
                         "takeRevision":"R1","synthetic":"false","profile":media.profileOK ? "PASS":"FAIL",
-                        "playbackHuman":"PENDING","sync":"NOT_MEASURED","frameLoss":"NOT_MEASURED"]
+                        "playbackHuman":"PENDING","sync":"NOT_MEASURED","frameLoss":"NOT_MEASURED",
+                        "attempt":self.scope.rawValue,
+                        "postureAtStart":self.orientationFreeze.frame?.posture.rawValue ?? "unknown",
+                        "captureRotationAngle":String(self.orientationFreeze.frame?.captureAngle ?? -1),
+                        "previewRotationAngle":String(self.orientationFreeze.frame?.previewAngle ?? -1)]
                     try p3ExclusiveJSON(report,at:root.appendingPathComponent("result.json"))
                     try p3ExclusiveJSON(["protocol":"P3-MIN-001","run":root.lastPathComponent],at:self.baseURL.appendingPathComponent("LATEST.json"))
                     self.q.async {
@@ -421,38 +441,77 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
 private final class P3PreviewView:UIView {
     override class var layerClass:AnyClass { AVCaptureVideoPreviewLayer.self }
     var previewLayer:AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
-    var report:((String,Bool)->Void)?
+    var report:((String,Bool,P3OrientationFrame?)->Void)?
+    var axis:P3OrientationAxis?
+    private var coordinator:AVCaptureDevice.RotationCoordinator?
+    private var observations:[NSKeyValueObservation]=[]
+    private var notification:NSObjectProtocol?
+    private var tracking=false
+    private var freeze=P3OrientationFreeze()
     private var lastReport:String?
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        reportDiagnostic()
+    func configure(device:AVCaptureDevice,axis:P3OrientationAxis?) {
+        self.axis=axis
+        coordinator=AVCaptureDevice.RotationCoordinator(device:device,previewLayer:previewLayer)
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications();tracking=true
+        notification=NotificationCenter.default.addObserver(forName:UIDevice.orientationDidChangeNotification,object:nil,queue:.main) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.reportDiagnostic() }
+        }
+        if let coordinator {
+            for key in [\AVCaptureDevice.RotationCoordinator.videoRotationAngleForHorizonLevelPreview,\AVCaptureDevice.RotationCoordinator.videoRotationAngleForHorizonLevelCapture] {
+                observations.append(coordinator.observe(key,options:[.new]) { [weak self] _,_ in
+                    Task { @MainActor [weak self] in self?.reportDiagnostic() }
+                })
+            }
+        }
+    }
+    func stopTracking() {
+        if tracking { UIDevice.current.endGeneratingDeviceOrientationNotifications();tracking=false }
+        if let notification { NotificationCenter.default.removeObserver(notification) };notification=nil
+        observations.removeAll();coordinator=nil
+    }
+    override func layoutSubviews() { super.layoutSubviews();reportDiagnostic() }
+    private func candidate()->P3OrientationFrame? {
+        if let frozen=freeze.frame { return frozen }
+        guard window != nil,bounds.width>0,bounds.height>0,let coordinator else { return nil }
+        let posture=P3Posture.device(rawValue:UIDevice.current.orientation.rawValue)
+        guard posture.axis != nil else { return nil }
+        return P3OrientationFrame(posture:posture,
+            previewAngle:Double(coordinator.videoRotationAngleForHorizonLevelPreview),
+            captureAngle:Double(coordinator.videoRotationAngleForHorizonLevelCapture))
+    }
+    func freezeForHumanStart()->P3OrientationFrame? {
+        guard let frame=candidate(),let connection=previewLayer.connection,
+              connection.isActive,connection.isEnabled,previewLayer.isPreviewing,
+              freeze.lock(frame,axis:axis,previewSupported:connection.isVideoRotationAngleSupported(CGFloat(frame.previewAngle)),captureSupported:true) else { return nil }
+        connection.videoRotationAngle=CGFloat(frame.previewAngle)
+        return freeze.frame
     }
     func reportDiagnostic() {
-        let c=previewLayer.connection
-        let text="Preview bounds=\(Int(bounds.width))×\(Int(bounds.height)), connection=\(c != nil), enabled=\(c?.isEnabled ?? false), active=\(c?.isActive ?? false), previewing=\(previewLayer.isPreviewing)"
-        guard text != lastReport else { return }
-        lastReport=text
-        // Do not mutate SwiftUI state during layout/updateUIView.
-        let callback=report
-        let ready=bounds.width>0 && bounds.height>0 && c?.isEnabled == true && c?.isActive == true && previewLayer.isPreviewing
-        DispatchQueue.main.async { callback?(text,ready) }
+        let c=previewLayer.connection,frame=candidate()
+        let rotationOK=frame?.supported(for:axis,
+            previewSupported:frame.map { c?.isVideoRotationAngleSupported(CGFloat($0.previewAngle)) == true } ?? false,captureSupported:true) == true
+        if rotationOK,let frame,let c { c.videoRotationAngle=CGFloat(frame.previewAngle) }
+        let ready=rotationOK && window != nil && bounds.width>0 && bounds.height>0 && c?.isEnabled == true && c?.isActive == true && previewLayer.isPreviewing
+        let text="Preview bounds=\(Int(bounds.width))×\(Int(bounds.height)), active=\(c?.isActive ?? false), previewing=\(previewLayer.isPreviewing), posture=\(frame?.posture.rawValue ?? "unknown"), previewAngle=\(frame?.previewAngle ?? -1), captureAngle=\(frame?.captureAngle ?? -1), frozen=\(freeze.frame != nil), orientationGate=\(rotationOK)"
+        guard text != lastReport else { return };lastReport=text
+        let callback=report;DispatchQueue.main.async { callback?(text,ready,frame) }
     }
 }
+extension P3AttemptScope:Identifiable { public var id:String { rawValue } }
 private struct P3Preview:UIViewRepresentable {
     let session:AVCaptureSession
+    let device:AVCaptureDevice
+    let axis:P3OrientationAxis?
     let diagnosticRevision:Int
-    let report:(String,Bool)->Void
+    let report:(String,Bool,P3OrientationFrame?)->Void
+    let available:(P3PreviewView)->Void
     func makeUIView(context:Context)->P3PreviewView {
-        let view=P3PreviewView()
-        view.previewLayer.videoGravity = .resizeAspect
-        view.previewLayer.session=session
-        view.report=report
-        return view
+        let view=P3PreviewView();view.previewLayer.videoGravity = .resizeAspect
+        view.previewLayer.session=session;view.report=report;view.configure(device:device,axis:axis)
+        DispatchQueue.main.async { available(view) };return view
     }
-    func updateUIView(_ view:P3PreviewView,context:Context) {
-        view.report=report
-        view.reportDiagnostic()
-    }
+    func updateUIView(_ view:P3PreviewView,context:Context) { view.report=report;view.reportDiagnostic() }
+    static func dismantleUIView(_ view:P3PreviewView,coordinator:()) { view.stopTracking() }
 }
 // Retained independently of SwiftUI body recomputation. The URL is supplied only
 // after the human reopen command has passed Store/hash validation; no autoplay.
@@ -551,23 +610,24 @@ struct P3CaptureScreen:View {
     @State private var previewDiagnostic="Preview: não verificado"
     @State private var diagnosticRevision=0
     @State private var previewSignalReady=false
-    @State private var showRetry=false
+    @State private var selectedScope:P3AttemptScope?
+    @State private var previewView:P3PreviewView?
     var body:some View { ScrollView { VStack(spacing:16) {
-        Text(scope == .original ? "P3 mínimo — captura local" : "P3 — tentativa isolada 002").font(.title2)
+        Text(scope == .original ? "P3 — originais preservados" : "P3 — prova "+(scope.axis?.rawValue ?? "histórica")).font(.title2)
         Text("Somente após coordenação: objeto neutro e contagem. Sem Photos, upload, IA ou rede.")
         Text(controller.status).accessibilityIdentifier("p3-status")
         if scope.requiresInstructions {
-            Text("0. Antes de preparar: segure HORIZONTAL, filme objeto neutro e conte EM VOZ ALTA de 1 em diante durante os 30 s. Não saia do app até salvar. Sem imagem real, não grave. Depois reabra/Play e confira voz e orientação.")
-            Button("Entendi posição horizontal e contagem em voz alta — comando humano") {
+            Text("0. Antes de preparar: mantenha a posição desta prova: \(scope.axis?.rawValue ?? "histórica"), filme objeto neutro e conte EM VOZ ALTA de 1 em diante durante os 30 s. Não saia do app até salvar. Sem imagem real, não grave. Depois reabra/Play e confira voz e orientação.")
+            Button("Entendi posição desta prova e contagem em voz alta — comando humano") {
                 controller.acknowledgeInstructionsByHuman()
             }.disabled(controller.phase != .idle)
         }
         Button("1. Preparar permissões e câmera — comando humano") { controller.prepareByHuman() }
-            .disabled(controller.phase != .idle || (scope.requiresInstructions && !controller.instructionsAcknowledged))
-        if controller.canPreview {
-            P3Preview(session:controller.session,diagnosticRevision:diagnosticRevision) {
-                previewDiagnostic=$0;previewSignalReady=$1;controller.observePreviewSignal(ready:$1)
-            }.frame(height:220)
+            .disabled(!scope.isOrientationProof || controller.phase != .idle || (scope.requiresInstructions && !controller.instructionsAcknowledged))
+        if controller.canPreview,let device=controller.previewDevice {
+            P3Preview(session:controller.session,device:device,axis:scope.axis,diagnosticRevision:diagnosticRevision,report: {
+                previewDiagnostic=$0;previewSignalReady=$1;controller.observePreviewSignal(ready:$1,orientation:$2)
+            },available: { previewView=$0 }).frame(height:220)
             Text(controller.previewSessionStatus)
             Text(previewDiagnostic).accessibilityIdentifier("p3-preview-diagnostic")
             Button("Atualizar diagnóstico de preview — sem gravar") {
@@ -580,17 +640,24 @@ struct P3CaptureScreen:View {
                 controller.confirmPreviewByHuman(signalReady:previewSignalReady)
             }.disabled(!previewSignalReady || controller.phase != .ready)
         }
-        Button("2. Gravar um clipe de 30 s") { controller.recordByHuman() }
+        Button("2. Gravar 30 s — orientação congelada, mantenha posição") {
+            guard let frame=previewView?.freezeForHumanStart() else { previewSignalReady=false;return }
+            controller.recordByHuman(orientation:frame)
+        }
             .disabled(controller.phase != .ready || (scope.requiresPreview && (!previewSignalReady || !controller.previewHumanConfirmed)))
         Button("Parar antecipadamente — duração não aprovada") { controller.stopByHuman() }.disabled(![.starting,.recording].contains(controller.phase))
         Button("3. Reabrir original e habilitar Play") { controller.reopenByHuman() }.disabled(![.idle,.saved].contains(controller.phase))
-        if let url=controller.playbackURL { P3PlaybackView(url:url,suspended:showRetry) }
+        if let url=controller.playbackURL { P3PlaybackView(url:url,suspended:selectedScope != nil) }
         if scope == .original {
-            Button("Abrir tentativa autorizada 002 — original e reserva 001 preservados") { showRetry=true }
+            Button("Abrir prova VERTICAL autorizada — anteriores preservados") { selectedScope = .vertical }
+                .disabled(![.idle,.saved].contains(controller.phase))
+            Button("Abrir prova HORIZONTAL autorizada — anteriores preservados") { selectedScope = .horizontal }
+                .disabled(![.idle,.saved].contains(controller.phase))
+            Button("Reabrir tomada 002 — somente leitura e Play") { selectedScope = .retry002 }
                 .disabled(![.idle,.saved].contains(controller.phase))
         }
     }.padding() }.onChange(of:scene) { _,value in if value == .background { controller.suspend() } }
     .onDisappear { controller.suspend() }
-    .sheet(isPresented:$showRetry) { P3CaptureScreen(scope:.retry002) }
+    .sheet(item:$selectedScope) { P3CaptureScreen(scope:$0) }
     }
 }

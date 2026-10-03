@@ -3,14 +3,17 @@
 **Checkpoint:** 02/10/2026. **Base:** main `99f1de2a4b020cb75b8000e2ed335d3b72b0747d`,
 PR #10 incorporado. **Executor:** Codex / `gpt-6.1-sol` / `medium`, verificados nos
 metadados locais do turno; nenhuma configuração global alterada.
-**Estado:** P3 INICIADO; arquivo existente observado com perfil/integridade técnica PASS;
-**reprodução humana FAIL** (vídeo preto/não inicia, relato do proprietário em 02/10/2026),
-causa desconhecida. Preview corrigido ainda não confirmado fisicamente;
-sincronismo NOT_MEASURED. Correção/diagnóstico offline e única nova tentativa isolada
-em preparação, **NOT_PHYSICAL_READY**. Revisão crítica anterior APPROVE no fonte `702c20a`. P2_GLOBAL NOT_READY; produto NÃO IMPLEMENTADO;
-nenhuma stack final ou TAKE-A promovido. Este documento é dono do protocolo P3 mínimo.
+**Estado vigente:** P3 INICIADO/incompleto. Tomada `002`: perfil, hash e reabertura
+Store readonly PASS no recorte técnico; proprietário confirmou reprodução e voz.
+**Orientação NOT_PASS**: aparelho vertical no protocolo horizontal, arquivo reproduzido
+deitado. Sincronismo NOT_MEASURED; reabertura em novo processo iPhone NOT_RUN.
+FAIL inicial e reserva consumida `001` preservados como históricos. Nova correção de
+orientação em preparação offline; provas vertical/horizontal **NOT_RUN / NOT_PHYSICAL_READY**.
+P2_GLOBAL NOT_READY; produto NÃO IMPLEMENTADO; nenhuma stack final ou TAKE-A promovido.
+Este documento é dono do protocolo P3 mínimo; registros abaixo são checkpoints históricos
+quando substituídos por este estado e pela seção de orientação ao final.
 
-## Autorização e limites
+## Autorização inicial e limites — histórico; ampliação de orientação ao final
 
 O proprietário aprovou atualizar o mesmo harness e um clipe local de 30 s, câmera
 traseira e microfone, objeto neutro e contagem em voz alta. Permissões e momento de
@@ -374,3 +377,56 @@ Exigir 002 ausente; divergência ou alocação prévia é STOP, não limpeza/res
 **PREPARED_CODE / NOT_PHYSICAL_READY**. Nenhuma instalação, nova reserva real, RUN,
 novo clipe ou TAKE-A promovido. Preparação assinada não autoriza execução/instalação
 por si só; proprietário só será chamado após cadeia completa revisada e verificada.
+
+
+## Orientação — novo recorte pré-registrado, preparação offline
+
+Autorização humana de 02/10/2026: corrigir orientação antes da captura, preview coerente
+e congelamento por clipe; preparar cadeia completa offline no mesmo PR #11. Não executar
+instalação, consulta de dispositivo, launch, sensores, reserva, RUN ou captura nesta rodada.
+
+Fechamento limitado de `002`: 29,908 s, H.264 1920×1080/30 nominal/SDR e track AAC;
+fonte/original byte-idênticos. Store readonly validou metadata/hash sem escrita ou lock;
+revisão independente APPROVE nesse recorte. Voz/reprodução confirmadas pelo proprietário,
+não uma medição de sincronismo. Transform nativo identity e relato de imagem deitada
+não satisfazem orientação. Nenhum novo threshold nem conversão retrospectiva em PASS.
+
+**Dois namespaces novos fixos, uma tentativa por posição:**
+`P3-ORIENTATION-VERTICAL-001` e `P3-ORIENTATION-HORIZONTAL-001`. Cada um tem reserva,
+RUN e LATEST próprios; original, claim consumida `001` e tomada `002` não são reutilizados.
+As telas históricas permitem somente Reabrir/Play; sem preparação/gravação nova.
+Não há ID livre, contador, reset, limpeza ou retry automático.
+
+A prova **vertical é um recorte novo**, separado do baseline horizontal histórico.
+Mantém todos os limites numéricos, câmera traseira wide, 30 s/1080p30SDR/mic interno,
+objeto neutro e contagem em voz alta. Antes do preparo, proprietário confirma instruções;
+depois verifica imagem real e confirma preview. Posição precisa corresponder ao recorte;
+unknown/face-up/face-down, preview indisponível ou ângulo não suportado bloqueiam gravação.
+Mudança antes do start invalida confirmação anterior. Manter a posição durante todo clipe.
+
+[AVCaptureDevice.RotationCoordinator](https://developer.apple.com/documentation/avfoundation/avcapturedevice/rotationcoordinator)
+fornece o par nativo de ângulos preview/capture; não há tabela manual de graus ou fallback
+silencioso. Os dois ângulos podem diferir: são relativos às suas respectivas conexões.
+No botão humano, congelar um único snapshot; aplicar preview no main e output na queue
+serial antes de criar RUN/start. Confirmar suporte nativo e readback; atualizações posteriores
+não rotacionam clipe congelado. Monitorar postura com UIDevice apenas após preparo humano;
+nada no launch/readonly. Sem framework adicional ou escolha arquitetural final.
+
+Após futura execução coordenada, cada clipe exige perfil/hash/Store e avaliação humana
+separada de preview, orientação no Play e voz. Se incoerente: NOT_PASS, preservar arquivos
+e parar; não criar outra tentativa automaticamente. Sincronismo/drift/frames perdidos,
+durações crescentes e controle pro permanecem fora deste recorte. Nenhum TAKE-A PASS.
+
+Plano offline: testes dos gates puros/rotations/freeze e typecheck iOS, revisão crítica
+head/tree/body e inputs exatos de signing, novo derivedData genérico iOS, mesmo projeto,
+seis fontes e perfil/entitlements/cadeia existentes. Sem provisioning updates/registro.
+Preservar artefatos assinados anteriores e baseline privado de **65 arquivos /
+518.244.760 bytes**, com ambos novos namespaces ausentes antes/depois de futura atualização.
+A ponte é dona da preservação/execução humana; este checkpoint não aloca nada no telefone.
+**PREPARED_CODE / NOT_PHYSICAL_READY** até revisão/build; artefato offline não é prova física.
+
+Verificações deste delta: **18 testes P3 PASS / zero falhas**, 0,473 s; typecheck iOS PASS;
+manifesto dos seis fontes PASS; diff/check e links locais PASS. Testes novos cobrem quatro
+posturas, unknown/flat, ângulos nativos distintos, suporte/valores inválidos, freeze único
+e namespaces/gates humanos; testes anteriores P3 pertinentes permanecem cobertos.
+Nenhuma nova medição/repetição física ou suite P2 sem delta. Revisão/build ainda pendentes.
