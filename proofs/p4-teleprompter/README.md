@@ -105,3 +105,48 @@ Executor: Codex `gpt-6.1-sol`, esforço efetivamente verificado `medium`; não a
 Nenhuma instalação, app/GUI lançado, simulador, iPhone, captura, rede/provider ou pagamento.
 PASS do modelo offline; render/UI interativa PARTIAL/NOT_RUN. Os 26 TAKE-A permanecem
 BLOCKED; nenhuma stack final escolhida e nenhum produto anunciado como implementado.
+
+## Correção local de limites dos blocos — checkpoint histórico pré-revisão
+
+Derivada do head aprovado `ecce2db`, em worktree/branch exclusivo separado do PR #14.
+O corte fixo reproduziu “Explicar uma ide” / “ia com clareza” em PT-BR e cortes em EN-US
+e whitespace. Agora, o bloco recua até o último whitespace antes do teto de 120
+graphemes; tokens sem separador mantêm o fallback limitado. Sem trim/normalização:
+bytes UTF-8, revisão e ordinais do cursor permanecem os mesmos; blocos não são versão
+editorial. Fontes de captura/UI, schema e decisões de produto ficam preservados.
+
+Antes da correção: três testes focados executados; três assertions de corte de palavra
+falharam no mesmo caso, reproduzindo o defeito; Unicode/cursor e token longo passaram.
+Resultado após correção: dez XCTest PASS, zero falhas (sete regressões + três casos
+focados; 0,006 s). Preservação de whitespace/UTF-8/graphemes, revisão/cursor e progresso
+limitado para token longo verificados. Revisão independente do parent precede qualquer
+push/PR/integração; render/interação offscreen não recebe PASS.
+
+## Validação posterior e rodada reduzida — 03/10/2026
+
+A correção recebeu revisão independente APPROVE e foi publicada no PR #15, snapshot
+`8cd3ceb6f7d616c0ffc9c7e10e17dd3bf19f89e9`, dependente do PR #14. Os resultados
+NOT_RUN/PARTIAL anteriores permanecem históricos, com seus limites.
+
+O proprietário confirmou o percurso retomar → marcar → pausar → rolar → voltar em
+PT-BR e EN-US LONG_R1, viewport lógico Mac 390×844/fonte22: pontos 120/PT e 116/EN,
+preservando revisão/posição/PAUSED. PASS limitado ao percurso relatado, sem prova
+assistiva, hardware, persistência ou concorrência com captura. Posteriormente, 22
+renders iniciais da UI completa foram verificados nas dimensões previstas e revisados
+independentemente; não exerceram controles nem representam leitura humana.
+
+O proprietário aprovou a validação por risco: uma revisão dos três painéis de layout
+e duas amostras longas/fonte36, PT vertical 390×844 e EN horizontal 844×390. Em PAUSED:
+marcar 120/PT ou 116/EN → rolar para longe → voltar, mantendo revisão/ponto/PAUSED e
+revelando o bloco correto. São quatro cliques de teste mais rolagens, com relato único.
+Reutilizar testes e percursos válidos; repetir apenas riscos afetados por mudança,
+falha ou evidência insuficiente. A matriz privada de 24/22 combinações não exige
+repetição humana cartesiana; casos não exercidos não recebem PASS por amostragem.
+
+Rodada reduzida NOT_RUN, aguardando coordenação de tela. A automação de ações no
+modo sem janela não disponibilizou os alvos; não prova falha semântica ou a11y.
+Fonte36 não é Dynamic Type. A11y, interação desktop não amostrada, hardware,
+câmera+texto, originais e recursos/latência continuam sob gates próprios.
+O proprietário também autorizou integrar os PRs #14/#15 após os critérios de revisão
+e validação aplicáveis à prova preparatória offline, sem integrar câmera ou produto.
+Os 26 TAKE-A seguem BLOCKED; P4/NC-01 incompletos, sem stack escolhida ou avanço NC-02.
