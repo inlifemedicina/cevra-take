@@ -131,6 +131,7 @@ rotas físicas de áudio, consumo, temperatura, sincronismo ou concorrência no 
 
 Hipótese: roteiro renderizado e scroll manual continuam utilizáveis durante captura.
 Separar teste de texto/layout do teste de concorrência câmera+texto.
+Preparação independente e seus limites: [prova P4 manual](../proofs/p4-teleprompter/README.md).
 
 - Fixtures curtas/longas PT-BR/EN-US, caracteres especiais, fonte ampliada, diferentes
   tamanhos de tela e orientações; registrar pontos de leitura e navegação manual.
