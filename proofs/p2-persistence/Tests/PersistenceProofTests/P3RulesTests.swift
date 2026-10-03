@@ -201,3 +201,26 @@ extension P3RulesTests {
         }
     }
 }
+
+extension P3RulesTests {
+    func testOrientationChangeBetweenHumanConfirmationAndSerialAdmissionDoesNotConsumeFreeze() {
+        let first=P3OrientationFrame(posture:.portrait,previewAngle:90,captureAngle:90)
+        let changed=P3OrientationFrame(posture:.portraitUpsideDown,previewAngle:270,captureAngle:270)
+        var consent=P3PreparationConsent(scope:.vertical);consent.acknowledgeInstructions();consent.observePreview(ready:true)
+        XCTAssertTrue(consent.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:true))
+        var transaction=P3OrientationStartTransaction()
+        XCTAssertTrue(transaction.propose(first,axis:.vertical,previewSupported:true))
+        XCTAssertFalse(transaction.propose(first,axis:.vertical,previewSupported:true)) // duplicate while pending
+        consent.observePreview(ready:false);consent.observePreview(ready:true)
+        XCTAssertFalse(P3OrientationStartTransaction.admitted(first,latest:changed,consent:consent,phase:.ready,sessionRunning:true))
+        XCTAssertTrue(transaction.finish(accepted:false));XCTAssertNil(transaction.frame)
+        XCTAssertFalse(transaction.finish(accepted:true)) // stale completion cannot commit rejected proposal
+        XCTAssertFalse(P3OrientationStartTransaction.admitted(changed,latest:changed,consent:consent,phase:.ready,sessionRunning:true))
+        XCTAssertTrue(consent.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:true))
+        XCTAssertTrue(transaction.propose(changed,axis:.vertical,previewSupported:true))
+        XCTAssertTrue(P3OrientationStartTransaction.admitted(changed,latest:changed,consent:consent,phase:.ready,sessionRunning:true))
+        XCTAssertTrue(transaction.finish(accepted:true));XCTAssertEqual(transaction.committed,changed)
+        XCTAssertFalse(transaction.propose(first,axis:.vertical,previewSupported:true)) // no second clip after commit
+        XCTAssertFalse(transaction.finish(accepted:false));XCTAssertEqual(transaction.frame,changed)
+    }
+}

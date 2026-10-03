@@ -155,3 +155,23 @@ public struct P3OrientationFreeze:Sendable {
         frame=candidate;return true
     }
 }
+
+// Provisional UI freeze while serial admission is pending; not a persistent claim.
+// Rejection before start releases only this proposal, never the reserved attempt.
+public struct P3OrientationStartTransaction:Sendable {
+    public private(set) var pending:P3OrientationFrame?
+    public private(set) var committed:P3OrientationFrame?
+    public var frame:P3OrientationFrame? { committed ?? pending }
+    public init() {}
+    public mutating func propose(_ frame:P3OrientationFrame,axis:P3OrientationAxis?,previewSupported:Bool)->Bool {
+        guard pending == nil,committed == nil,frame.supported(for:axis,previewSupported:previewSupported,captureSupported:true) else { return false }
+        pending=frame;return true
+    }
+    @discardableResult public mutating func finish(accepted:Bool)->Bool {
+        guard let pending else { return false }
+        if accepted { committed=pending };self.pending=nil;return true
+    }
+    public static func admitted(_ proposed:P3OrientationFrame,latest:P3OrientationFrame?,consent:P3PreparationConsent,phase:P3Phase,sessionRunning:Bool)->Bool {
+        latest == proposed && consent.mayRecord(phase:phase,sessionRunning:sessionRunning)
+    }
+}

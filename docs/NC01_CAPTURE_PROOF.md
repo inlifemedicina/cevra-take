@@ -425,8 +425,15 @@ Preservar artefatos assinados anteriores e baseline privado de **65 arquivos /
 A ponte é dona da preservação/execução humana; este checkpoint não aloca nada no telefone.
 **PREPARED_CODE / NOT_PHYSICAL_READY** até revisão/build; artefato offline não é prova física.
 
-Verificações deste delta: **18 testes P3 PASS / zero falhas**, 0,473 s; typecheck iOS PASS;
+Verificações deste delta: **19 testes P3 PASS / zero falhas**, 0,504 s; typecheck iOS PASS;
 manifesto dos seis fontes PASS; diff/check e links locais PASS. Testes novos cobrem quatro
 posturas, unknown/flat, ângulos nativos distintos, suporte/valores inválidos, freeze único
 e namespaces/gates humanos; testes anteriores P3 pertinentes permanecem cobertos.
 Nenhuma nova medição/repetição física ou suite P2 sem delta. Revisão/build ainda pendentes.
+
+Achado crítico no checkpoint anterior: freeze da view podia ser consumido antes da
+admissão serial. Corrigido por proposta volátil e resposta única: rejeição pre-start
+desfaz somente proposta visual e pede reconfirmação, sem liberar reserva persistida
+ou criar RUN; aceite mantém par congelado. Duplicatas pending/committed bloqueadas.
+Teste de mudança entre confirmação e admission, rejeição/reconfirmação/duplicata PASS;
+novo typecheck iOS PASS. Gate crítico do novo head/tree/inputs ainda necessário.

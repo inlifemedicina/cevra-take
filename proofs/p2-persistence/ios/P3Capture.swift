@@ -285,10 +285,17 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         guard signalReady,self.consent.confirmPreview(phase:self.state.phase,sessionRunning:self.session.isRunning,humanVisible:true) else { return }
         DispatchQueue.main.async { self.previewHumanConfirmed=true }
     } }
-    func recordByHuman(orientation:P3OrientationFrame) { q.async { [self] in
-        guard self.configured,self.consent.mayRecord(phase:self.state.phase,sessionRunning:self.session.isRunning) else { return }
+    func recordByHuman(orientation:P3OrientationFrame,completion:@escaping(Bool)->Void) { q.async { [self] in
+        func reply(_ accepted:Bool) { DispatchQueue.main.async { completion(accepted) } }
+        guard self.configured,self.state.phase == .ready else { reply(false);return }
+        guard P3OrientationStartTransaction.admitted(orientation,latest:self.orientationCandidate,consent:self.consent,
+                phase:self.state.phase,sessionRunning:self.session.isRunning) else {
+            self.consent.observePreview(ready:false)
+            self.publish("BLOCKED antes do start — orientação/preview mudou; atualize e reconfirme imagem real; reserva preservada")
+            DispatchQueue.main.async { self.previewHumanConfirmed=false };reply(false);return
+        }
         do {
-            guard self.orientationCandidate == orientation,let connection=self.output.connection(with:.video),
+            guard let connection=self.output.connection(with:.video),
                   self.orientationFreeze.lock(orientation,axis:self.scope.axis,previewSupported:true,
                     captureSupported:connection.isVideoRotationAngleSupported(CGFloat(orientation.captureAngle))) else { throw P3Error.orientation }
             connection.videoRotationAngle=CGFloat(orientation.captureAngle)
@@ -308,7 +315,8 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
                 guard let self,self.deadline.startExpired() else { return };self.fail(.recording)
             }
             self.startTimeout=timeout;self.q.asyncAfter(deadline:.now()+5,execute:timeout)
-        } catch let e as P3Error { self.fail(e) } catch { self.fail(.io) }
+            reply(true)
+        } catch let e as P3Error { self.fail(e);reply(false) } catch { self.fail(.io);reply(false) }
     } }
     func stopByHuman() { q.async { [self] in
         guard self.state.accept(.stop),self.deadline.requestStop() else { return }
@@ -447,7 +455,7 @@ private final class P3PreviewView:UIView {
     private var observations:[NSKeyValueObservation]=[]
     private var notification:NSObjectProtocol?
     private var tracking=false
-    private var freeze=P3OrientationFreeze()
+    private var transaction=P3OrientationStartTransaction()
     private var lastReport:String?
     func configure(device:AVCaptureDevice,axis:P3OrientationAxis?) {
         self.axis=axis
@@ -471,7 +479,7 @@ private final class P3PreviewView:UIView {
     }
     override func layoutSubviews() { super.layoutSubviews();reportDiagnostic() }
     private func candidate()->P3OrientationFrame? {
-        if let frozen=freeze.frame { return frozen }
+        if let frozen=transaction.frame { return frozen }
         guard window != nil,bounds.width>0,bounds.height>0,let coordinator else { return nil }
         let posture=P3Posture.device(rawValue:UIDevice.current.orientation.rawValue)
         guard posture.axis != nil else { return nil }
@@ -479,12 +487,15 @@ private final class P3PreviewView:UIView {
             previewAngle:Double(coordinator.videoRotationAngleForHorizonLevelPreview),
             captureAngle:Double(coordinator.videoRotationAngleForHorizonLevelCapture))
     }
-    func freezeForHumanStart()->P3OrientationFrame? {
+    func proposeForHumanStart()->P3OrientationFrame? {
         guard let frame=candidate(),let connection=previewLayer.connection,
               connection.isActive,connection.isEnabled,previewLayer.isPreviewing,
-              freeze.lock(frame,axis:axis,previewSupported:connection.isVideoRotationAngleSupported(CGFloat(frame.previewAngle)),captureSupported:true) else { return nil }
+              transaction.propose(frame,axis:axis,previewSupported:connection.isVideoRotationAngleSupported(CGFloat(frame.previewAngle))) else { return nil }
         connection.videoRotationAngle=CGFloat(frame.previewAngle)
-        return freeze.frame
+        return transaction.frame
+    }
+    func finishHumanStart(accepted:Bool) {
+        transaction.finish(accepted:accepted);lastReport=nil;reportDiagnostic()
     }
     func reportDiagnostic() {
         let c=previewLayer.connection,frame=candidate()
@@ -492,7 +503,7 @@ private final class P3PreviewView:UIView {
             previewSupported:frame.map { c?.isVideoRotationAngleSupported(CGFloat($0.previewAngle)) == true } ?? false,captureSupported:true) == true
         if rotationOK,let frame,let c { c.videoRotationAngle=CGFloat(frame.previewAngle) }
         let ready=rotationOK && window != nil && bounds.width>0 && bounds.height>0 && c?.isEnabled == true && c?.isActive == true && previewLayer.isPreviewing
-        let text="Preview bounds=\(Int(bounds.width))×\(Int(bounds.height)), active=\(c?.isActive ?? false), previewing=\(previewLayer.isPreviewing), posture=\(frame?.posture.rawValue ?? "unknown"), previewAngle=\(frame?.previewAngle ?? -1), captureAngle=\(frame?.captureAngle ?? -1), frozen=\(freeze.frame != nil), orientationGate=\(rotationOK)"
+        let text="Preview bounds=\(Int(bounds.width))×\(Int(bounds.height)), active=\(c?.isActive ?? false), previewing=\(previewLayer.isPreviewing), posture=\(frame?.posture.rawValue ?? "unknown"), previewAngle=\(frame?.previewAngle ?? -1), captureAngle=\(frame?.captureAngle ?? -1), frozen=\(transaction.frame != nil), orientationGate=\(rotationOK)"
         guard text != lastReport else { return };lastReport=text
         let callback=report;DispatchQueue.main.async { callback?(text,ready,frame) }
     }
@@ -641,8 +652,8 @@ struct P3CaptureScreen:View {
             }.disabled(!previewSignalReady || controller.phase != .ready)
         }
         Button("2. Gravar 30 s — orientação congelada, mantenha posição") {
-            guard let frame=previewView?.freezeForHumanStart() else { previewSignalReady=false;return }
-            controller.recordByHuman(orientation:frame)
+            guard let view=previewView,let frame=view.proposeForHumanStart() else { previewSignalReady=false;return }
+            controller.recordByHuman(orientation:frame) { accepted in view.finishHumanStart(accepted:accepted) }
         }
             .disabled(controller.phase != .ready || (scope.requiresPreview && (!previewSignalReady || !controller.previewHumanConfirmed)))
         Button("Parar antecipadamente — duração não aprovada") { controller.stopByHuman() }.disabled(![.starting,.recording].contains(controller.phase))
