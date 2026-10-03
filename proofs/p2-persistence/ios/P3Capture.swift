@@ -62,6 +62,31 @@ private func p3SmallJSON(_ path:URL) throws -> [String:String] {
 }
 private enum P3Error: String, Error { case orientation, spaceUnknown, lowSpace, destinationExists, io, permission, unsupportedFormat, route, thermal, interruption, recording, profile, integrity }
 
+// Serialize category/activation with lease checks; no takeover of another controller.
+private enum P3AudioSession {
+    private static let ownership=P3AudioOwnership()
+    static func acquire(_ role:P3AudioRole,reusing:P3AudioLease?) throws -> P3AudioLease {
+        try ownership.acquire(role,reusing:reusing) { role in
+            let audio=AVAudioSession.sharedInstance()
+            let category:AVAudioSession.Category=role == .capture ? .playAndRecord : .playback
+            let mode:AVAudioSession.Mode=role == .capture ? .videoRecording : .default
+            let options:AVAudioSession.CategoryOptions=role == .capture ? [.defaultToSpeaker] : []
+            try audio.setCategory(category,mode:mode,options:options)
+            guard audio.category == category,audio.mode == mode else { throw P3AudioOwnershipError.configuration }
+            try audio.setActive(true)
+        }
+    }
+    static func release(_ lease:P3AudioLease) throws {
+        try ownership.release(lease) { try AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation) }
+    }
+    static func errorCode(_ error:Error)->String {
+        if let error=error as? P3AudioOwnershipError { return error == .busy ? "ownerBusy" : "configurationMismatch" }
+        let error=error as NSError
+        let domain=[NSOSStatusErrorDomain,AVFoundationErrorDomain,NSCocoaErrorDomain].contains(error.domain) ? error.domain : "other"
+        return "\(domain):\(error.code)"
+    }
+}
+
 // Readonly opt-in report: does not construct a capture controller or activate any sensor.
 struct P3ReadinessScreen: View {
     @State private var text="P3 READONLY — sem sensores"
@@ -119,7 +144,8 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private var deadline=P3RecordingDeadline()
     private var watchdog:DispatchSourceTimer?
     private var configured=false
-    private var audioActive=false
+    private var captureAudioLease:P3AudioLease?
+    @Published private(set) var audioSessionDiagnostic="Captura: sessão de áudio NOT_RUN"
     private let scope:P3AttemptScope
     private let baseURL:URL
     private var videoDevice:AVCaptureDevice?
@@ -188,7 +214,8 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             if !configured { try prepareSession() }
             else {
                 guard !session.isInterrupted else { pausePreview("Sessão ainda interrompida");return }
-                let audio=AVAudioSession.sharedInstance();try audio.setActive(true);audioActive=true
+                let audio=AVAudioSession.sharedInstance()
+                try acquireCaptureAudio()
                 guard let builtIn=audio.availableInputs?.first(where:{$0.portType == .builtInMic}) else { pausePreview("Rota interna indisponível");return }
                 try audio.setPreferredInput(builtIn)
                 guard internalRoute() else { pausePreview("Rota interna não confirmada");return }
@@ -252,9 +279,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         output.minFreeDiskSpaceLimit=P3Limits.reserve
         let audioSession=AVAudioSession.sharedInstance()
         session.automaticallyConfiguresApplicationAudioSession=false
-        try audioSession.setCategory(.playAndRecord,mode:.videoRecording,options:[.defaultToSpeaker])
-        try audioSession.setActive(true)
-        audioActive=true
+        try acquireCaptureAudio()
         guard let builtIn=audioSession.availableInputs?.first(where:{$0.portType == .builtInMic}) else { throw P3Error.route }
         try audioSession.setPreferredInput(builtIn)
         guard internalRoute() else { throw P3Error.route }
@@ -360,11 +385,25 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         if output.isRecording { output.stopRecording() }
         shutdown()
     }
+    private func acquireCaptureAudio() throws {
+        do {
+            captureAudioLease=try P3AudioSession.acquire(.capture,reusing:captureAudioLease)
+            DispatchQueue.main.async { self.audioSessionDiagnostic="Captura: playAndRecord/videoRecording/defaultToSpeaker ativa — sem PASS de qualidade" }
+        } catch {
+            let code=P3AudioSession.errorCode(error)
+            DispatchQueue.main.async { self.audioSessionDiagnostic="CAPTURE_AUDIO_FAIL — "+code };throw error
+        }
+    }
     private func shutdown() {
         if configured { session.stopRunning() }
-        if audioActive {
-            try? AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation)
-            audioActive=false
+        if let lease=captureAudioLease {
+            do {
+                try P3AudioSession.release(lease);captureAudioLease=nil
+                DispatchQueue.main.async { self.audioSessionDiagnostic="Captura: sessão de áudio liberada" }
+            } catch {
+                let code=P3AudioSession.errorCode(error)
+                DispatchQueue.main.async { self.audioSessionDiagnostic="AUDIO_RELEASE_FAIL — "+code+"; lease retido, sem desativar outro proprietário" }
+            }
         }
         DispatchQueue.main.async { self.canPreview=false;self.previewDevice=nil }
     }
@@ -553,13 +592,16 @@ private final class P3PlaybackController:ObservableObject {
     let player=AVPlayer()
     @Published private(set) var diagnostic="Playback NOT_RUN"
     private var url:URL?
+    private var audioLease:P3AudioLease?
+    private var audioDiagnostic="Sessão playback NOT_RUN"
+    private var audioNotifications:[NSObjectProtocol]=[]
     private var errorLogCount=0
     private var lastErrorCode="none"
     private var observations:[NSKeyValueObservation]=[]
     private var notifications:[NSObjectProtocol]=[]
     func loadVerifiedLocalFile(_ url:URL) {
         guard self.url != url else { return }
-        player.pause()
+        pause()
         observations.removeAll()
         for token in notifications { NotificationCenter.default.removeObserver(token) }
         notifications.removeAll()
@@ -593,6 +635,7 @@ private final class P3PlaybackController:ObservableObject {
     }
     func refresh() {
         guard let item=player.currentItem else { return }
+        if item.status == .failed { stopAndRelease() }
         report(item)
         item.fetchErrorLog { [weak self,weak item] log in
             let count=log?.events.count ?? 0
@@ -608,11 +651,54 @@ private final class P3PlaybackController:ObservableObject {
         switch item.status { case .unknown:state="unknown";case .readyToPlay:state="readyToPlay";case .failed:state="failed";@unknown default:state="unrecognized" }
         let time=player.currentTime().seconds
         let seconds=time.isFinite ? String(format:"%.2f",time) : "unknown"
-        diagnostic="Item=\(state), control=\(player.timeControlStatus.rawValue), rate=\(player.rate), time=\(seconds)s, error=\(errorCode(item.error ?? player.error)), errorLogCount=\(errorLogCount), lastErrorCode=\(lastErrorCode) — qualidade humana não aprovada"
+        diagnostic="Item=\(state), control=\(player.timeControlStatus.rawValue), rate=\(player.rate), time=\(seconds)s, error=\(errorCode(item.error ?? player.error)), errorLogCount=\(errorLogCount), lastErrorCode=\(lastErrorCode), \(audioDiagnostic) — qualidade humana não aprovada"
     }
-    func playByHuman() { player.play();refresh() }
-    func pause() { player.pause();refresh() }
-    deinit { for token in notifications { NotificationCenter.default.removeObserver(token) } }
+    func playByHuman() {
+        guard url != nil,let item=player.currentItem,item.status == .readyToPlay else {
+            audioDiagnostic="PLAYBACK_BLOCKED — item não pronto; nenhuma ativação/Play";refresh();return
+        }
+        do {
+            let lease=try P3AudioSession.acquire(.playback,reusing:audioLease)
+            audioLease=lease;audioDiagnostic="Sessão playback/default ativa — qualidade humana PENDING"
+            installAudioNotifications(item:item,lease:lease)
+            player.play();refresh()
+        } catch {
+            audioDiagnostic="PLAYBACK_AUDIO_FAIL — "+P3AudioSession.errorCode(error)+"; Play não executado"
+            refresh()
+        }
+    }
+    private func installAudioNotifications(item:AVPlayerItem,lease:P3AudioLease) {
+        for token in audioNotifications { NotificationCenter.default.removeObserver(token) };audioNotifications.removeAll()
+        for name in [AVPlayerItem.didPlayToEndTimeNotification,AVPlayerItem.failedToPlayToEndTimeNotification] {
+            audioNotifications.append(NotificationCenter.default.addObserver(forName:name,object:item,queue:.main) { [weak self,weak item] _ in
+                Task { @MainActor [weak self,weak item] in
+                    guard let self,let item,self.player.currentItem === item,self.audioLease == lease else { return }
+                    self.pause()
+                }
+            })
+        }
+        audioNotifications.append(NotificationCenter.default.addObserver(forName:AVAudioSession.didBecomeInactiveNotification,object:AVAudioSession.sharedInstance(),queue:.main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self,self.audioLease == lease else { return };self.pause()
+                // No interruption-end activation or resume.
+            }
+        })
+    }
+    private func stopAndRelease() {
+        player.pause()
+        for token in audioNotifications { NotificationCenter.default.removeObserver(token) };audioNotifications.removeAll()
+        if let lease=audioLease {
+            do { try P3AudioSession.release(lease);audioLease=nil;audioDiagnostic="Sessão playback liberada — sem auto-resume" }
+            catch { audioDiagnostic="AUDIO_RELEASE_FAIL — "+P3AudioSession.errorCode(error)+"; lease retido" }
+        }
+    }
+    func pause() { stopAndRelease();refresh() }
+    deinit {
+        player.pause()
+        if let lease=audioLease { try? P3AudioSession.release(lease) }
+        for token in notifications+audioNotifications { NotificationCenter.default.removeObserver(token) }
+    }
+
 }
 private struct P3PlaybackView:View {
     let url:URL
@@ -649,6 +735,7 @@ struct P3CaptureScreen:View {
         Text(scope == .original ? "P3 — originais preservados" : "P3 — prova "+(scope.axis?.rawValue ?? "histórica")).font(.title2)
         Text("Somente após coordenação: objeto neutro e contagem. Sem Photos, upload, IA ou rede.")
         Text(controller.status).accessibilityIdentifier("p3-status")
+        Text(controller.audioSessionDiagnostic)
         if scope.requiresInstructions {
             Text("0. Antes de preparar: mantenha a posição desta prova: \(scope.axis?.rawValue ?? "histórica"), filme objeto neutro e conte EM VOZ ALTA de 1 em diante durante os 30 s. Não saia do app até salvar. Sem imagem real, não grave. Depois reabra/Play e confira voz e orientação.")
             Button("Entendi posição desta prova e contagem em voz alta — comando humano") {

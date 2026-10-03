@@ -198,3 +198,29 @@ public struct P3StartClaimGate:Sendable {
         try exclusiveWrite();claimed=true;return true
     }
 }
+
+// Harness-only ownership for its one process-wide audio session. No media/API calls here.
+public enum P3AudioRole:Sendable { case capture,playback }
+public struct P3AudioLease:Equatable,Sendable {
+    public let role:P3AudioRole
+    private let identity:UUID
+    fileprivate init(role:P3AudioRole) { self.role=role;identity=UUID() }
+}
+public enum P3AudioOwnershipError:Error { case busy,configuration }
+public final class P3AudioOwnership:@unchecked Sendable {
+    private let lock=NSLock()
+    private var owner:P3AudioLease?
+    public init() {}
+    public func acquire(_ role:P3AudioRole,reusing:P3AudioLease?,configure:(P3AudioRole) throws -> Void) throws -> P3AudioLease {
+        lock.lock();defer { lock.unlock() }
+        if let owner,owner == reusing,owner.role == role { return owner }
+        guard owner == nil else { throw P3AudioOwnershipError.busy }
+        try configure(role)
+        let lease=P3AudioLease(role:role);owner=lease;return lease
+    }
+    @discardableResult public func release(_ lease:P3AudioLease,deactivate:() throws -> Void) throws -> Bool {
+        lock.lock();defer { lock.unlock() }
+        guard owner == lease else { return false }
+        try deactivate();owner=nil;return true
+    }
+}

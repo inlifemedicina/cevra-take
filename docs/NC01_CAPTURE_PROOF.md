@@ -487,3 +487,44 @@ Testes são offline/sintéticos; nenhuma medição/aparelho/captura. Store/SHA/M
 freeze nativo, caps/deadlines/thresholds e checklist dos 26 aceites permanecem intactos.
 Revisão crítica de head/tree/body+inputs concretos e build genérico com recursos de signing
 existentes são gates antes de pacote pronto. Sem instalação ou execução física nesta rodada.
+
+
+## Playback — contrato da correção offline, antes dos testes
+
+Proprietário confirmou em 03/10/2026 REOPEN_HASH_PASS em novo processo, vídeo correto
+e voz audível somente com Silent Mode desligado. Não apagar esse sucesso de reabertura
+nem rotular MIC_FAIL; Silent Mode ligado não recebeu PASS. Ponte conferiu readonly
+39 entradas P3 e sete pequenos estados/1.288 bytes preservados após a reabertura;
+sem repetir hash de mídia. Categoria efetiva naquele runtime continua **UNKNOWN**.
+
+Autorização pontual: no botão Play humano, configurar `.playback`/`.default` e ativar
+AVAudioSession antes de player.play; erro deve ser sanitizado/visível e não disparar Play.
+Liberar somente lease próprio ao pausar/finalizar/falhar/sair; callback antigo não pode
+desativar captura ou novo proprietário. Captura mantém `.playAndRecord`/`.videoRecording`/
+`.defaultToSpeaker`, explicitamente restaurados também no ramo de retomada configurada.
+Sem alteração de volume, mute, OS, autoplay, auto-resume, gates, rota, deadline, MIME,
+Store/SHA/metadata/caps ou namespace. Adaptador/lease é limitado ao harness, não arquitetura
+final. Native controls do VideoPlayer não têm interceptação garantida por este fix;
+a prova futura usa o botão explícito Play. Sem promessa de bypass completo de controles.
+
+Hipótese apoiada no fonte/guia oficial: shutdown desativava sem restaurar categoria e
+Play não configurava sessão; isso não prova qual categoria estava no iPhone ou causa
+física definitiva. Referências Apple fornecidas conferidas nesta rodada:
+[Audio Session Basics](https://developer.apple.com/library/archive/documentation/Audio/Conceptual/AudioSessionProgrammingGuide/AudioSessionBasics/AudioSessionBasics.html) e
+[Configuring an Audio Session](https://developer.apple.com/library/archive/documentation/Audio/Conceptual/AudioSessionProgrammingGuide/ConfiguringanAudioSession/ConfiguringanAudioSession.html).
+Correção física **NOT_RUN**; nenhuma nova captura, query, instalação, launch ou sensor.
+PR #13/registro de propostas permanecem intocados. Revisão fonte/tree/body/inputs e
+pacote assinado offline precisam preceder futura coordenação humana.
+
+Validação offline deste delta: **28 testes P3 PASS / zero falhas**, 0,411 s; typecheck
+iOS PASS. Testes novos exercitam captura → playback → restauração captura, aquisição
+repetida, rejeição de outro dono, falha de ativação sem Play, release obsoleto/duplicado
+e falha de desativação retendo lease. Adaptador real usa configuração SDK explícita;
+coordinator serializa categoria/ativação/liberação e rejeita takeover implícito.
+Erro de áudio fica sanitizado visível, separado de integridade/qualidade do arquivo.
+Player libera lease em Pause/end/failure/saída/deinit e ao ficar inativo; notificação SDK27
+`didBecomeInactive` não pede auto-resume. Callback de item/lease antigo é ignorado.
+Native VideoPlayer controls permanecem limite declarado, sem garantia de passar pelo botão.
+A Apple documenta ativação automática em AVFoundation; ausência de setActive manual
+não demonstra sessão inativa. Lacuna concreta é configuração própria ausente no Play,
+não uma categoria runtime medida. Nenhuma promoção de Silent Mode PASS ou TAKE-A.

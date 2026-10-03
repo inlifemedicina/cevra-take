@@ -298,3 +298,52 @@ extension P3RulesTests {
         XCTAssertNil(P3AttemptScope(rawValue:"P3-PREVIEW-RESUME-HORIZONTAL-002"))
     }
 }
+
+extension P3RulesTests {
+    func testAudioLeaseCapturePlaybackDefaultAndCaptureRestorationSequence() throws {
+        let audio=P3AudioOwnership();var configured:[P3AudioRole]=[];var releases=0
+        let capture=try audio.acquire(.capture,reusing:nil) { configured.append($0) }
+        XCTAssertEqual(capture.role,.capture)
+        XCTAssertThrowsError(try audio.acquire(.playback,reusing:nil) { configured.append($0) })
+        XCTAssertTrue(try audio.release(capture) { releases += 1 })
+        let playback=try audio.acquire(.playback,reusing:nil) { configured.append($0) }
+        XCTAssertEqual(playback.role,.playback)
+        XCTAssertTrue(try audio.release(playback) { releases += 1 })
+        let resumedCapture=try audio.acquire(.capture,reusing:nil) { configured.append($0) }
+        XCTAssertEqual(configured,[.capture,.playback,.capture]);XCTAssertEqual(releases,2)
+        XCTAssertNotEqual(capture,resumedCapture)
+    }
+    func testAudioDuplicateAcquisitionDoesNotConfigureTwiceAndStaleReleaseCannotDeactivateNewOwner() throws {
+        let audio=P3AudioOwnership();var configurations=0;var releases=0
+        let first=try audio.acquire(.playback,reusing:nil) { _ in configurations += 1 }
+        let duplicate=try audio.acquire(.playback,reusing:first) { _ in XCTFail("duplicate configuration") }
+        XCTAssertEqual(first,duplicate);XCTAssertEqual(configurations,1)
+        XCTAssertTrue(try audio.release(first) { releases += 1 })
+        let next=try audio.acquire(.capture,reusing:nil) { _ in configurations += 1 }
+        XCTAssertFalse(try audio.release(first) { XCTFail("stale playback deactivated capture") })
+        XCTAssertThrowsError(try audio.acquire(.playback,reusing:first) { _ in XCTFail("stale owner reconfigured capture") })
+        XCTAssertTrue(try audio.release(next) { releases += 1 });XCTAssertEqual(releases,2)
+        XCTAssertFalse(try audio.release(next) { XCTFail("duplicate release") })
+    }
+    func testAudioActivationFailureDoesNotGrantLeaseOrAdmitPlay() throws {
+        enum Fault:Error { case activation }
+        let audio=P3AudioOwnership();var playCalls=0
+        XCTAssertThrowsError(try {
+            _=try audio.acquire(.playback,reusing:nil) { _ in throw Fault.activation }
+            playCalls += 1
+        }())
+        XCTAssertEqual(playCalls,0)
+        let valid=try audio.acquire(.playback,reusing:nil) { _ in }
+        XCTAssertEqual(valid.role,.playback);XCTAssertTrue(try audio.release(valid) {})
+    }
+    func testAudioFailedDeactivationRetainsOwnerAndBlocksOtherController() throws {
+        enum Fault:Error { case release }
+        let audio=P3AudioOwnership();let first=try audio.acquire(.playback,reusing:nil) { _ in }
+        XCTAssertThrowsError(try audio.release(first) { throw Fault.release })
+        XCTAssertThrowsError(try audio.acquire(.capture,reusing:nil) { _ in XCTFail("unknown active owner overwritten") })
+        XCTAssertTrue(try audio.release(first) {})
+        let next=try audio.acquire(.capture,reusing:nil) { _ in }
+        XCTAssertFalse(try audio.release(first) { XCTFail("old release after handoff") })
+        XCTAssertTrue(try audio.release(next) {})
+    }
+}
