@@ -105,3 +105,19 @@ Executor: Codex `gpt-6.1-sol`, esforço efetivamente verificado `medium`; não a
 Nenhuma instalação, app/GUI lançado, simulador, iPhone, captura, rede/provider ou pagamento.
 PASS do modelo offline; render/UI interativa PARTIAL/NOT_RUN. Os 26 TAKE-A permanecem
 BLOCKED; nenhuma stack final escolhida e nenhum produto anunciado como implementado.
+
+## Correção local de limites dos blocos — revisão pendente
+
+Derivada do head aprovado `ecce2db`, em worktree/branch exclusivo separado do PR #14.
+O corte fixo reproduziu “Explicar uma ide” / “ia com clareza” em PT-BR e cortes em EN-US
+e whitespace. Agora, o bloco recua até o último whitespace antes do teto de 120
+graphemes; tokens sem separador mantêm o fallback limitado. Sem trim/normalização:
+bytes UTF-8, revisão e ordinais do cursor permanecem os mesmos; blocos não são versão
+editorial. Fontes de captura/UI, schema e decisões de produto ficam preservados.
+
+Antes da correção: três testes focados executados; três assertions de corte de palavra
+falharam no mesmo caso, reproduzindo o defeito; Unicode/cursor e token longo passaram.
+Resultado após correção: dez XCTest PASS, zero falhas (sete regressões + três casos
+focados; 0,006 s). Preservação de whitespace/UTF-8/graphemes, revisão/cursor e progresso
+limitado para token longo verificados. Revisão independente do parent precede qualquer
+push/PR/integração; render/interação offscreen não recebe PASS.
