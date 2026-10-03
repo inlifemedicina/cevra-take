@@ -4,11 +4,12 @@
 PR #10 incorporado. **Executor:** Codex / `gpt-6.1-sol` / `medium`, verificados nos
 metadados locais do turno; nenhuma configuração global alterada.
 **Estado vigente:** P3 INICIADO/incompleto. Vertical: clipe salvo, preview/Play em pé e
-voz confirmados pelo proprietário, recorte limitado. Horizontal: somente claim consumida,
+voz confirmados pelo proprietário, recorte limitado. Horizontal histórica `001`: somente claim consumida,
 sem RUN/mídia/result/LATEST; causa física UNKNOWN, não reutilizar. Tomada `002` continua
-orientação NOT_PASS; sincronismo NOT_MEASURED e novo processo iPhone NOT_RUN.
-Contrato pré-gravação de pausa/retomada manual e consumo no start em preparação offline;
-única futura prova retomada+horizontal **NOT_RUN / NOT_PHYSICAL_READY**.
+orientação NOT_PASS. Na prova posterior de retomada+horizontal em `f6d421b`, o proprietário
+confirmou REOPEN_HASH_PASS em novo processo, vídeo correto e voz somente com Silent Mode
+desligado; categoria runtime UNKNOWN, sincronismo NOT_MEASURED. Correção pontual de
+playback em preparação offline; reteste com Silent Mode ligado **NOT_RUN**.
 P2_GLOBAL NOT_READY; produto NÃO IMPLEMENTADO; nenhuma stack final ou TAKE-A promovido.
 Este documento é dono do protocolo P3 mínimo; registros abaixo são históricos quando
 substituídos por este estado e pelo contrato futuro ao final.
