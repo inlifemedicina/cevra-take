@@ -12,6 +12,14 @@ dono da sequência/gates; [PRODUCT_AND_PROFILES](PRODUCT_AND_PROFILES.md),
 [catálogo de pesquisa](RESEARCH_REGISTER.md) conservam suas autoridades. Não criar
 módulos paralelos, duplicar aceites ou tratar referência comercial como aprovação.
 
+Em 03/10/2026, o proprietário endossou a orientação geral de preservar decisões centrais
+e organizar o planejamento por resultados, e confirmou: “Sobre as legendas, faremos
+como ja estava planejado.” Esse endosso não aprova isoladamente P01 “Gravar agora”;
+P02–P07 continuam refinamentos pendentes, sem mudança de vínculo tomada → revisão do
+roteiro, prioridade, funções ou gates. As seis entradas canônicas do Take não são os
+estilos da síntese do Vids. Legendas no Vids seguem o plano anterior e sua própria
+autoridade; este registro não cria plano ou autorização de escrita no Vids.
+
 ## Hipótese de valor, ainda a validar
 
 **Capturar com confiança e menos retrabalho** pode ser uma proposta de valor simples:
