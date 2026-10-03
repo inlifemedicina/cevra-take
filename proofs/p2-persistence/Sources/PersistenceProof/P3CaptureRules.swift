@@ -78,3 +78,40 @@ public struct P3RecordingDeadline: Sendable {
     }
     public mutating func cancel() { invalidated=true }
 }
+
+
+// Fixed protocol namespaces, not a user-provided ID or an automatic retry counter.
+public enum P3AttemptScope:String, Sendable {
+    case original="P3-ORIGINAL", retry001="P3-RETRY-001", retry002="P3-RETRY-002"
+    public var requiresInstructions:Bool { self == .retry002 }
+    public var requiresPreview:Bool { self != .original }
+    public func base(in root:URL)->URL {
+        self == .original ? root : root.appendingPathComponent(rawValue,isDirectory:true)
+    }
+}
+public struct P3PreparationConsent:Sendable {
+    public let scope:P3AttemptScope
+    public private(set) var instructionsAcknowledged=false
+    public private(set) var previewConfirmed=false
+    private var previewSignal=false
+    private var invalidated=false
+    public init(scope:P3AttemptScope) { self.scope=scope }
+    public mutating func acknowledgeInstructions() { if !invalidated { instructionsAcknowledged=true } }
+    public func mayPrepare(phase:P3Phase)->Bool {
+        !invalidated && phase == .idle && (!scope.requiresInstructions || instructionsAcknowledged)
+    }
+    public mutating func observePreview(ready:Bool) {
+        previewSignal=ready
+        if !ready { previewConfirmed=false }
+    }
+    public mutating func confirmPreview(phase:P3Phase,sessionRunning:Bool,humanVisible:Bool)->Bool {
+        guard !invalidated,phase == .ready,sessionRunning,previewSignal,humanVisible else { return false }
+        previewConfirmed=true;return true
+    }
+    public func mayRecord(phase:P3Phase,sessionRunning:Bool)->Bool {
+        !invalidated && phase == .ready && sessionRunning &&
+        (!scope.requiresInstructions || instructionsAcknowledged) &&
+        (!scope.requiresPreview || (previewSignal && previewConfirmed))
+    }
+    public mutating func invalidate() { invalidated=true;previewConfirmed=false;previewSignal=false }
+}

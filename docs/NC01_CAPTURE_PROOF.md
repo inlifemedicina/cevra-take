@@ -321,3 +321,56 @@ thresholds e aceites permanecem intactos. Novo checkpoint sujeito a revisão cr�
 antes da publicação; **não libera reserva, nova RUN, build/update, restart, sensores
 ou nova tentativa física**. Proprietário pode usar o aparelho; retomar só com nova
 coordenação explícita. Estado PAUSED/BLOCKED; nenhuma promoção de TAKE-A ou P3 PASS.
+
+
+## Nova autorização — tentativa fixa 002, preparação offline
+
+Em 02/10/2026 (America/Sao_Paulo), proprietário aprovou preparar outra tentativa
+local de 30 s com instruções de voz/orientação na tela, preservando vídeos e testes
+anteriores. Escopo offline: código/testes/revisão/artefato assinado; não instalação,
+launch, sensores ou alocação de reserva/RUN/mídia no aparelho. Proveniência privada.
+
+Único namespace novo fixo: `P3CaptureSandbox/P3-RETRY-002`. Não há seletor de ID,
+contador ou retry automático. O botão da tela original aponta exclusivamente para
+002; o enum ainda identifica original/001 para preservar a distinção histórica,
+sem expor 001 como tentativa reutilizável. A claim consumida 001 e o primeiro LATEST,
+original, resultados e FAIL/reteste parcial permanecem intactos.
+
+Etapas humanas da UI, somente em futura execução coordenada:
+
+1. Abrir tentativa autorizada 002; **nenhum sensor ou reserva criado ao abrir**.
+2. Ler e confirmar: aparelho **horizontal**, objeto neutro, contar **em voz alta**
+   durante os 30 s, não sair do app até salvar; sem imagem real, não gravar.
+3. Preparar permissões/câmera por botão humano. Só aqui reservar claim exclusiva
+   002 e iniciar preparação; informar estado da permissão do microfone e rota interna
+   sem identificadores. Rota não confirmada não recebe rótulo de sucesso.
+4. Atualizar diagnóstico; conferir preview e confirmar explicitamente **imagem real
+   visível**. Gate instrumental de bounds/conexão/previewing e sessão running; perda
+   do sinal invalida confirmação anterior, sem reconfirmar automaticamente.
+5. Gravar por botão humano: 30 s/back1080p30SDR/mic interno, mesmos caps/limiares.
+6. Após salvar, Reabrir/Play manual; avaliar voz e orientação. Não converter hash ou
+   perfil de arquivo em PASS humano. Falha/background invalida consentimento; reentrada
+   não desconsome claim nem cria outra tentativa. Qualquer erro permanece preservado.
+
+14 testes P3 PASS, zero falhas, 0,209 s: namespace original/001/002 independente e
+sentinels anteriores preservados; instruções obrigatórias antes de preparar; nenhum
+start sem confirmação real; perda de preview exige nova confirmação; interrupção
+invalida definitivamente consentimento no controller; deadlines/duplicatas e
+persistência sintética anteriores permanecem cobertos. O helper exclusivo permanece
+byte-idêntico ao checkpoint anterior; rejeição de duplicata/symlink, ENOENT e fault
+injection write/fsync já verificados não foram repetidos sem delta. Estes são testes
+offline/sintéticos, não alocação no aparelho nem prova real de captura/voz/orientação.
+Typecheck iOS PASS. Store/SHA/Model/MIME/player/deadlines/thresholds/checklist intactos;
+P3CaptureRules acrescenta somente escopos/consentimento puros e os respectivos testes.
+
+Gate crítico do head/tree/body concretos exigido antes de push/build assinado. Plano:
+destino genérico iOS, derivedData novo para 002, seis fontes exatos, mesmo projeto,
+perfil/entitlements/cadeia existentes, sem provisioning update/registro ou mudança
+global. Não sobrescrever artefato 463. Plano de preservação operacional privado da
+ponte contempla os 55 arquivos históricos mais claim 001: **56 arquivos /
+426.931.365 bytes conhecidos**, snapshot fresco somente após futura coordenação.
+Exigir 002 ausente; divergência ou alocação prévia é STOP, não limpeza/reseed.
+
+**PREPARED_CODE / NOT_PHYSICAL_READY**. Nenhuma instalação, nova reserva real, RUN,
+novo clipe ou TAKE-A promovido. Preparação assinada não autoriza execução/instalação
+por si só; proprietário só será chamado após cadeia completa revisada e verificada.

@@ -92,3 +92,53 @@ final class P3RulesTests: XCTestCase {
         XCTAssertEqual(process.terminationStatus,0);XCTAssertEqual(bytes,try canonical(s))
     }
 }
+
+
+extension P3RulesTests {
+    func testFixedAttemptNamespacesPreserveExistingRecords() throws {
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:false)
+        let original=P3AttemptScope.original.base(in:root),old=P3AttemptScope.retry001.base(in:root),fresh=P3AttemptScope.retry002.base(in:root)
+        XCTAssertEqual(original,root);XCTAssertNotEqual(old,fresh)
+        XCTAssertNil(P3AttemptScope(rawValue:"P3-RETRY-003"))
+        try FileManager.default.createDirectory(at:old,withIntermediateDirectories:false)
+        let originalPointer=original.appendingPathComponent("LATEST.json"),oldClaim=old.appendingPathComponent("ATTEMPT-RESERVED.json")
+        let a=Data("original-pointer".utf8),b=Data("consumed-001".utf8)
+        try a.write(to:originalPointer);try b.write(to:oldClaim)
+        XCTAssertFalse(FileManager.default.fileExists(atPath:fresh.path))
+        try FileManager.default.createDirectory(at:fresh,withIntermediateDirectories:false)
+        try Data("new-authorized-002".utf8).write(to:fresh.appendingPathComponent("ATTEMPT-RESERVED.json"))
+        XCTAssertEqual(try Data(contentsOf:originalPointer),a)
+        XCTAssertEqual(try Data(contentsOf:oldClaim),b)
+    }
+    func test002NeedsInstructionsAndRealPreviewConfirmationBeforeRecording() {
+        var consent=P3PreparationConsent(scope:.retry002)
+        XCTAssertFalse(consent.mayPrepare(phase:.idle))
+        XCTAssertFalse(consent.mayRecord(phase:.ready,sessionRunning:true))
+        consent.acknowledgeInstructions()
+        XCTAssertTrue(consent.mayPrepare(phase:.idle))
+        XCTAssertFalse(consent.mayPrepare(phase:.permission))
+        consent.observePreview(ready:true)
+        XCTAssertFalse(consent.confirmPreview(phase:.preparing,sessionRunning:true,humanVisible:true))
+        XCTAssertFalse(consent.confirmPreview(phase:.ready,sessionRunning:false,humanVisible:true))
+        XCTAssertFalse(consent.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:false))
+        XCTAssertFalse(consent.mayRecord(phase:.ready,sessionRunning:true))
+        XCTAssertTrue(consent.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:true))
+        XCTAssertTrue(consent.mayRecord(phase:.ready,sessionRunning:true))
+        XCTAssertFalse(consent.mayRecord(phase:.starting,sessionRunning:true))
+        consent.observePreview(ready:false)
+        XCTAssertFalse(consent.mayRecord(phase:.ready,sessionRunning:true))
+        consent.observePreview(ready:true)
+        XCTAssertFalse(consent.mayRecord(phase:.ready,sessionRunning:true)) // no stale human consent
+    }
+    func testConsentInvalidationCannotResumeAfterInterruptionOrReentry() {
+        var consent=P3PreparationConsent(scope:.retry002)
+        consent.acknowledgeInstructions();consent.observePreview(ready:true)
+        XCTAssertTrue(consent.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:true))
+        consent.invalidate()
+        consent.acknowledgeInstructions();consent.observePreview(ready:true)
+        XCTAssertFalse(consent.mayPrepare(phase:.idle))
+        XCTAssertFalse(consent.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:true))
+        XCTAssertFalse(consent.mayRecord(phase:.ready,sessionRunning:true))
+    }
+}
