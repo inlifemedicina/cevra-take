@@ -3,15 +3,15 @@
 **Checkpoint:** 02/10/2026. **Base:** main `99f1de2a4b020cb75b8000e2ed335d3b72b0747d`,
 PR #10 incorporado. **Executor:** Codex / `gpt-6.1-sol` / `medium`, verificados nos
 metadados locais do turno; nenhuma configuração global alterada.
-**Estado vigente:** P3 INICIADO/incompleto. Tomada `002`: perfil, hash e reabertura
-Store readonly PASS no recorte técnico; proprietário confirmou reprodução e voz.
-**Orientação NOT_PASS**: aparelho vertical no protocolo horizontal, arquivo reproduzido
-deitado. Sincronismo NOT_MEASURED; reabertura em novo processo iPhone NOT_RUN.
-FAIL inicial e reserva consumida `001` preservados como históricos. Nova correção de
-orientação em preparação offline; provas vertical/horizontal **NOT_RUN / NOT_PHYSICAL_READY**.
+**Estado vigente:** P3 INICIADO/incompleto. Vertical: clipe salvo, preview/Play em pé e
+voz confirmados pelo proprietário, recorte limitado. Horizontal: somente claim consumida,
+sem RUN/mídia/result/LATEST; causa física UNKNOWN, não reutilizar. Tomada `002` continua
+orientação NOT_PASS; sincronismo NOT_MEASURED e novo processo iPhone NOT_RUN.
+Contrato pré-gravação de pausa/retomada manual e consumo no start em preparação offline;
+única futura prova retomada+horizontal **NOT_RUN / NOT_PHYSICAL_READY**.
 P2_GLOBAL NOT_READY; produto NÃO IMPLEMENTADO; nenhuma stack final ou TAKE-A promovido.
-Este documento é dono do protocolo P3 mínimo; registros abaixo são checkpoints históricos
-quando substituídos por este estado e pela seção de orientação ao final.
+Este documento é dono do protocolo P3 mínimo; registros abaixo são históricos quando
+substituídos por este estado e pelo contrato futuro ao final.
 
 ## Autorização inicial e limites — histórico; ampliação de orientação ao final
 
@@ -437,3 +437,53 @@ desfaz somente proposta visual e pede reconfirmação, sem liberar reserva persi
 ou criar RUN; aceite mantém par congelado. Duplicatas pending/committed bloqueadas.
 Teste de mudança entre confirmação e admission, rejeição/reconfirmação/duplicata PASS;
 novo typecheck iOS PASS. Gate crítico do novo head/tree/inputs ainda necessário.
+
+
+## Contrato futuro de pré-gravação — registrado antes dos testes offline
+
+Autorização direta do proprietário em 03/10/2026: preview pode pausar por interrupção
+antes da gravação e retomar **somente por comando humano**. Retomar revalida estado,
+permissões, rota interna, espaço, thermal e postura suportada; exige **nova confirmação
+real de imagem**, sem reaproveitar ack antigo. Callback de geração anterior não pode
+reativar preview ou admitir start. Diálogo esperado de permissão não autoriza resume.
+Duplos comandos/retomadas/starts são bloqueados. A tentativa não é consumida na abertura,
+preparo, pausa ou retomada: claim exclusiva e RUN nascem somente no início admitido do
+botão Gravar, após gates, com O_EXCL/O_NOFOLLOW; falha após claim preserva consumo e dados.
+Não prometer transação atômica de câmera/filesystem ou liberar reserva para obter sucesso.
+Durante gravação, interrupção segue FAIL explícito e preservação, sem continuação,
+segmento, autoplay ou retry. Store/SHA/Model/caps/deadlines/thresholds não mudam.
+
+Estado observado pela ponte, sem nova leitura de mídia nesta tarefa: vertical salvo,
+preview/Play em pé e voz confirmados pelo proprietário (recorte limitado); horizontal
+somente claim consumida de 67 bytes, sem RUN/mídia/result/LATEST, causa física UNKNOWN.
+Tudo permanece preservado, inclusive horizontal consumida: sem reuso/desconsumo/reset.
+Provas anteriores mantêm seus namespaces e resultados; vertical não será repetida aqui.
+
+Única entrada futura fixa: **P3-PREVIEW-RESUME-HORIZONTAL-001**, um clipe horizontal de
+30 s/back1080p30SDR/mic interno com voz, após demonstração pré-gravação de pausa,
+retomada humana/revalidação e nova imagem real confirmada. Não há IDs livres/contador.
+O novo namespace deve estar ausente antes/depois da futura atualização; preparar preview
+não o cria. Resultado futuro deve distinguir pausa/resume, perfil/Store/hash e qualidade
+humana; sucesso do primeiro não promove TAKE-A/P3 global. Demais limites e NOT_MEASURED
+continuam. Esta rodada é **OFFLINE**: sem dispositivo/install/launch/sensor/reserva/RUN.
+Plano privado de preservação **composto**: **75 arquivos / 605.950.407 bytes**; 65 hashes
+históricos da instalação e dez novos da coleta. Inventários históricos fresh e 16 estados
+pequenos mantêm SHA; não alegar novo fullhash físico dos 75 nem repetir mídia histórica.
+
+Implementação offline: generations voláteis cancelam permissões/notificações/report e
+startRunning antigos; observadores são substituídos a cada preparo humano. Pause chama
+stopRunning mesmo em sessão interrompida e desativa áudio; não há on-active resume.
+Retomada verifica permissões já autorizadas, thermal/espaço e rota antes do preview;
+postura/ângulos suportados são revalidados no **novo** preview nativo antes de ack/start.
+Permissão indisponível mantém PAUSED; nenhum novo requestAccess no botão Retomar.
+Claim/RUN/mídia só após admissão serial e limites, via operação exclusiva; falha após
+claim é terminal/preservada, sem continuidade ou desconsumo. Não alegar atomicidade
+entre câmera e filesystem. Um clique rejeitado antes da claim não consome tentativa.
+
+**24 testes P3 PASS / zero falhas**, 0,276 s; typecheck iOS PASS, links/diff-check/manifesto
+seis fontes PASS. Delta cobre pausa/resume/novo ack, três fases pre-start, callback antigo,
+duplicatas, operação exclusiva no admitted-start e claim parcial preservada em falha.
+Testes são offline/sintéticos; nenhuma medição/aparelho/captura. Store/SHA/Model/MIME,
+freeze nativo, caps/deadlines/thresholds e checklist dos 26 aceites permanecem intactos.
+Revisão crítica de head/tree/body+inputs concretos e build genérico com recursos de signing
+existentes são gates antes de pacote pronto. Sem instalação ou execução física nesta rodada.

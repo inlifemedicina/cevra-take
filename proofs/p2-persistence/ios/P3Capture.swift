@@ -123,6 +123,9 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private let scope:P3AttemptScope
     private let baseURL:URL
     private var videoDevice:AVCaptureDevice?
+    private var epoch=P3PreviewEpoch()
+    private var startClaim=P3StartClaimGate()
+    @Published private(set) var previewEpoch:UInt64=0
     private var orientationCandidate:P3OrientationFrame?
     private var orientationFreeze=P3OrientationFreeze()
     private var consent:P3PreparationConsent
@@ -145,57 +148,77 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         let input=AVAudioSession.sharedInstance().currentRoute.inputs
         return input.count==1 && input[0].portType == .builtInMic
     }
-    func prepareByHuman() {
-        q.async {
-            guard self.scope.isOrientationProof else { self.publish("Histórico — somente Reabrir/Play; sem novo preparo");return }
-            guard !FileManager.default.fileExists(atPath:self.baseURL.appendingPathComponent("LATEST.json").path) else {
-                self.publish("P3 já salvo — reabra sem ativar sensores; não repetir captura");return
-            }
-            guard self.consent.mayPrepare(phase:self.state.phase) else { return }
-            if self.scope != .original {
-                var step="createRetryDirectory"
-                do {
-                    try FileManager.default.createDirectory(at:self.baseURL,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
-                    step="reserveExclusiveClaim"
-                    try p3ExclusiveJSON(["protocol":"P3-MIN-001","attempt":self.scope.rawValue],at:self.baseURL.appendingPathComponent("ATTEMPT-RESERVED.json"))
-                } catch let error as P3Error {
-                    self.fail(error)
-                    if error == .destinationExists {
-                        self.publish("BLOCKED: reserva existente — tentativa consumida; sem reset, exclusão ou nova gravação")
-                    } else { self.publish("FAIL: "+error.rawValue+" — etapa="+step+"; original preservado") }
-                    return
-                } catch {
-                    self.fail(.io)
-                    let e=error as NSError
-                    let domain=[NSCocoaErrorDomain,NSPOSIXErrorDomain].contains(e.domain) ? e.domain : "other"
-                    self.publish("FAIL: io — etapa=\(step), erro=\(domain):\(e.code); original preservado")
-                    return
-                }
-            }
-            guard self.state.accept(.prepare) else { return }
-            self.publish("PERMISSÕES — comando humano")
-            AVCaptureDevice.requestAccess(for:.video) { video in
-                self.q.async {
-                guard self.state.phase == .permission else { return }
-                guard video else { self.fail(.permission);return }
-                AVCaptureDevice.requestAccess(for:.audio) { audio in
-                    self.q.async {
-                        guard audio else { self.fail(.permission);return }
-                        guard self.state.accept(.permitted) else { return }
-                        do { try self.prepareSession();guard self.state.accept(.prepared) else { throw P3Error.recording }
-                            self.publish("PREPARED — traseira/1080p30 SDR/microfone interno; captura NOT_RUN")
-                            DispatchQueue.main.async { self.previewDevice=self.videoDevice;self.canPreview=true }
-                        } catch let e as P3Error { self.fail(e) } catch { self.fail(.recording) }
-                    }
-                }
-                }
-            }
+    private func existingClaimOrResult()->Bool {
+        FileManager.default.fileExists(atPath:baseURL.appendingPathComponent("ATTEMPT-RESERVED.json").path) ||
+        FileManager.default.fileExists(atPath:baseURL.appendingPathComponent("LATEST.json").path)
+    }
+    func prepareByHuman() { q.async {
+        guard self.scope == .horizontalResume else { self.publish("Histórico — somente Reabrir/Play; sem novo preparo");return }
+        guard !self.existingClaimOrResult() else { self.publish("BLOCKED — tentativa já consumida; somente reabrir, sem reset");return }
+        guard self.consent.mayPrepare(phase:self.state.phase),self.state.accept(.prepare) else { return }
+        let token=self.epoch.begin()
+        self.publish("PERMISSÕES — comando humano, tentativa ainda não consumida")
+        AVCaptureDevice.requestAccess(for:.video) { video in self.q.async {
+            guard self.epoch.accepts(token),self.state.phase == .permission else { return }
+            guard video else { self.pausePreview("Permissão de câmera indisponível");return }
+            AVCaptureDevice.requestAccess(for:.audio) { audio in self.q.async {
+                guard self.epoch.accepts(token),self.state.phase == .permission else { return }
+                guard audio else { self.pausePreview("Permissão de microfone indisponível");return }
+                self.finishPreparation(token:token)
+            } }
+        } }
+    } }
+    // No requestAccess or automatic restart on resume; permissions must already be usable.
+    func resumeByHuman() { q.async {
+        guard self.scope == .horizontalResume,self.state.phase == .paused,!self.existingClaimOrResult() else { return }
+        guard AVCaptureDevice.authorizationStatus(for:.video) == .authorized,
+              AVCaptureDevice.authorizationStatus(for:.audio) == .authorized else {
+            self.publish("PAUSED — permissões não disponíveis; sem pedido ou retomada automática");return
         }
+        guard self.state.accept(.resume) else { return }
+        let token=self.epoch.begin();self.finishPreparation(token:token)
+    } }
+    private func finishPreparation(token:UInt64) {
+        guard epoch.accepts(token),state.phase == .permission else { return }
+        guard safeThermal(),let free=try? p3Free(p3Base().deletingLastPathComponent()),free>=P3Limits.startSpace else {
+            pausePreview("Espaço/thermal não permite preview");return
+        }
+        guard state.accept(.permitted) else { return }
+        do {
+            if !configured { try prepareSession() }
+            else {
+                guard !session.isInterrupted else { pausePreview("Sessão ainda interrompida");return }
+                let audio=AVAudioSession.sharedInstance();try audio.setActive(true);audioActive=true
+                guard let builtIn=audio.availableInputs?.first(where:{$0.portType == .builtInMic}) else { pausePreview("Rota interna indisponível");return }
+                try audio.setPreferredInput(builtIn)
+                guard internalRoute() else { pausePreview("Rota interna não confirmada");return }
+            }
+            guard epoch.accepts(token),state.accept(.prepared) else { return }
+            installSessionObservers(token:token)
+            consent.observePreview(ready:false);orientationCandidate=nil
+            DispatchQueue.main.async { self.previewEpoch=token;self.previewHumanConfirmed=false;self.previewDevice=self.videoDevice;self.canPreview=true }
+            publish("PREPARED — confirme NOVA imagem real e postura; tentativa não consumida")
+            q.async {
+                guard self.epoch.accepts(token),self.state.phase == .ready else { return }
+                self.session.startRunning();self.publishPreviewSessionStatus()
+                if !self.session.isRunning { self.pausePreview("Sessão não iniciou");return }
+            }
+        } catch let error as P3Error { fail(error) } catch { fail(.recording) }
+    }
+    private func pausePreview(_ reason:String) {
+        guard state.accept(.pause) else { return }
+        epoch.cancel();consent.observePreview(ready:false);orientationCandidate=nil
+        shutdown()
+        DispatchQueue.main.async { self.previewHumanConfirmed=false }
+        publish("PAUSED — "+reason+"; retomar somente por botão humano e nova confirmação; sem claim/RUN")
+    }
+    private func interruptBeforeOrDuringCapture(_ reason:String,error:P3Error) {
+        if [.permission,.preparing,.ready].contains(state.phase) { pausePreview(reason) }
+        else if [.starting,.recording].contains(state.phase) || (state.phase == .finalizing && !deadline.finished) { fail(error) }
     }
     private func prepareSession() throws {
         guard safeThermal() else { throw P3Error.thermal }
-        let base=baseURL;try FileManager.default.createDirectory(at:base,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
-        guard try p3Free(base)>=P3Limits.startSpace else { throw P3Error.lowSpace }
+        guard try p3Free(p3Base().deletingLastPathComponent())>=P3Limits.startSpace else { throw P3Error.lowSpace }
         guard let device=AVCaptureDevice.default(.builtInWideAngleCamera,for:.video,position:.back),
               let audio=AVCaptureDevice.default(for:.audio) else { throw P3Error.unsupportedFormat }
         guard let format=device.formats.first(where: {
@@ -235,23 +258,19 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         guard let builtIn=audioSession.availableInputs?.first(where:{$0.portType == .builtInMic}) else { throw P3Error.route }
         try audioSession.setPreferredInput(builtIn)
         guard internalRoute() else { throw P3Error.route }
-        // Commit before startRunning; both operations are serial and off MainActor.
         configured=true
-        q.async {
-            guard self.state.phase == .ready else { return }
-            self.session.startRunning()
-            self.publishPreviewSessionStatus()
-            if !self.session.isRunning { self.fail(.recording) }
-        }
+    }
+    private func installSessionObservers(token:UInt64) {
+        for observer in observers { NotificationCenter.default.removeObserver(observer) };observers.removeAll()
         for name in [AVCaptureSession.wasInterruptedNotification,AVCaptureSession.runtimeErrorNotification,
                      AVAudioSession.routeChangeNotification,ProcessInfo.thermalStateDidChangeNotification] {
             observers.append(NotificationCenter.default.addObserver(forName:name,object:nil,queue:nil) { [weak self] note in
                 guard let self else { return };let name=note.name
                 self.q.async {
-                    guard [.ready,.starting,.recording].contains(self.state.phase) else { return }
+                    guard self.epoch.accepts(token),[.permission,.preparing,.ready,.starting,.recording,.finalizing].contains(self.state.phase) else { return }
                     if name == ProcessInfo.thermalStateDidChangeNotification && self.safeThermal() { return }
                     if name == AVAudioSession.routeChangeNotification && self.internalRoute() { return }
-                    self.fail(name == ProcessInfo.thermalStateDidChangeNotification ? .thermal : .interruption)
+                    self.interruptBeforeOrDuringCapture("Interrupção/rota/thermal",error:name == ProcessInfo.thermalStateDidChangeNotification ? .thermal : .interruption)
                 }
             })
         }
@@ -271,7 +290,8 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         let acknowledged=self.consent.instructionsAcknowledged
         DispatchQueue.main.async { self.instructionsAcknowledged=acknowledged }
     } }
-    func observePreviewSignal(ready:Bool,orientation:P3OrientationFrame?) { q.async {
+    func observePreviewSignal(ready:Bool,orientation:P3OrientationFrame?,generation:UInt64) { q.async {
+        guard self.epoch.accepts(generation),self.state.phase == .ready else { return }
         if self.orientationFreeze.frame == nil && self.orientationCandidate != orientation {
             self.consent.observePreview(ready:false)
         }
@@ -281,13 +301,13 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         let confirmed=self.consent.previewConfirmed
         DispatchQueue.main.async { self.previewHumanConfirmed=confirmed }
     } }
-    func confirmPreviewByHuman(signalReady:Bool) { q.async {
-        guard signalReady,self.consent.confirmPreview(phase:self.state.phase,sessionRunning:self.session.isRunning,humanVisible:true) else { return }
+    func confirmPreviewByHuman(signalReady:Bool,generation:UInt64) { q.async {
+        guard self.epoch.accepts(generation),signalReady,self.consent.confirmPreview(phase:self.state.phase,sessionRunning:self.session.isRunning,humanVisible:true) else { return }
         DispatchQueue.main.async { self.previewHumanConfirmed=true }
     } }
-    func recordByHuman(orientation:P3OrientationFrame,completion:@escaping(Bool)->Void) { q.async { [self] in
+    func recordByHuman(orientation:P3OrientationFrame,generation:UInt64,completion:@escaping(Bool)->Void) { q.async { [self] in
         func reply(_ accepted:Bool) { DispatchQueue.main.async { completion(accepted) } }
-        guard self.configured,self.state.phase == .ready else { reply(false);return }
+        guard self.configured,self.state.phase == .ready,self.epoch.accepts(generation) else { reply(false);return }
         guard P3OrientationStartTransaction.admitted(orientation,latest:self.orientationCandidate,consent:self.consent,
                 phase:self.state.phase,sessionRunning:self.session.isRunning) else {
             self.consent.observePreview(ready:false)
@@ -300,10 +320,14 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
                     captureSupported:connection.isVideoRotationAngleSupported(CGFloat(orientation.captureAngle))) else { throw P3Error.orientation }
             connection.videoRotationAngle=CGFloat(orientation.captureAngle)
             guard Double(connection.videoRotationAngle)==orientation.captureAngle else { throw P3Error.orientation }
-            let base=baseURL;let free=try p3Free(base)
+            let base=baseURL;let free=try p3Free(p3Base().deletingLastPathComponent())
             guard P3Limits.mayStart(free:free,internalMic:self.internalRoute(),
                 permissions:AVCaptureDevice.authorizationStatus(for:.video) == .authorized && AVCaptureDevice.authorizationStatus(for:.audio) == .authorized,
                 thermalSafe:self.safeThermal()) else { throw P3Error.lowSpace }
+            guard try self.startClaim.reserve(admitted:self.epoch.accepts(generation) && self.scope == .horizontalResume,exclusiveWrite: {
+                try FileManager.default.createDirectory(at:base,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
+                try p3ExclusiveJSON(["protocol":"P3-MIN-001","attempt":self.scope.rawValue],at:base.appendingPathComponent("ATTEMPT-RESERVED.json"))
+            }) else { throw P3Error.destinationExists }
             let dir=base.appendingPathComponent("P3-RUN-"+UUID().uuidString,isDirectory:true)
             guard mkdir(dir.path,0o700)==0 else { throw P3Error.destinationExists }
             try p3ExclusiveJSON(["protocol":"P3-MIN-001","source":"capture.mov","freeBeforeBytes":String(free)],at:dir.appendingPathComponent("capture.claim.json"))
@@ -327,19 +351,17 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         self.finishTimeout=timeout;self.q.asyncAfter(deadline:.now()+5,execute:timeout)
         if self.output.isRecording { self.output.stopRecording() }
     } }
-    func suspend() { q.async {
-        if [.permission,.preparing,.ready,.starting,.recording].contains(self.state.phase) ||
-           (self.state.phase == .finalizing && !self.deadline.finished) { self.fail(.interruption) }
-    } }
+    func suspend() { q.async { self.interruptBeforeOrDuringCapture("App fora do primeiro plano/preview pausado",error:.interruption) } }
+    func pauseByHuman() { q.async { self.pausePreview("Pausa solicitada pelo proprietário") } }
     private func fail(_ error:P3Error) {
-        consent.invalidate()
+        epoch.cancel();consent.invalidate()
         failure=error;deadline.cancel();state.accept(.fail);startTimeout?.cancel();finishTimeout?.cancel();captureTimeout?.cancel();watchdog?.cancel();watchdog=nil
         publish("FAIL: "+error.rawValue+" — original preservado, sem sucesso declarado")
         if output.isRecording { output.stopRecording() }
         shutdown()
     }
     private func shutdown() {
-        if session.isRunning { session.stopRunning() }
+        if configured { session.stopRunning() }
         if audioActive {
             try? AVAudioSession.sharedInstance().setActive(false,options:.notifyOthersOnDeactivation)
             audioActive=false
@@ -634,11 +656,15 @@ struct P3CaptureScreen:View {
             }.disabled(controller.phase != .idle)
         }
         Button("1. Preparar permissões e câmera — comando humano") { controller.prepareByHuman() }
-            .disabled(!scope.isOrientationProof || controller.phase != .idle || (scope.requiresInstructions && !controller.instructionsAcknowledged))
+            .disabled(scope != .horizontalResume || controller.phase != .idle || (scope.requiresInstructions && !controller.instructionsAcknowledged))
+        Button("Pausar preview — sem consumir tentativa") { controller.pauseByHuman() }.disabled(controller.phase != .ready)
+        Button("Retomar preview — comando humano; nova confirmação obrigatória") { controller.resumeByHuman() }.disabled(controller.phase != .paused || scope != .horizontalResume)
         if controller.canPreview,let device=controller.previewDevice {
-            P3Preview(session:controller.session,device:device,axis:scope.axis,diagnosticRevision:diagnosticRevision,report: {
-                previewDiagnostic=$0;previewSignalReady=$1;controller.observePreviewSignal(ready:$1,orientation:$2)
-            },available: { previewView=$0 }).frame(height:220)
+            let generation=controller.previewEpoch
+            P3Preview(session:controller.session,device:device,axis:scope.axis,diagnosticRevision:diagnosticRevision,report: { text,ready,orientation in
+                guard controller.previewEpoch == generation,controller.canPreview else { return }
+                previewDiagnostic=text;previewSignalReady=ready;controller.observePreviewSignal(ready:ready,orientation:orientation,generation:generation)
+            },available: { if controller.previewEpoch == generation { previewView=$0 } }).id(generation).frame(height:220)
             Text(controller.previewSessionStatus)
             Text(previewDiagnostic).accessibilityIdentifier("p3-preview-diagnostic")
             Button("Atualizar diagnóstico de preview — sem gravar") {
@@ -648,26 +674,29 @@ struct P3CaptureScreen:View {
         if scope.requiresPreview {
             Text("Primeira tomada preservada. Esta tentativa não apaga nem substitui LATEST/original anterior.")
             Button("Confirmo imagem real visível no preview — comando humano") {
-                controller.confirmPreviewByHuman(signalReady:previewSignalReady)
+                controller.confirmPreviewByHuman(signalReady:previewSignalReady,generation:controller.previewEpoch)
             }.disabled(!previewSignalReady || controller.phase != .ready)
         }
         Button("2. Gravar 30 s — orientação congelada, mantenha posição") {
             guard let view=previewView,let frame=view.proposeForHumanStart() else { previewSignalReady=false;return }
-            controller.recordByHuman(orientation:frame) { accepted in view.finishHumanStart(accepted:accepted) }
+            controller.recordByHuman(orientation:frame,generation:controller.previewEpoch) { accepted in view.finishHumanStart(accepted:accepted) }
         }
             .disabled(controller.phase != .ready || (scope.requiresPreview && (!previewSignalReady || !controller.previewHumanConfirmed)))
         Button("Parar antecipadamente — duração não aprovada") { controller.stopByHuman() }.disabled(![.starting,.recording].contains(controller.phase))
         Button("3. Reabrir original e habilitar Play") { controller.reopenByHuman() }.disabled(![.idle,.saved].contains(controller.phase))
         if let url=controller.playbackURL { P3PlaybackView(url:url,suspended:selectedScope != nil) }
         if scope == .original {
-            Button("Abrir prova VERTICAL autorizada — anteriores preservados") { selectedScope = .vertical }
+            Button("Abrir prova futura de retomada + HORIZONTAL — aguarde coordenação") { selectedScope = .horizontalResume }
                 .disabled(![.idle,.saved].contains(controller.phase))
-            Button("Abrir prova HORIZONTAL autorizada — anteriores preservados") { selectedScope = .horizontal }
+            Button("Reabrir VERTICAL — somente leitura e Play") { selectedScope = .vertical }
+                .disabled(![.idle,.saved].contains(controller.phase))
+            Button("Reabrir HORIZONTAL consumida — sem novo preparo") { selectedScope = .horizontal }
                 .disabled(![.idle,.saved].contains(controller.phase))
             Button("Reabrir tomada 002 — somente leitura e Play") { selectedScope = .retry002 }
                 .disabled(![.idle,.saved].contains(controller.phase))
         }
     }.padding() }.onChange(of:scene) { _,value in if value == .background { controller.suspend() } }
+    .onChange(of:controller.canPreview) { _,visible in if !visible { previewSignalReady=false;previewView=nil;previewDiagnostic="Preview pausado — nova confirmação necessária" } }
     .onDisappear { controller.suspend() }
     .sheet(item:$selectedScope) { P3CaptureScreen(scope:$0) }
     }

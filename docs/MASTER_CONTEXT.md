@@ -11,7 +11,7 @@
 **Revisão P2 Mac:** APPROVE, restrita à fixture declarada; limites em [NC01_PERSISTENCE_PROOF.md](NC01_PERSISTENCE_PROOF.md).
 **Fechamento documental P2 — snapshot físico 4096 bytes:** revisão independente do delta APPROVE; registro local concluído antes da publicação posterior no PR #10. Revisão física APPROVE recebida. Signing automático exclusivo P2 foi posteriormente autorizado e perfil compatível obtido/usado; não afirmar criação de novos recursos sem evidência. P3/captura NOT_RUN; P2 não fechado, NC-01 não concluído. Nenhuma stack final selecionada ou produto implementado.
 
-**P3 atual:** [NC01_CAPTURE_PROOF.md](NC01_CAPTURE_PROOF.md): `002` perfil/hash/Store readonly PASS no recorte técnico e voz/reprodução confirmadas pelo proprietário; orientação NOT_PASS, sincronismo NOT_MEASURED, novo processo iPhone NOT_RUN. Históricos preservados. Correção nativa e provas fixas vertical/horizontal em preparação offline, NOT_PHYSICAL_READY; P3 incompleto, nenhum TAKE-A promovido.
+**P3 atual:** [NC01_CAPTURE_PROOF.md](NC01_CAPTURE_PROOF.md): vertical salvo/preview/Play em pé/voz confirmados no recorte humano; horizontal apenas claim consumida, sem RUN/mídia e causa UNKNOWN; `002` orientação NOT_PASS. Contrato de preview pausa/retomada manual, novo ack e consumo somente no start em preparação offline, futura retomada+horizontal NOT_RUN/NOT_PHYSICAL_READY; P3 incompleto, sincronismo NOT_MEASURED, nenhum TAKE-A promovido.
 
 ## Autoridade
 

@@ -224,3 +224,77 @@ extension P3RulesTests {
         XCTAssertFalse(transaction.finish(accepted:false));XCTAssertEqual(transaction.frame,changed)
     }
 }
+
+extension P3RulesTests {
+    func testPreRecordingPauseResumeRequiresHumanTransitionAndFreshConfirmation() {
+        var s=P3State();var c=P3PreparationConsent(scope:.horizontalResume)
+        c.acknowledgeInstructions();XCTAssertTrue(s.accept(.prepare));XCTAssertFalse(s.accept(.prepare))
+        XCTAssertTrue(s.accept(.permitted));XCTAssertTrue(s.accept(.prepared))
+        c.observePreview(ready:true);XCTAssertTrue(c.confirmPreview(phase:s.phase,sessionRunning:true,humanVisible:true))
+        XCTAssertTrue(s.accept(.pause));c.observePreview(ready:false)
+        XCTAssertFalse(s.accept(.pause));XCTAssertFalse(s.accept(.record));XCTAssertFalse(s.accept(.prepared))
+        XCTAssertFalse(c.mayRecord(phase:s.phase,sessionRunning:true))
+        XCTAssertTrue(s.accept(.resume));XCTAssertFalse(s.accept(.resume));XCTAssertFalse(s.accept(.record))
+        XCTAssertTrue(s.accept(.permitted));XCTAssertTrue(s.accept(.prepared));c.observePreview(ready:true)
+        XCTAssertFalse(c.mayRecord(phase:s.phase,sessionRunning:true))
+        XCTAssertFalse(c.confirmPreview(phase:s.phase,sessionRunning:false,humanVisible:true))
+        XCTAssertFalse(c.confirmPreview(phase:s.phase,sessionRunning:true,humanVisible:false))
+        XCTAssertTrue(c.confirmPreview(phase:s.phase,sessionRunning:true,humanVisible:true))
+        XCTAssertTrue(s.accept(.record));XCTAssertFalse(s.accept(.record))
+        XCTAssertFalse(s.accept(.pause));XCTAssertFalse(s.accept(.resume)) // recording cannot resume/segment
+        XCTAssertTrue(s.accept(.fail));XCTAssertFalse(s.accept(.resume));XCTAssertFalse(s.accept(.record))
+    }
+    func testPermissionOrPreparingPauseCancelsEpochAndNoObsoleteCallbackCanResume() {
+        for beforePause in [P3Phase.permission,.preparing,.ready] {
+            var state=P3State();var epoch=P3PreviewEpoch()
+            XCTAssertTrue(state.accept(.prepare));let first=epoch.begin()
+            if beforePause != .permission { XCTAssertTrue(state.accept(.permitted)) }
+            if beforePause == .ready { XCTAssertTrue(state.accept(.prepared)) }
+            XCTAssertTrue(epoch.accepts(first));XCTAssertTrue(state.accept(.pause));epoch.cancel()
+            XCTAssertFalse(epoch.accepts(first));XCTAssertFalse(state.accept(.prepared))
+            XCTAssertTrue(state.accept(.resume));let second=epoch.begin()
+            XCTAssertFalse(epoch.accepts(first));XCTAssertTrue(epoch.accepts(second))
+            epoch.cancel();XCTAssertFalse(epoch.accepts(second))
+        }
+    }
+    func testExclusiveStartOperationNeverRunsOnUnadmittedStartAndOnlyRunsOnce() throws {
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:false)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let claim=root.appendingPathComponent("ATTEMPT-RESERVED.json")
+        var gate=P3StartClaimGate(),calls=0
+        let write:() throws -> Void = { calls += 1;try Data("unique-start-claim".utf8).write(to:claim,options:.withoutOverwriting) }
+        XCTAssertFalse(try gate.reserve(admitted:false,exclusiveWrite:write))
+        XCTAssertFalse(FileManager.default.fileExists(atPath:claim.path));XCTAssertEqual(calls,0)
+        XCTAssertTrue(try gate.reserve(admitted:true,exclusiveWrite:write))
+        XCTAssertFalse(try gate.reserve(admitted:true,exclusiveWrite:write));XCTAssertEqual(calls,1)
+        XCTAssertEqual(try Data(contentsOf:claim),Data("unique-start-claim".utf8))
+        // A fresh process/gate cannot bypass the persistent exclusive claim.
+        var fresh=P3StartClaimGate();XCTAssertThrowsError(try fresh.reserve(admitted:true,exclusiveWrite:write))
+        XCTAssertEqual(try Data(contentsOf:claim),Data("unique-start-claim".utf8))
+    }
+    func testClaimWriteFailureRemainsConsumedOnDiskWithoutDeletingOrRetrying() throws {
+        enum Fault:Error { case injected }
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:false)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let claim=root.appendingPathComponent("ATTEMPT-RESERVED.json");var gate=P3StartClaimGate()
+        XCTAssertThrowsError(try gate.reserve(admitted:true) {
+            try Data("partial-claim-preserved".utf8).write(to:claim,options:.withoutOverwriting);throw Fault.injected
+        })
+        XCTAssertFalse(gate.claimed);XCTAssertEqual(try Data(contentsOf:claim),Data("partial-claim-preserved".utf8))
+        var state=P3State();XCTAssertTrue(state.accept(.fail));XCTAssertFalse(state.accept(.resume))
+        // No RUN is allocated by the pure claim gate, including write failure.
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:root.path),["ATTEMPT-RESERVED.json"])
+    }
+    func testFreshResumeNamespaceDoesNotReclaimHistoricalHorizontalOrRepeatVertical() {
+        let root=URL(fileURLWithPath:"/unused-test-root")
+        let fresh=P3AttemptScope.horizontalResume
+        XCTAssertEqual(fresh.rawValue,"P3-PREVIEW-RESUME-HORIZONTAL-001")
+        XCTAssertEqual(fresh.axis,.horizontal);XCTAssertTrue(fresh.requiresInstructions)
+        for old in [P3AttemptScope.original,.retry001,.retry002,.vertical,.horizontal] {
+            XCTAssertNotEqual(fresh.base(in:root),old.base(in:root))
+        }
+        XCTAssertNil(P3AttemptScope(rawValue:"P3-PREVIEW-RESUME-HORIZONTAL-002"))
+    }
+}

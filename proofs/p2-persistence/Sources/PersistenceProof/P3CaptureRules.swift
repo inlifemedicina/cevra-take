@@ -1,8 +1,8 @@
 import Foundation
 
 // Pure protocol gates: importing/constructing this type never accesses media hardware.
-public enum P3Phase: String, Sendable { case idle, permission, preparing, ready, starting, recording, finalizing, saved, failed }
-public enum P3Event: Sendable { case prepare, permitted, prepared, record, started, stop, finished, persisted, recovered, fail }
+public enum P3Phase: String, Sendable { case idle, permission, preparing, ready, paused, starting, recording, finalizing, saved, failed }
+public enum P3Event: Sendable { case prepare, permitted, prepared, record, started, stop, finished, persisted, recovered, pause, resume, fail }
 public struct P3State: Sendable {
     public private(set) var phase: P3Phase = .idle
     public init() {}
@@ -13,6 +13,8 @@ public struct P3State: Sendable {
         case (.idle,.prepare): next = .permission
         case (.permission,.permitted): next = .preparing
         case (.preparing,.prepared): next = .ready
+        case (.permission,.pause),(.preparing,.pause),(.ready,.pause): next = .paused
+        case (.paused,.resume): next = .permission
         case (.ready,.record): next = .starting
         case (.starting,.started): next = .recording
         case (.starting,.stop),(.recording,.stop): next = .finalizing
@@ -84,9 +86,10 @@ public struct P3RecordingDeadline: Sendable {
 public enum P3AttemptScope:String, Sendable {
     case original="P3-ORIGINAL", retry001="P3-RETRY-001", retry002="P3-RETRY-002"
     case vertical="P3-ORIENTATION-VERTICAL-001", horizontal="P3-ORIENTATION-HORIZONTAL-001"
-    public var requiresInstructions:Bool { self == .retry002 || isOrientationProof }
+    case horizontalResume="P3-PREVIEW-RESUME-HORIZONTAL-001"
+    public var requiresInstructions:Bool { self == .retry002 || isOrientationProof || self == .horizontalResume }
     public var isOrientationProof:Bool { self == .vertical || self == .horizontal }
-    public var axis:P3OrientationAxis? { self == .vertical ? .vertical : (self == .horizontal ? .horizontal : nil) }
+    public var axis:P3OrientationAxis? { self == .vertical ? .vertical : (self == .horizontal || self == .horizontalResume ? .horizontal : nil) }
     public var requiresPreview:Bool { self != .original }
     public func base(in root:URL)->URL {
         self == .original ? root : root.appendingPathComponent(rawValue,isDirectory:true)
@@ -173,5 +176,25 @@ public struct P3OrientationStartTransaction:Sendable {
     }
     public static func admitted(_ proposed:P3OrientationFrame,latest:P3OrientationFrame?,consent:P3PreparationConsent,phase:P3Phase,sessionRunning:Bool)->Bool {
         latest == proposed && consent.mayRecord(phase:phase,sessionRunning:sessionRunning)
+    }
+}
+
+// Generations are volatile callback cancellation, never attempt IDs or retry allocation.
+public struct P3PreviewEpoch:Sendable {
+    public private(set) var value:UInt64=0
+    private var active=false
+    public init() {}
+    public mutating func begin()->UInt64 { value &+= 1;active=true;return value }
+    public mutating func cancel() { value &+= 1;active=false }
+    public func accepts(_ token:UInt64)->Bool { active && token == value }
+}
+// Serial admission controls when the exclusive filesystem operation may run.
+// The persistent O_EXCL claim remains authoritative after process loss or write failure.
+public struct P3StartClaimGate:Sendable {
+    public private(set) var claimed=false
+    public init() {}
+    public mutating func reserve(admitted:Bool,exclusiveWrite:() throws -> Void) throws -> Bool {
+        guard admitted,!claimed else { return false }
+        try exclusiveWrite();claimed=true;return true
     }
 }
