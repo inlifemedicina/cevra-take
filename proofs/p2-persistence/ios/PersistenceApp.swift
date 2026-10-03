@@ -7,7 +7,8 @@ import Darwin
 @main
 struct PersistenceApp: App {
     var body: some Scene { WindowGroup {
-        if CommandLine.arguments.contains("--p2-large-stage") { LargeProofScreen() }
+        if CommandLine.arguments.contains("--p3-readiness") { P3ReadinessScreen() }
+        else if CommandLine.arguments.contains("--p2-large-stage") { LargeProofScreen() }
         else { PersistenceProofScreen() }
     } }
 }
@@ -15,6 +16,7 @@ struct PersistenceApp: App {
 private struct PersistenceProofScreen: View {
     @State private var status = "Nenhuma operação executada"
     @State private var details = ""
+    @State private var showP3 = false
 
     private var base: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -28,6 +30,7 @@ private struct PersistenceProofScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("CEVRA Take Persistence Proof").font(.title2)
+                Button("Abrir prova P3 — sem ativar sensores") { showP3=true }
                 Text("Somente fixture sintética. Sem câmera, áudio, IA ou rede.")
                 Button("1. Criar e salvar R1") { perform {
                     try prepareParent()
@@ -72,6 +75,7 @@ private struct PersistenceProofScreen: View {
                 Text(details).font(.caption).textSelection(.enabled)
             }.padding()
         }
+        .sheet(isPresented:$showP3) { P3CaptureScreen() }
         .onAppear {
             if FileManager.default.fileExists(atPath: project.appendingPathComponent("CURRENT.json").path) {
                 recover()

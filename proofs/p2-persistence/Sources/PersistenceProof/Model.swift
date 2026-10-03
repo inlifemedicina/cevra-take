@@ -26,14 +26,22 @@ public struct Snapshot: Codable, Equatable, Sendable {
     public var originals: [Original]
     public func validate() throws {
         guard formatVersion == 1 else { throw ProofError.incompatibleVersion }
-        guard projectID == "P2-FIXTURE-001" || projectID == "P2-LARGE-001" else { throw ProofError.invalidMetadata }
+        let isP3 = projectID == "P3-CAPTURE-001"
+        guard isP3 || projectID == "P2-FIXTURE-001" || projectID == "P2-LARGE-001" else { throw ProofError.invalidMetadata }
+        if isP3 {
+            guard revisions.count == 1, revisions[0].id == "R1",
+                  takes.count == 1, takes[0].id == "T", takes[0].revisionID == "R1",
+                  takes[0].originalID == "O", !takes[0].synthetic,
+                  originals.count == 1, originals[0].id == "O", originals[0].byteCount > 0
+            else { throw ProofError.invalidMetadata }
+        }
         for ids in [revisions.map(\.id), takes.map(\.id), originals.map(\.id)] {
             guard Set(ids).count == ids.count else { throw ProofError.duplicate }
             guard ids.allSatisfy({ !$0.isEmpty && $0.utf8.allSatisfy { (65...90).contains($0) || (48...57).contains($0) } }) else { throw ProofError.unsafePath }
         }
         guard !revisions.isEmpty,
               revisions.allSatisfy({ $0.scriptID == "S" }),
-              takes.allSatisfy({ t in t.synthetic && revisions.contains { $0.id == t.revisionID } && originals.contains { $0.id == t.originalID } }),
+              takes.allSatisfy({ t in (isP3 ? !t.synthetic : t.synthetic) && revisions.contains { $0.id == t.revisionID } && originals.contains { $0.id == t.originalID } }),
               originals.allSatisfy({ $0.byteCount >= 0 && $0.sha256.count == 64 && $0.sha256.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) } })
         else { throw ProofError.invalidMetadata }
     }
