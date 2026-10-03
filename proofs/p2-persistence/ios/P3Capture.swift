@@ -26,7 +26,12 @@ private func p3Free(_ root:URL) throws -> Int64 {
 }
 private func p3ExclusiveJSON(_ value:[String:String],at path:URL) throws {
     let fd=open(path.path,O_CREAT|O_EXCL|O_WRONLY|O_NOFOLLOW,0o600)
-    guard fd>=0 else { throw P3Error.destinationExists }; defer { close(fd) }
+    guard fd>=0 else {
+        let code=errno
+        if code==EEXIST { throw P3Error.destinationExists }
+        throw POSIXError(POSIXErrorCode(rawValue:code) ?? .EIO)
+    }
+    defer { close(fd) }
     let data=try canonical(value)
     try data.withUnsafeBytes { bytes in
         var offset=0
@@ -141,10 +146,24 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             }
             guard self.state.phase == .idle else { return }
             if self.isRetry {
+                var step="createRetryDirectory"
                 do {
                     try FileManager.default.createDirectory(at:self.baseURL,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
+                    step="reserveExclusiveClaim"
                     try p3ExclusiveJSON(["protocol":"P3-MIN-001","attempt":"P3-RETRY-001"],at:self.baseURL.appendingPathComponent("ATTEMPT-RESERVED.json"))
-                } catch { self.fail(.io);return }
+                } catch let error as P3Error {
+                    self.fail(error)
+                    if error == .destinationExists {
+                        self.publish("BLOCKED: reserva existente — tentativa consumida; sem reset, exclusão ou nova gravação")
+                    } else { self.publish("FAIL: "+error.rawValue+" — etapa="+step+"; original preservado") }
+                    return
+                } catch {
+                    self.fail(.io)
+                    let e=error as NSError
+                    let domain=[NSCocoaErrorDomain,NSPOSIXErrorDomain].contains(e.domain) ? e.domain : "other"
+                    self.publish("FAIL: io — etapa=\(step), erro=\(domain):\(e.code); original preservado")
+                    return
+                }
             }
             guard self.state.accept(.prepare) else { return }
             self.publish("PERMISSÕES — comando humano")

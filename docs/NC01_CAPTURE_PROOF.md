@@ -291,3 +291,33 @@ Build assinado com recursos existentes foi autorizado para preparação offline;
 **instalação não autorizada nesta conferência**, aguardando disponibilidade e plano
 humano de preservação. PREPARED_CODE/NOT_PHYSICAL_READY; playback humano FAIL ainda
 não retestado. Nenhuma nova captura, sensor, TAKE-A PASS ou Vids.
+
+
+## Tentativa isolada pausada — diagnóstico da reserva, sem liberação
+
+Após atualização, o proprietário informou que o primeiro vídeo tocou; áudio
+inconclusivo, pois não houve referência falada. FAIL inicial de playback preservado
+como histórico; reteste parcial não fecha qualidade humana, sincronismo ou P3.
+Depois confirmou imagem real no preview da nova tentativa, mas informou não ter
+chegado a gravar e relatou erro após tentar screenshot. Imagem é observação temporal;
+**correlação com screenshot não demonstra a causa**.
+
+Ponte conferiu readonly o namespace P3-RETRY-001: somente ATTEMPT-RESERVED.json de
+50 bytes, sem RUN, claim de captura, mídia, LATEST ou result. A reserva de preparo
+está consumida; nenhuma gravação desta tentativa é demonstrada. Não apagar ou
+contornar a claim. Causa física do FAIL: io continua desconhecida.
+
+Defeito de diagnóstico reproduzível: o catch genérico do preparo convertia inclusive
+destinationExists em io. Correção preserva o erro tipado; reserva existente informa
+BLOCKED explicitamente, sem reset. Outros erros mostram somente etapa e domínio/código
+sanitizados, sem paths/userInfo. O helper distingue EEXIST de outros erros de open,
+sem relaxar O_EXCL/O_NOFOLLOW, permissões, escrita/fsync ou conservação dos arquivos.
+
+Verificação offline do helper extraído do fonte atual: reserva única PASS, duplicata
+rejeitada/claim intacta, symlink rejeitado/original sentinel intacto; parent ausente
+retorna POSIX ENOENT, não destinationExists. Typecheck iOS PASS. Não reproduz causa
+real do aparelho, screenshot/lifecycle ou capture. Store/SHA/Model/player/retry-gates,
+thresholds e aceites permanecem intactos. Novo checkpoint sujeito a revisão crítica
+antes da publicação; **não libera reserva, nova RUN, build/update, restart, sensores
+ou nova tentativa física**. Proprietário pode usar o aparelho; retomar só com nova
+coordenação explícita. Estado PAUSED/BLOCKED; nenhuma promoção de TAKE-A ou P3 PASS.
