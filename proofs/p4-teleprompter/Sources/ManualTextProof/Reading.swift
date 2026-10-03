@@ -27,9 +27,18 @@ public struct ScriptRevision:Sendable {
     }
     public var blocks:[TextBlock] {
         let characters=Array(text)
-        return stride(from:0,to:characters.count,by:120).map { start in
-            TextBlock(start:start,text:String(characters[start..<min(start+120,characters.count)]))
+        var result:[TextBlock]=[]
+        var start=0
+        while start<characters.count {
+            var end=min(start+120,characters.count)
+            if end<characters.count, !characters[end].isWhitespace,
+               let separator=characters[start..<end].lastIndex(where: { $0.isWhitespace }) {
+                end=separator+1
+            }
+            result.append(TextBlock(start:start,text:String(characters[start..<end])))
+            start=end
         }
+        return result
     }
 }
 public enum ReadingPhase:Sendable { case paused,reading }
