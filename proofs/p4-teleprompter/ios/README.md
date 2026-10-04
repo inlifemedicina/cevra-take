@@ -71,3 +71,30 @@ publicação/prontidão. Draft PR, sem merge; etapa física só após coordenaç
 
 P4/NC-01 e TAKE-A08/A23/A24 permanecem incompletos/BLOCKED. Sem NC-02, fotografia,
 IA, Photos/upload, Vids, stack final ou nova funcionalidade de produto.
+
+## Checkpoint offline de preparação — 04/10/2026
+
+Quatro testes novos PASS, zero falhas (0,020 s): binding/persistência byte-exatos,
+rejeição de revisão/idioma diferente e namespace/consentimento. Endurecimento final
+habilita apenas P4-MANUAL-TEXT-VERTICAL-001; antigos, inclusive horizontalResume,
+ficam Reabrir/Play. Somente o teste afetado de namespace foi repetido e passou.
+Store/Model/SHA e os bytes de Reading.swift/ManualPrompter.swift preservados.
+
+Typecheck iOS arm64 SDK27 PASS. Helper próprio de simulador iPhone16ProMax/iOS27.0,
+headless, gerou três UI PNGs 440×956: PT, EN e entrada integrada idle. Entrada inerte,
+sessão não rodando e namespace ausente PASS; imagens inspecionadas, não toque humano.
+Helper adotou UIScene após falha de lifecycle SDK27; falha anterior preservada privada.
+O binário sim antecede somente o bloqueio final de um namespace histórico e seu menu;
+nenhuma dessas duas mudanças afeta as três superfícies amostradas. Não é prova do
+binário assinado final, cuja compilação/verificação ocorre após gate dos inputs exatos.
+Simulador próprio desligado; nenhum Simulator.app, aparelho físico ou sensor operado.
+
+Reutilizados: testes anteriores da captura/leitura, renders e percursos humanos Mac,
+incluindo nomes/estados e navegação assistiva PT/EN confirmados pelo proprietário.
+Esses resultados não validam toque/legibilidade/VoiceOver/DynamicType do iPhone.
+Binding sidecar é evidência auxiliar; o vínculo de reabertura exige os bytes efetivos
+do roteiro no Snapshot validado pelo Store. Não se anuncia sidecar autenticado.
+
+Revisão/publicação/build assinado ainda sob gate deste checkpoint; prova física
+NOT_RUN e nenhum aceite global promovido. Aplicação, instalação, câmera/mic e a rodada
+humana requerem coordenação física posterior mesmo que a preparação offline passe.

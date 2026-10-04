@@ -87,9 +87,12 @@ public enum P3AttemptScope:String, Sendable {
     case original="P3-ORIGINAL", retry001="P3-RETRY-001", retry002="P3-RETRY-002"
     case vertical="P3-ORIENTATION-VERTICAL-001", horizontal="P3-ORIENTATION-HORIZONTAL-001"
     case horizontalResume="P3-PREVIEW-RESUME-HORIZONTAL-001"
-    public var requiresInstructions:Bool { self == .retry002 || isOrientationProof || self == .horizontalResume }
+    case manualTextVertical="P4-MANUAL-TEXT-VERTICAL-001"
+    public var hasManualText:Bool { self == .manualTextVertical }
+    public var allowsCapture:Bool { hasManualText }
+    public var requiresInstructions:Bool { self == .retry002 || isOrientationProof || self == .horizontalResume || hasManualText }
     public var isOrientationProof:Bool { self == .vertical || self == .horizontal }
-    public var axis:P3OrientationAxis? { self == .vertical ? .vertical : (self == .horizontal || self == .horizontalResume ? .horizontal : nil) }
+    public var axis:P3OrientationAxis? { (self == .vertical || hasManualText) ? .vertical : (self == .horizontal || self == .horizontalResume ? .horizontal : nil) }
     public var requiresPreview:Bool { self != .original }
     public func base(in root:URL)->URL {
         self == .original ? root : root.appendingPathComponent(rawValue,isDirectory:true)
