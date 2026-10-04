@@ -98,3 +98,50 @@ do roteiro no Snapshot validado pelo Store. Não se anuncia sidecar autenticado.
 Revisão/publicação/build assinado ainda sob gate deste checkpoint; prova física
 NOT_RUN e nenhum aceite global promovido. Aplicação, instalação, câmera/mic e a rodada
 humana requerem coordenação física posterior mesmo que a preparação offline passe.
+
+
+## Próximo recorte frontal — protocolo pré-registrado em 04/10/2026
+
+Implementação frontal de prova autorizada por `Sentinel_9d1503957e9881918f3296628c00734f`.
+Uma única entrada fixa futura `P4-MANUAL-TEXT-FRONT-VERTICAL-001`, sem contador/retake.
+Traseira P4 e todos os P3/P2 passam a históricos de Reabrir/Play, sem novas escritas.
+Roteiro PT/LONG_R1 e binding UTF-8 existentes reaproveitados; câmera frontal wide,
+vertical, 1080p30 SDR, mic interno, um único clipe de30s e os limites P3 mantidos.
+Frontal/formato/espelhamento sem suporte devem bloquear, sem fallback para traseira.
+
+Candidata de teste proposta: preview frontal espelhado; original salvo sem espelhar.
+Preferência apresentada ao proprietário, ainda pendente de resposta; não é decisão
+final de produto nem autorização para instalar/gravar. A política será declarada e
+fixada antes da futura rodada. Rotação continua nativa para o dispositivo selecionado,
+congelada no start admitido; espelhamento automático desabilitado explicitamente.
+
+Rodada futura agrupada, após revisão/build e coordenação de atualização/preservação:
+1. Conferir artefato e inventário fresco proporcional. Baseline atual composto:84
+   históricos (55 estados pequenos) +9 arquivos da traseira P4 já coletados/hashed.
+   Reutilizar evidências válidas no seu escopo e declarar método; namespace frontal
+   deve estar ausente. Preservar claims/LATEST/RUNs/originais; pósupdate sem autoLaunch.
+2. Abrir a nova entrada frontal por comando humano. Antes do clipe, conferir preview
+   real e uma referência de letras/lados (cartão `ABC123`), política de espelhamento e
+   retorno da imagem após pausa/retomada manual. Em preview, mudar brevemente para
+   horizontal deve retirar confirmação/desabilitar start; voltar vertical e confirmar
+   NOVA imagem. Essas verificações não criam claim/RUN; não provocar interrupções.
+3. Uma tomada PT vertical de30s: ler/rolar/marcar/voltar no texto, com voz. Manter
+   postura/app até salvar automaticamente. Não repetir PT/EN por toque já aprovados.
+4. Reabrir/Play: imagem vertical, letras/lados no sentido da política do original,
+   voz audível e nenhuma sobreposição do teleprompter. Inspeção posterior da tomada
+   existente: perfil/hash/pointers/binding e preservação. Um relato consolidado.
+
+Passam somente os critérios amostrados desta câmera/política/orientação. Falha ou
+preview real ausente: bloquear/preservar; sem reset/retake. Espelhamento físico,
+frontal/formatos e qualidade continuam NOT_RUN; não herdar PASS traseiro. Sync/drift,
+frames/latência/recursos, iOS VO/DynamicType e cobertura restante continuam abertos.
+Sem instalar/abrir app/sensores/gravação nesta preparação offline.
+
+Resultado traseiro0748 reaproveitado: proprietário relatou `Tudo perfeito` no roteiro
+PT/EN +PTvertical30s +Reabrir/Play (`Sentinel_9dd64201e0848191b25c3450ba5eacc8`). Inspeção
+read-only:29,928333s,1080pvertical por rotação,nominal30,H.264/SDRBT.709,AACmono48k;
+captura/O publicado idênticos (45.593.687bytes,SHA256
+`2c5068591e55cb819df5d6b2f81e6d12c832bc98318b083eada4688ef7b6a18d`),
+pointers e PT/LONG_R1 UTF-8 exatos;84históricos/55estados preservados pelo método
+declarado com hashes grandes reutilizados. Relato humano não mede sync/frames/recursos
+nem prova novo processo iPhone. P4/NC01 incompletos;26TAKE-A BLOCKED preservados.
