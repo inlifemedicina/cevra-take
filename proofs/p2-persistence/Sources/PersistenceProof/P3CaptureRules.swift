@@ -88,8 +88,10 @@ public enum P3AttemptScope:String, Sendable {
     case vertical="P3-ORIENTATION-VERTICAL-001", horizontal="P3-ORIENTATION-HORIZONTAL-001"
     case horizontalResume="P3-PREVIEW-RESUME-HORIZONTAL-001"
     case manualTextVertical="P4-MANUAL-TEXT-VERTICAL-001"
-    public var hasManualText:Bool { self == .manualTextVertical }
-    public var allowsCapture:Bool { hasManualText }
+    case manualTextFrontVertical="P4-MANUAL-TEXT-FRONT-VERTICAL-001"
+    public var hasManualText:Bool { self == .manualTextVertical || self == .manualTextFrontVertical }
+    public var allowsCapture:Bool { self == .manualTextFrontVertical }
+    public var cameraPolicy:P4CameraPolicy { self == .manualTextFrontVertical ? .frontProof : .rear }
     public var requiresInstructions:Bool { self == .retry002 || isOrientationProof || self == .horizontalResume || hasManualText }
     public var isOrientationProof:Bool { self == .vertical || self == .horizontal }
     public var axis:P3OrientationAxis? { (self == .vertical || hasManualText) ? .vertical : (self == .horizontal || self == .horizontalResume ? .horizontal : nil) }
@@ -140,12 +142,32 @@ public enum P3Posture:String, Sendable {
         case .landscapePortRight,.landscapePortLeft:return .horizontal;case .unknown:return nil }
     }
 }
+public enum P4CameraPosition:String,Sendable { case back,front }
+// Explicit proof policy; no media APIs, camera discovery or process/session state.
+public struct P4CameraPolicy:Equatable,Sendable {
+    public let position:P4CameraPosition
+    public let previewMirrored:Bool
+    public let originalMirrored:Bool
+    public init(position:P4CameraPosition,previewMirrored:Bool,originalMirrored:Bool) {
+        self.position=position;self.previewMirrored=previewMirrored;self.originalMirrored=originalMirrored
+    }
+    public static let rear=Self(position:.back,previewMirrored:false,originalMirrored:false)
+    // Candidate proof setting; not a final product preference.
+    public static let frontProof=Self(position:.front,previewMirrored:true,originalMirrored:false)
+    public func previewReady(supported:Bool,mirrored:Bool,automatic:Bool)->Bool {
+        supported && !automatic && mirrored == previewMirrored
+    }
+    public func admits(framePolicy:Self,captureSupported:Bool,captureMirrored:Bool,captureAutomatic:Bool)->Bool {
+        framePolicy == self && captureSupported && !captureAutomatic && captureMirrored == originalMirrored
+    }
+}
 public struct P3OrientationFrame:Equatable, Sendable {
     public let posture:P3Posture
     public let previewAngle:Double
     public let captureAngle:Double
-    public init(posture:P3Posture,previewAngle:Double,captureAngle:Double) {
-        self.posture=posture;self.previewAngle=previewAngle;self.captureAngle=captureAngle
+    public let cameraPolicy:P4CameraPolicy
+    public init(posture:P3Posture,previewAngle:Double,captureAngle:Double,cameraPolicy:P4CameraPolicy = .rear) {
+        self.posture=posture;self.previewAngle=previewAngle;self.captureAngle=captureAngle;self.cameraPolicy=cameraPolicy
     }
     public func supported(for axis:P3OrientationAxis?,previewSupported:Bool,captureSupported:Bool)->Bool {
         guard let axis,posture.axis == axis else { return false }

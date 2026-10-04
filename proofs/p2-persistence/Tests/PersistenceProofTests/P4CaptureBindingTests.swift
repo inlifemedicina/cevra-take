@@ -40,12 +40,12 @@ final class P4CaptureBindingTests:XCTestCase {
         XCTAssertFalse(binding.matches(changed))
     }
     func testNewScopeDoesNotEnableHistoricalAttempts() {
-        let new=P3AttemptScope.manualTextVertical
+        let new=P3AttemptScope.manualTextFrontVertical
         XCTAssertTrue(new.allowsCapture);XCTAssertTrue(new.requiresInstructions);XCTAssertTrue(new.requiresPreview)
         XCTAssertEqual(new.axis,.vertical)
         let root=URL(fileURLWithPath:"/synthetic/P3CaptureSandbox")
-        XCTAssertEqual(new.base(in:root).lastPathComponent,"P4-MANUAL-TEXT-VERTICAL-001")
-        for old in [P3AttemptScope.original,.retry001,.retry002,.vertical,.horizontal,.horizontalResume] {
+        XCTAssertEqual(new.base(in:root).lastPathComponent,"P4-MANUAL-TEXT-FRONT-VERTICAL-001")
+        for old in [P3AttemptScope.original,.retry001,.retry002,.vertical,.horizontal,.horizontalResume,.manualTextVertical] {
             XCTAssertFalse(old.allowsCapture);XCTAssertNotEqual(old.base(in:root),new.base(in:root))
         }
         var consent=P3PreparationConsent(scope:new)

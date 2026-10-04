@@ -145,3 +145,25 @@ captura/O publicado idênticos (45.593.687bytes,SHA256
 pointers e PT/LONG_R1 UTF-8 exatos;84históricos/55estados preservados pelo método
 declarado com hashes grandes reutilizados. Relato humano não mede sync/frames/recursos
 nem prova novo processo iPhone. P4/NC01 incompletos;26TAKE-A BLOCKED preservados.
+
+
+### Verificação offline da candidata frontal
+
+Cinco testes afetados PASS, zero falhas (0,002s): quatro casos novos de câmera/
+espelhamento/freeze/admission e o caso existente de isolamento dos namespaces.
+Typecheck arm64 iPhoneOS e iPhoneSimulator SDK27 PASS, sem executar simulador/aparelho.
+Falhas iniciais do sandbox do compilador foram preservadas; esses checks passaram
+após permissão pontual às ferramentas Swift. Nenhuma suíte histórica foi repetida.
+
+Policy/câmera integram o frame de orientação e sua igualdade para o admission.
+Native preview/movie exigem suporte, desativam espelhamento automático e verificam
+os valores antes de admitir start; output é conferido novamente após fixar rotação.
+Câmera frontal selecionada explicitamente, sem fallback; antigos inclusive traseira
+P4 apenas Reabrir/Play. UI manual, binding, Store/Model/SHA e áudio/MIME preservados.
+Campos adicionais do result descrevem posição/política verificada no start; não
+atestam espelhamento por frame ou resultado físico. Preferência humana permanece
+pendente. Frontal/espelhamento/orientação/voz/texto reais continuam NOT_RUN.
+
+Revisão independente de fonte/tree/body/inputs antecede build assinado e publicação
+no mesmo Draft PR17; artefato0748 preservado. Sem update/launch/querydevice/sensores,
+novas claims/RUNs/mídia ou mudança nos26 TAKE-A BLOCKED nesta preparação.
