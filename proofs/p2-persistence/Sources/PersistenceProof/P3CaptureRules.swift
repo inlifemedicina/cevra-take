@@ -280,6 +280,15 @@ public struct P4VideoMode:Hashable,Sendable {
         ((width==self.width && height==self.height) || (width==self.height && height==self.width)) &&
         fps.isFinite && abs(fps-Double(self.fps))<=0.001 && videoTracks==1 && audioTracks>=1 && sdr
     }
+    // A separately versioned future30 criterion; never reevaluates a stored result.
+    public func cadenceProfile(duration:Double,width:Int,height:Int,videoTracks:Int,audioTracks:Int,sdr:Bool,
+                               cadence:P4CadenceResult)->P3StoredProfileFeedback {
+        guard self.fps==30 else { return .unavailable }
+        guard isOffered,duration.isFinite,(29...31).contains(duration),
+              ((width==self.width && height==self.height) || (width==self.height && height==self.width)),
+              videoTracks==1,audioTracks>=1,sdr else { return .fail }
+        switch cadence.status { case .pass:return .pass;case .fail:return .fail;case .unavailable:return .unavailable }
+    }
 }
 public struct P4CameraCapability:Sendable,Equatable {
     public let id:String,position:P4CameraPosition,modes:[P4VideoMode]
@@ -428,7 +437,8 @@ public struct P3FileFeedback:Equatable,Sendable {
         let profile:P3StoredProfileFeedback
         switch report["profile"] { case "PASS":profile = .pass;case "FAIL":profile = .fail;default:profile = .unavailable }
         let target:Double?=report["attempt"] == P3AttemptScope.cameraSettings.rawValue ? report["configuredFPS"].flatMap(Int.init).flatMap { P4VideoMode.offeredFPS.contains($0) ? Double($0):nil }:30
-        return Self(integrity:.verified,profile:profile,reportedFPS:report["nominalFPS"].flatMap(Double.init),configuredFPS:target)
+        let average=report["profileCriteriaVersion"]==P4CadenceResult.version ? report["timestampAverageFPS"].flatMap(Double.init):nil
+        return Self(integrity:.verified,profile:profile,reportedFPS:report["nominalFPS"].flatMap(Double.init),independentlyMeasuredAverageFPS:average,configuredFPS:target)
     }
     public func integrityText(_ language:P3FeedbackLanguage)->String {
         switch integrity {

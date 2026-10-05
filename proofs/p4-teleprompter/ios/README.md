@@ -276,3 +276,58 @@ de sessão antes de encerrar a prévia; a retomada os registra novamente. Os tes
 puros não exercitam SwiftUI/AVFoundation nem medem o impacto dos registros antigos.
 Esse cleanup não estabelece a causa do mismatch histórico de orientação. Nenhum
 critério, resultado físico ou aceite foi promovido; a rodada humana segue separada.
+
+### Critério futuro de30fps — P4-30FPS-CADENCE-002
+
+Decisão do proprietário em05/10/2026: para futuras capturas curtas configuradas a
+30fps, validar a configuração/aplicação nativa e a continuidade temporal salva;
+a média é diagnóstico. O perfil inicial ±0,001 descrito acima é histórico. Suas
+funções, relatórios e FAIL continuam intactos; reabrir/Play não os reclassifica.
+Outros FPS e os protocolos fixos antigos conservam o critério anterior.
+
+Somente a finalização de uma nova captura do painel configurada a30fps usa002.
+O guard nativo existente confere formato, duração de frame e rota no admission;
+a aplicação de FPS é fixada na fila serial antes do start. Resolução selecionada,
+SDR, um vídeo, ao menos um áudio e duração apresentada29–31s continuam necessários.
+Nenhuma entrada, namespace, claim, consentimento ou guard de gravação é ampliado.
+O namespace existente consumido não pode ser reutilizado por esta mudança.
+
+O leitor somente leitura pula o payload e lê até2MiB de `moov`; não decodifica
+imagem/voz, não usa Store/lock e não ativa hardware. Reconstrói DTS/durações de
+`stts`, soma `ctts` quando presente, ordena para apresentação e aplica uma edit
+list contínua de taxa1; sem edits, usa a janela da mídia. Escalas diferentes
+usam uma grade inteira comum, com verificações de overflow. Tabelas ausentes,
+malformadas, fragmentadas, edits não suportados ou limites excedidos produzem
+NOT_VERIFIABLE. Há limites de128 boxes por nível, oito tracks,4096 amostras e
+grade máxima de10^9 ticks/s; estes limites não anunciam custo de recursos medido.
+
+Para F=30 e q=um tick da base temporal da mídia:
+- Pelo menos duas amostras retidas, com timestamps estritamente crescentes.
+- Cada intervalo difere de1/F em no máximo q; o desvio acumulado de cada início
+  em relação à sequência ideal também não excede q. Comparações inteiras exatas.
+- Os intervalos efetivos das amostras cobrem a janela apresentada; nenhum buraco
+  inicial/interno/final excede q. Interseções parciais por trim são mantidas.
+- Borda inicial e último início até fim apresentado limitados a1/F+q; uma amostra
+  apresentada prolongada também não pode exceder1/F+q. Cauda longa não vira PASS.
+- Base demasiado grossa para distinguir um quadro perdido (`q>=1/(2F)`) é
+  NOT_VERIFIABLE; não há relaxamento automático da tolerância.
+
+Relatório novo registra `profileCriteriaVersion`, PASS/FAIL/NOT_VERIFIABLE,
+motivo, grade/q/janela, número de amostras apresentadas e média pelos timestamps.
+`nominalFPS` informado pela API permanece diagnóstico distinto. Leitura de resultado
+antigo preserva o perfil salvo e não executa esse leitor; média antiga ausente
+permanece não medida. A leitura nova da média exige a versão002 reconhecida.
+
+PASS deste critério comprova continuidade temporal dentro do orçamento registrado,
+sem provar entrega de todos os frames do sensor, pixels únicos, ausência de imagem
+congelada, sincronismo quantitativo, qualidade humana ou equivalência clínica.
+Não promove os26 TAKE-A nem fecha P3/P4/NC01 ou inicia NC02.
+
+Verificação desta implementação:20 testes novos de cadência/container e21 regressões
+pertinentes PASS, zero falhas. Os casos incluem quantização±um tick, lacuna de um
+quadro representável, duplicata/ordem PTS, drift acumulado, N<2, cauda prolongada,
+bordas editadas, clocks diferentes, offsets de composição e limites/malformed.
+Mocks/tabelas sintéticas não validam hardware. Nenhuma mídia histórica foi
+reescrita ou usada para promover PASS retroativo; nova captura/instalação e merge
+continuam fora desta implementação. Revisão independente do checkpoint é gate
+antes da publicação no mesmo Draft PR18.

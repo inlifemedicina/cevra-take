@@ -122,6 +122,8 @@ struct P3ReadinessScreen: View {
 private struct P3Media: Sendable {
     let duration:Double; let width:Int; let height:Int; let fps:Double
     let videos:Int; let audios:Int; let sdr:Bool
+    let cadence:P4CadenceResult?
+    let cadenceTiming:[String:String]
     var profileOK:Bool { P3Limits.fileProfile(duration:duration,width:width,height:height,fps:fps,videoTracks:videos,audioTracks:audios,sdrVerified:sdr) }
 }
 // All capture/state mutations are confined to q. Published UI updates run on main.
@@ -139,6 +141,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private var state=P3State()
     private var run:URL?
     private var failure:P3Error?
+    private var appliedFPSAtStart:Int?
     private var observers:[NSObjectProtocol]=[]
     private var startTimeout:DispatchWorkItem?
     private var finishTimeout:DispatchWorkItem?
@@ -420,6 +423,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             try p3ExclusiveJSON(["protocol":"P3-MIN-001","source":"capture.mov","freeBeforeBytes":String(free)],at:dir.appendingPathComponent("capture.claim.json"))
             let file=dir.appendingPathComponent("capture.mov")
             guard !FileManager.default.fileExists(atPath:file.path),self.state.accept(.record),self.deadline.begin() else { throw P3Error.destinationExists }
+            self.appliedFPSAtStart=self.configuration?.mode.fps // settingsMatchApplied succeeded on q immediately before admission.
             self.run=dir;self.publish("STARTING — um clipe local, não repetir comando")
             self.output.startRecording(to:file,recordingDelegate:self)
             let timeout=DispatchWorkItem { [weak self] in
@@ -502,10 +506,18 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             self.shutdown()
             guard self.failure == nil,good,self.deadline.finishCallback(),self.state.accept(.finished),let root=self.run else { self.fail(self.failure ?? .recording);return }
             self.publish("FINALIZING — validar arquivo e persistir")
+            let requestedFPS=self.configuration?.mode.fps, appliedFPS=self.appliedFPSAtStart
             Task.detached(priority:.utility) {
                 do {
-                    let media=try await Self.inspect(url)
-                    let profileOK=self.configuration.map { $0.mode.fileProfile(duration:media.duration,width:media.width,height:media.height,fps:media.fps,videoTracks:media.videos,audioTracks:media.audios,sdr:media.sdr) } ?? media.profileOK
+                    let media=try await Self.inspect(url,requestedFPS:requestedFPS,appliedFPS:appliedFPS)
+                    let profile:P3StoredProfileFeedback
+                    if let mode=self.configuration?.mode,mode.fps==30,let cadence=media.cadence {
+                        profile=mode.cadenceProfile(duration:media.duration,width:media.width,height:media.height,videoTracks:media.videos,audioTracks:media.audios,sdr:media.sdr,cadence:cadence)
+                    } else {
+                        let old=self.configuration.map { $0.mode.fileProfile(duration:media.duration,width:media.width,height:media.height,fps:media.fps,videoTracks:media.videos,audioTracks:media.audios,sdr:media.sdr) } ?? media.profileOK
+                        profile=old ? .pass:.fail
+                    }
+                    let profileName=profile == .pass ? "PASS":profile == .fail ? "FAIL":"NOT_VERIFIABLE"
                     let original=try Store.describeOriginal(id:"O",source:url)
                     let bytes=Int64(original.byteCount)
                     guard bytes <= (Int64.max-P3Limits.reserve)/2,try p3Free(root)>=P3Limits.reserve+2*bytes else { throw P3Error.lowSpace }
@@ -517,7 +529,8 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
                         "durationSeconds":String(media.duration),"width":String(media.width),"height":String(media.height),
                         "nominalFPS":String(media.fps),"videoTracks":String(media.videos),"audioTracks":String(media.audios),
                         "sdrVerified":String(media.sdr),"sha256":original.sha256,"bytes":String(original.byteCount),
-                        "takeRevision":"R1","synthetic":"false","profile":profileOK ? "PASS":"FAIL",
+                        "takeRevision":"R1","synthetic":"false","profile":profileName,
+                        "profileCriteriaVersion":media.cadence == nil ? "P3-NOMINAL-FPS-001":P4CadenceResult.version,
                         "playbackHuman":"PENDING","sync":"NOT_MEASURED","frameLoss":"NOT_MEASURED",
                         "attempt":self.scope.rawValue,
                         "postureAtStart":self.orientationFreeze.frame?.posture.rawValue ?? "unknown",
@@ -528,22 +541,24 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
                         "originalMirroredVerifiedAtStart":String(self.capturePolicy.originalMirrored),
                         "automaticMirroringDisabledAtStart":"true"]
                     if let configuration=self.configuration { report.merge(configuration.report) { _,new in new } }
+                    if let cadence=media.cadence { report.merge(cadence.report) { _,new in new } }
+                    report.merge(media.cadenceTiming) { _,new in new }
                     if let binding=self.textBinding { report.merge(binding.report) { _,new in new } }
                     try p3ExclusiveJSON(report,at:root.appendingPathComponent("result.json"))
                     try p3ExclusiveJSON(["protocol":"P3-MIN-001","run":root.lastPathComponent],at:self.baseURL.appendingPathComponent("LATEST.json"))
                     self.q.async {
                         guard self.state.accept(.persisted) else { return }
-                        let feedback=P3FileFeedback(integrity:.verified,profile:profileOK ? .pass:.fail,reportedFPS:media.fps,configuredFPS:Double(self.configuration?.mode.fps ?? 30))
+                        let feedback=P3FileFeedback(integrity:.verified,profile:profile,reportedFPS:media.fps,independentlyMeasuredAverageFPS:media.cadence?.averageFPS,configuredFPS:Double(self.configuration?.mode.fps ?? 30))
                         let settings=self.configuration.flatMap { P4RecordedSettings(report:$0.report) }
                         DispatchQueue.main.async { self.fileFeedback=feedback;self.recordedSettings=settings }
-                        self.publish(profileOK ? "FILE_PROFILE_PERSISTENCE_PASS — reprodução humana PENDING" : "FILE_SAVED_PROFILE_FAIL — original preservado")
+                        self.publish(profile == .pass ? "FILE_PROFILE_PERSISTENCE_PASS — reprodução humana PENDING" : profile == .fail ? "FILE_SAVED_PROFILE_FAIL — original preservado":"FILE_SAVED_PROFILE_NOT_VERIFIABLE — original preservado, sem aprovação")
                     }
                 } catch let e as P3Error { self.q.async { self.fail(e) } }
                 catch { self.q.async { self.fail(.integrity) } }
             }
         }
     }
-    private static func inspect(_ url:URL) async throws -> P3Media {
+    private static func inspect(_ url:URL,requestedFPS:Int?,appliedFPS:Int?) async throws -> P3Media {
         let asset=AVURLAsset(url:url)
         let duration=try await asset.load(.duration).seconds
         let video=try await asset.loadTracks(withMediaType:.video),audio=try await asset.loadTracks(withMediaType:.audio)
@@ -556,7 +571,15 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             guard let value=value as? String else { return false }
             return value == (kCMFormatDescriptionTransferFunction_ITU_R_709_2 as String) || value == (kCMFormatDescriptionTransferFunction_sRGB as String)
         }
-        return P3Media(duration:duration,width:Int(size.width),height:Int(size.height),fps:Double(fps),videos:video.count,audios:audio.count,sdr:sdr)
+        var cadence:P4CadenceResult?,cadenceTiming=[String:String]()
+        if requestedFPS==30 {
+            let timeline=try? P4CadenceMOV.read(url)
+            cadenceTiming=timeline?.report ?? [:]
+            if let timeline, duration.isFinite,abs(timeline.seconds-duration)<=1/Double(timeline.scale) {
+                cadence=P4Cadence.evaluate(timeline,configuredFPS:30,appliedFPS:appliedFPS)
+            } else { cadence=P4CadenceResult(.unavailable,"editDurationMismatchOrUnavailable") }
+        }
+        return P3Media(duration:duration,width:Int(size.width),height:Int(size.height),fps:Double(fps),videos:video.count,audios:audio.count,sdr:sdr,cadence:cadence,cadenceTiming:cadenceTiming)
     }
     func reopenByHuman() { q.async {
         guard [.idle,.saved].contains(self.state.phase) else { return }
