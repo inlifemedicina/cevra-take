@@ -1,6 +1,17 @@
 # P4 — roteiro manual junto da captura no iPhone
 
-Protocolo pré-registrado em 04/10/2026, antes da integração e dos novos testes.
+**Reconciliação vigente — 05/10/2026:** a integração de roteiro/captura do PR #17
+foi incorporada em main após o PR #11; o PR #18 contém painel de câmera e critério
+futuro `P4-30FPS-CADENCE-002`, com fonte revisada, testes e artefato assinado offline.
+A rodada humana anterior no artefato `b59a936` teve confirmação limitada do protocolo
+e inspeção readonly; o FPS nominal histórico **FAIL** conserva o limite original.
+O novo critério físico continua **NOT_RUN** e não reclassifica tomadas antigas.
+Namespaces consumidos são somente leitura. P3/P4/NC-01 incompletos; 26 aceites
+BLOCKED, sem NC-02, stack final ou percentual. Esta integração não instala/abre o
+app, consulta o aparelho, ativa sensores ou grava. Os checkpoints abaixo são históricos
+ou protocolos futuros conforme seus títulos; não são autorização operacional atual.
+
+**Protocolo inicial — histórico:** pré-registrado em 04/10/2026, antes da integração e dos novos testes.
 Autorização: proprietário aprovou preparar roteiro+captura com prioridade no iPhone
 (`Sentinel_0bc0f88a51488191a59259a36175cd8b`). Estado inicial: NOT_RUN físico.
 
