@@ -285,7 +285,13 @@ public final class Store {
             if exists(root.appendingPathComponent("CURRENT.json")) {
                 let (old,_)=try loadFilesUnlocked()
                 guard old.projectID==s.projectID,
-                      old.revisions.allSatisfy({s.revisions.contains($0)}),
+                      old.revisions.allSatisfy({ previous in
+                          s.revisions.contains { candidate in
+                              candidate.id == previous.id && candidate.scriptID == previous.scriptID &&
+                              // Swift String equality normalizes Unicode. Revision history is exact UTF-8.
+                              Data(candidate.text.utf8) == Data(previous.text.utf8)
+                          }
+                      }),
                       old.takes.allSatisfy({s.takes.contains($0)}),
                       old.originals.allSatisfy({s.originals.contains($0)}) else { throw ProofError.immutableHistory }
                 if old==s { return }

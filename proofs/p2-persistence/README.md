@@ -97,3 +97,156 @@ antes de usar conteúdo novamente, validar pelo store/describer.
 Nova fixture isolada: `P2-LARGE-001`, R1/R2, T→R1, O de 32 MiB + 4096 bytes;
 mesmo padrão determinístico. Nunca ampliar/resetar a fixture física antiga.
 Testes/resultados: [LARGE_EVIDENCE.txt](LARGE_EVIDENCE.txt).
+
+## Bloco offline de confiabilidade local — preparação de 05/10/2026
+
+Este bloco estende a prova existente, sem iniciar NC-02, escolher stack ou ampliar
+entradas de captura. A lista canônica continua em
+[ACCEPTANCE_TESTS.md](../../docs/ACCEPTANCE_TESTS.md); todos os aceites de produto
+permanecem BLOCKED. O corpo/registro de provas físicas privadas não é publicado
+por esta preparação. Resultados sintéticos não reclassificam o histórico.
+
+O Store agora compara os bytes UTF-8 de revisões já publicadas. A comparação de
+String do Swift considerava `café` e `cafe\u{301}` iguais: uma R2 podia publicar
+uma R1 com outra representação byte a byte. A guarda recusa essa alteração antes
+do staging, mantendo CURRENT, gerações e originais; R2 legítima continua permitida.
+O formato v1, a validação de referências e os limites numéricos são preservados.
+
+`verify` usa o reader por arquivos de 64 KiB, conservando sua saída JSON e lock;
+não materializa originais no orçamento inline de 16 MiB. `diagnose-readonly ROOT`
+usa o diagnóstico existente e emite somente o snapshot validado, sem criar .lock,
+store, staging ou reparos. Requer cópia local sem escritor ativo; não comprova
+consistência concorrente, novo processo iPhone ou qualidade de reprodução.
+As operações mutantes continuam restritas às fixtures de teste autorizadas.
+
+`LocalReliabilityTests` combina as fixtures PT-BR/EN-US e leitura manual existentes
+com persistência sintética: reconstrução UTF-8, pausa/marca, R1, leitura em processo
+CLI separado, R2 mantendo T→R1, exportação v1 e restauração isolada. Também verifica
+rejeição de representação Unicode alterada, destino existente, original adulterado,
+versão incompatível, arquivo inesperado e exportação interrompida por ENOSPC
+injetado. Um original sintético acima de 16 MiB exercita leitura por streaming e
+ausência de escrita no diagnóstico. Não há mídia real, nova reserva ou sensor.
+
+O bundle exportado por este Store ainda é **pasta de prova/debug**, com manifesto,
+metadata e originais. O adaptador offline abaixo encapsula essa pasta em arquivo
+único de prova; não implementa a exportação mobile de produto
+aprovada em PRODUCT_AND_PROFILES.md. Empacotamento de produto, UX de importação,
+edição de roteiro/R2 durante o fluxo capturado e recuperação lifecycle mobile não
+recebem prontidão por estes testes. A superfície P4/SwiftUI e o capturador ficam
+byte-idênticos; suas provas válidas são reutilizadas, sem nova matriz de UI.
+
+### Preparação da futura rodada agrupada, sem execução física
+
+Após autorização e preparação específicas do aparelho e de uma entrada inédita,
+reunir no mesmo contexto: texto PT/EN e rolagem/pausa, perfil já aprovado, voz,
+salvamento e reabertura, vínculo da tomada à R1 após R2 e exportação/restauração
+em destino isolado. Reutilizar provas válidas e não repetir a gravação apenas para
+confirmar o mesmo resultado. As entradas de captura consumidas ficam somente
+leitura; este bloco não cria namespace, reset, retry ou comando para nova captura.
+Reabertura em novo processo precisa de evidência própria, sem presumir restart
+por uma ação Reabrir. Falhas reais/permissões ficam em ensaio isolado, fora dos
+originais e do fluxo normal; não preencher o disco geral para simular ENOSPC.
+
+Para sincronismo, usar três eventos visual+sonoro da mesma referência identificável,
+no início (0–15%), meio (45–55%) e fim (85–100%) de um futuro clipe de 29–31 s.
+Registrar nos arquivos decodificados o instante visual e o início correspondente
+do som no mesmo relógio do asset, método de anotação, resolução e incerteza conjunta
+por evento. Propagação do som, geometria da referência e erro de anotação precisam entrar
+na incerteza; não usar FPS médio/presença de tracks como substitutos da referência.
+
+`P4SyncReference` é cálculo puro sobre essas observações, sem leitor/decoder ou
+ligação ao capturador. Informa áudio−vídeo, intervalo dos offsets e drift fim−início.
+Os limites são entradas explícitas, sem defaults. Proposta técnica para a futura
+rodada: offset absoluto até 80 ms e intervalo dos offsets até 40 ms; fixar a versão
+do protocolo e esses limites antes de colher novos dados. São limites desta prova,
+não garantia clínica, threshold retrospectivo nem alteração da cadência existente.
+PASS exige que também os limites superiores com incerteza caibam no orçamento;
+FAIL exige desvio comprovado mesmo descontando a incerteza; zona ambígua retorna
+NOT_VERIFIABLE. Sem três referências válidas e precisas, não medir um PASS.
+
+Recursos/estabilidade exigem coletor e amostra próprios no alvo: baseline, mesma
+carga, tempo, memória/I/O, bateria e estado térmico, com parada por serious/critical
+e demais guards existentes. Nesta preparação não há coletor instalado nem limites
+de recursos inventados a partir de testes Mac. Calibrar o método/limites e deixar
+prontos antes da rodada; recursos, frames perdidos e sync físico continuam NOT_RUN.
+Uma rodada de 30 s não anuncia gravação prolongada ou paridade entre aparelhos.
+
+### Adaptadores offline: arquivo único de prova e relatório de referência
+
+`PortableProof` reaproveita `Store.export` e `Store.restore`, sem mudar o manifesto,
+schema v1, revisão/identidade ou código de captura. O arquivo é um USTAR sem
+compressão, com `metadata.json`, `manifest.json` e `originals/ID.bin`; o layout é
+documentado pelo [GNU tar](https://www.gnu.org/software/tar/manual/html_node/Standard.html).
+É um protótipo técnico, sem selecionar formato/extensão de produto ou empacotar
+o app. O reader aceita somente esses caminhos, arquivos regulares, IDs ASCII de
+até 64 bytes e até 1024 entradas. Recusa duplicatas, links, diretórios declarados,
+extensões/PAX, prefixos, nomes inesperados, checksum inválido, truncamento,
+padding não zero e dados não zero após o terminador. Esta prova exige dois blocos zero
+finais; não é um reader genérico de todos os arquivos tar.
+Os controles JSON extraídos e as duas entradas do relatório recusam chaves
+duplicadas, inclusive nomes escapados equivalentes, e profundidade acima de 32
+antes da decodificação tipada. O Store v1 existente não é reescrito por essa guarda.
+
+Originais são copiados em blocos de 64 KiB. Metadata/manifest continuam limitados
+a 16 MiB por arquivo; o contêiner de prova tem teto de 8 GiB menos 1 byte, explícito
+e distinto do Store por arquivos, que permanece sem teto arbitrário de mídia.
+Arquivos de entrada precisam ser regulares, sem symlink, com fd mantido e stat
+antes/depois. A extração usa diretório privado próprio, sem honrar permissões,
+owners ou paths do arquivo. O Store valida schema, nomes, referências, tamanhos
+e hashes antes da publicação externa exclusiva. Export/restore nunca sobrescrevem
+um destino existente; temporários próprios são removidos em erros recuperáveis.
+Interrupção abrupta pode deixar um temporário privado. `fsync` não é garantia
+experimental de queda de energia; erro depois do rename pode deixar destino já
+publicado, que deve ser inspecionado sem sobrescrever. Diretórios ancestrais precisam
+ser confiáveis; não há isolamento contra outro processo malicioso alterando paths.
+Hash protege integridade, não autentica autoria. Transporte/restauração no iPhone,
+UI de export/import e compatibilidade entre versões de produto seguem NOT_RUN.
+
+Comandos de prova (somente fixtures descartáveis autorizadas):
+
+```sh
+p2-proof export-file SYNTHETIC_STORE NEW_PROJECT.tar
+p2-proof restore-file NEW_STORE NEW_PROJECT.tar
+p2-proof diagnose-readonly NEW_STORE
+```
+
+`sync-report PROTOCOL.json ANNOTATIONS.json` lê dois arquivos regulares de até
+64 KiB e emite JSON no stdout, sem abrir mídia ou escrever Store. Não há defaults
+de tolerância. Configuração versão 1 contém `protocolID` ASCII maiúsculo/números/`-`,
+`maximumAbsoluteOffsetSeconds` e `maximumDriftSeconds`; as anotações versão 1
+contêm `originalSHA256`, `originalByteCount`, `durationSeconds`, `annotationMethod`
+e as três `observations` com `mark`, `videoSeconds`, `audioSeconds` e
+`uncertaintySeconds`. Exemplo **sintético**, sem autorizar captura ou novo protocolo
+físico:
+
+```json
+{"formatVersion":1,"protocolID":"SYNTHETIC-SYNC-001","maximumAbsoluteOffsetSeconds":0.080,"maximumDriftSeconds":0.040}
+```
+
+```json
+{"formatVersion":1,"originalSHA256":"0000000000000000000000000000000000000000000000000000000000000000","originalByteCount":1,"durationSeconds":30,"annotationMethod":"Synthetic numeric example; no media","observations":[{"mark":"start","videoSeconds":1,"audioSeconds":1.01,"uncertaintySeconds":0.002},{"mark":"middle","videoSeconds":15,"audioSeconds":15.01,"uncertaintySeconds":0.002},{"mark":"end","videoSeconds":29,"audioSeconds":29.01,"uncertaintySeconds":0.002}]}
+```
+
+O relatório conserva os SHA-256 dos **bytes exatos** das duas entradas, método,
+limites e resultado de `P4SyncReference`. `arithmetic.status` descreve apenas o
+cálculo, inclusive `fail` e `notVerifiable`; um relatório válido tem exit 0 mesmo
+quando a aritmética falha. Input inválido produz erro codificado sem paths.
+`physicalVerification=NOT_ESTABLISHED_BY_THIS_COMMAND` permanece explícito: hash,
+origem, método, incerteza e prerregistro são declarações do caller. O comando não
+verifica que o protocolo precedeu a captura, não decodifica os eventos, não calibra
+incerteza e não atesta correspondência à mídia. Guardar saídas/anotações reais em
+local privado; não copiar o relatório no GitHub por conter apenas números.
+
+Os testes novos exercitam roundtrip em processos separados após remover somente
+a fonte sintética, leitura independente dos membros pelo tar nativo, original
+sintético maior que 16 MiB, corrupção/entradas inseguras/destino existente e
+ENOSPC/EACCES injetados antes da publicação. Relatórios usam referências numéricas
+sintéticas, hashes exatos, zona ambígua e inputs inválidos. A revisão independente
+identificou ambiguidade de chaves JSON duplicadas; regressões reproduziram sua
+aceitação no relatório e no controle do contêiner antes da nova guarda. Uma revisão
+válida acima de 64 KiB confirma que o orçamento de metadata continua 16 MiB.
+Não repetem os testes
+históricos inalterados nem promovem TAKE-A19, A23, sincronismo físico ou novo
+processo iPhone. R2 do fluxo mobile, lifecycle/recuperação no aparelho, coletor de
+recursos, referência decodificada/calibrada e a rodada humana agrupada ainda
+precisam de preparação/autorização próprias; não existem novos namespaces aqui.

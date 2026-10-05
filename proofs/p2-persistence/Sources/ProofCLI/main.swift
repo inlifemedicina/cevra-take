@@ -1,7 +1,7 @@
 import Foundation
 import PersistenceProof
 
-// Only synthetic, local fixture operations. No AI/provider/network/device APIs.
+// Synthetic/local proof operations; no AI/provider/network/device APIs.
 let a=CommandLine.arguments
 func fail(_ code: String) -> Never {
     FileHandle.standardError.write(Data(("error="+code+"\n").utf8))
@@ -28,16 +28,32 @@ do {
     case "seed": try store.commit(Fixture.r1,payloads:["O":Fixture.original],fault:fault)
     case "r2": try store.commit(Fixture.r2,payloads:["O":Fixture.original],fault:fault)
     case "verify":
-        let (s,_)=try store.load()
+        let (s,_)=try store.loadFiles()
         FileHandle.standardOutput.write(try canonical(s))
+    case "diagnose-readonly":
+        guard a.count==3 else { fail("usage") }
+        // Quiescent local copy only; no lock, missing-root creation, staging or repair.
+        FileHandle.standardOutput.write(try canonical(store.diagnoseReadOnly()))
     case "export":
         guard a.count==4 else { fail("usage") }
         try store.export(to:URL(fileURLWithPath:a[3]),fault:fault)
+    case "export-file":
+        guard a.count==4 else { fail("usage") }
+        try PortableProof.export(store,to:URL(fileURLWithPath:a[3]),fault:fault)
+    case "restore-file":
+        guard a.count==4 else { fail("usage") }
+        try PortableProof.restore(from:URL(fileURLWithPath:a[3]),to:URL(fileURLWithPath:a[2]))
+    case "sync-report":
+        guard a.count==4, fault == nil else { fail("usage") }
+        FileHandle.standardOutput.write(try canonical(P4SyncReport.make(protocolFile:URL(fileURLWithPath:a[2]),annotationsFile:URL(fileURLWithPath:a[3]))))
     case "restore":
         guard a.count==4 else { fail("usage") }
         try store.restore(from:URL(fileURLWithPath:a[3]),to:URL(fileURLWithPath:a[2]))
     default:fail("usage")
     }
 } catch let e as ProofError { fail(e.rawValue) }
+catch let e as P4SyncError {
+    switch e { case .invalidLimits: fail("invalidLimits"); case .invalidReference: fail("invalidReference") }
+}
 catch let e as POSIXError { fail("posix:"+String(e.code.rawValue)) }
 catch { fail("ioOrFormat") }
