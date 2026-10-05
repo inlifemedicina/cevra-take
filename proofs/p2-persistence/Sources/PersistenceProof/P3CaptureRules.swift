@@ -129,7 +129,12 @@ public struct P3PreparationConsent:Sendable {
 }
 
 
-public enum P3OrientationAxis:String, Sendable { case vertical,horizontal }
+public enum P3OrientationAxis:String, Sendable {
+    case vertical,horizontal
+    public func choiceText(_ language:P3FeedbackLanguage)->String {
+        self == .vertical ? language.text("Vertical","Portrait"):language.text("Horizontal","Landscape")
+    }
+}
 public enum P3Posture:String, Sendable {
     case portrait,portraitUpsideDown,landscapePortRight,landscapePortLeft,unknown
     // UIDevice raw values. The landscape names refer to the physical connector side,
@@ -292,6 +297,9 @@ public struct P4CaptureConfiguration:Equatable,Sendable {
         self.camera=camera;self.mode=mode;self.axis=axis;self.previewMirrored=previewMirrored;self.originalMirrored=originalMirrored;self.microphone=microphone
     }
     public var policy:P4CameraPolicy { P4CameraPolicy(position:camera.position,previewMirrored:previewMirrored,originalMirrored:originalMirrored) }
+    public func positionText(_ language:P3FeedbackLanguage)->String {
+        language.text("Posição deste preparo: ","Position for this preparation: ")+axis.choiceText(language)
+    }
     public func isAvailable(cameras:[P4CameraCapability],microphones:[P4MicrophoneCapability])->Bool {
         cameras.contains { $0.id==camera.id && $0.position==camera.position && $0.modes.contains(mode) } && microphones.contains(microphone)
     }
@@ -327,6 +335,13 @@ public struct P4SettingsDraft:Sendable {
         let config=P4CaptureConfiguration(camera:camera,mode:mode,axis:axis,previewMirrored:previewMirrored,originalMirrored:originalMirrored,microphone:microphone)
         committed=config;return config
     }
+}
+// Volatile presentation identity only. Each confirmed configuration owns a fresh
+// SwiftUI controller; this UUID is never a namespace, reservation or stored ID.
+public struct P4SettingsPreparation:Identifiable,Sendable {
+    public let id=UUID()
+    public let configuration:P4CaptureConfiguration
+    public init(configuration:P4CaptureConfiguration) { self.configuration=configuration }
 }
 public struct P4RecordedSettings:Equatable,Sendable {
     public let mode:P4VideoMode,axis:P3OrientationAxis,policy:P4CameraPolicy,inputKind:String

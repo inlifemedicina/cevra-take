@@ -116,4 +116,40 @@ final class P4CameraSettingsTests:XCTestCase {
         XCTAssertEqual(stored?.axis,.horizontal)
         XCTAssertEqual(P4RecordedSettings(report:changed)?.axis,.vertical)
     }
+    func testHorizontalToVerticalPreparationUsesNewIdentityAndImmutableChoice() throws {
+        var draft=P4SettingsDraft();draft.chooseCamera(back.id);draft.mode=hd;draft.microphoneID=mic.id;draft.axis = .horizontal
+        let b=P4SettingsPreparation(configuration:try XCTUnwrap(draft.commit(cameras:[back,front],microphones:[mic])))
+        draft.returnToEditing();draft.chooseCamera(front.id);draft.mode=hd;draft.axis = .vertical
+        let a=P4SettingsPreparation(configuration:try XCTUnwrap(draft.commit(cameras:[back,front],microphones:[mic])))
+        XCTAssertNotEqual(a.id,b.id)
+        XCTAssertEqual(b.configuration.axis,.horizontal);XCTAssertEqual(b.configuration.camera.position,.back)
+        XCTAssertEqual(a.configuration.axis,.vertical);XCTAssertEqual(a.configuration.camera.position,.front)
+        XCTAssertEqual(a.configuration.positionText(.pt),"Posição deste preparo: Vertical")
+        XCTAssertEqual(b.configuration.positionText(.en),"Position for this preparation: Landscape")
+        draft.returnToEditing();draft.axis = .horizontal
+        XCTAssertEqual(a.configuration.axis,.vertical)
+        let next=P4SettingsPreparation(configuration:a.configuration)
+        XCTAssertNotEqual(next.id,a.id)
+        let copy=a;XCTAssertEqual(copy.id,a.id)
+    }
+    func testCameraChangeDoesNotSilentlyChooseAnOrientation() throws {
+        var draft=P4SettingsDraft();draft.axis = .horizontal;draft.chooseCamera(back.id);draft.mode=hd;draft.microphoneID=mic.id
+        _=try XCTUnwrap(draft.commit(cameras:[back,front],microphones:[mic]))
+        draft.returnToEditing();draft.chooseCamera(front.id)
+        XCTAssertNil(draft.mode);XCTAssertEqual(draft.axis,.horizontal)
+        XCTAssertEqual(draft.axis.choiceText(.pt),"Horizontal")
+        draft.mode=hd
+        let snapshot=P4SettingsPreparation(configuration:try XCTUnwrap(draft.commit(cameras:[front],microphones:[mic])))
+        XCTAssertEqual(snapshot.configuration.positionText(.pt),"Posição deste preparo: Horizontal")
+    }
+    func testPortraitInHorizontalPreparationCannotConfirmOrConsumeClaim() throws {
+        let c=config();let frame=P3OrientationFrame(posture:.portrait,previewAngle:90,captureAngle:90,cameraPolicy:c.policy)
+        var consent=P3PreparationConsent(scope:.cameraSettings);consent.acknowledgeInstructions()
+        let supported=frame.supported(for:c.axis,previewSupported:true,captureSupported:true)
+        XCTAssertFalse(supported);consent.observePreview(ready:supported)
+        XCTAssertFalse(consent.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:true))
+        var claim=P3StartClaimGate();var writes=0
+        XCTAssertFalse(try claim.reserve(admitted:consent.mayRecord(phase:.ready,sessionRunning:true),exclusiveWrite:{writes += 1}))
+        XCTAssertEqual(writes,0);XCTAssertFalse(claim.claimed)
+    }
 }

@@ -214,6 +214,17 @@ confirmação de imagem é obrigatória. Durante start/gravação/finalização 
 o sheet por gesto. Background cancela consultas pendentes; sem preview/start/resume
 automáticos. O guard serial verifica formato/duração de frame/rota antes da claim.
 
+A posição escolhida permanece ao trocar a câmera. O painel exibe a posição antes
+de confirmar; o preparo repete esse valor do snapshot imutável. Cada confirmação
+possui identidade volátil própria para o controller SwiftUI, estável durante o
+preparo e renovada depois de fechar/editar. Esse ID não é claim nem namespace.
+“Voltar às configurações — encerrar preview, sem gravar” fecha somente o preparo;
+o lifecycle existente encerra a sessão, e as claims/originais continuam preservados.
+Um preparo horizontal com aparelho em portrait continua bloqueado. Para preparar
+vertical, voltar ao painel e selecionar explicitamente “Vertical” em “Posição
+durante a gravação”; conferir “Posição deste preparo: Vertical” antes de preparar.
+Não se transforma posição nem se libera confirmação/start automaticamente.
+
 Uma tomada futura de30s em H.264 SDR com mic escolhido, objeto neutro e roteiro PT
 existente. O perfil desse NOVO namespace compara resolução/FPS escolhidos, mantendo
 duração29–31s, FPS±0,001, um vídeo e pelo menos um áudio. Isso não altera o perfil fixo
@@ -248,3 +259,11 @@ iPhoneSimulator SDK27 PASS; link iPhoneOS sem assinatura PASS, sem execução. E
 intermediário de sintaxe no texto do DTO foi corrigido; logs anteriores preservados
 privadamente. Sem repetição de suítes históricas amplas. Revisão independente do
 head/tree/body é gate antes de push e Draft PR dependente do checkpoint de clareza.
+
+Regressão offline do handoff/posição:18 testes direcionados PASS, zero falhas,
+incluindo14 casos do painel e quatro regressões de consentimento/admission/claim.
+Snapshots horizontal→vertical têm identidades distintas e configurações imutáveis;
+portrait em preparo horizontal não confirma nem executa a escrita da claim.
+Typechecks iPhoneOS/iPhoneSimulator SDK27 e link iPhoneOS sem assinatura PASS.
+Isso não demonstra causa de uma escolha humana anterior nem valida o ajuste em
+aparelho; instalação e rodada humana do novo checkpoint continuam separadas.

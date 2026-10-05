@@ -831,6 +831,7 @@ struct P3CaptureScreen:View {
         _controller=StateObject(wrappedValue:P3CaptureController(scope:scope,configuration:configuration))
     }
     @Environment(\.scenePhase) private var scene
+    @Environment(\.dismiss) private var dismissPreparation
     @Environment(\.locale) private var feedbackLocale
     private var feedbackLanguage:P3FeedbackLanguage { P3FeedbackLanguage(localeIdentifier:feedbackLocale.identifier) }
     @State private var previewDiagnostic="Preview: não verificado"
@@ -843,8 +844,12 @@ struct P3CaptureScreen:View {
     private var activeManualCapture:Bool { scope.hasManualText && [.starting,.recording,.finalizing].contains(controller.phase) }
     var body:some View { ScrollView { VStack(spacing:16) {
         if let configuration {
+            Text(configuration.positionText(feedbackLanguage)).font(.headline)
             Text(feedbackLanguage.text("Escolhas para este preparo (não editam originais): ","Choices for this preparation (do not edit originals): ")+configuration.mode.label+" · "+configuration.axis.rawValue+" · "+configuration.camera.position.rawValue)
             Text(feedbackLanguage.text("Áudio escolhido: ","Selected audio: ")+configuration.microphone.name)
+            if !activeManualCapture {
+                Button(feedbackLanguage.text("Voltar às configurações — encerrar preview, sem gravar","Back to settings — end preview, without recording")) { dismissPreparation() }
+            }
         }
         Text(scope == .cameraSettings ? feedbackLanguage.text("Captura com configurações","Capture with settings") : (scope == .manualTextFrontVertical ? "P4 — frontal + roteiro vertical" : (scope.hasManualText ? "P4 — roteiro + captura vertical" : (scope == .original ? "P3 — originais preservados" : "P3 — prova "+(scope.axis?.rawValue ?? "histórica"))))).font(.title2)
         if !activeManualCapture { Text("Somente após coordenação: objeto neutro e voz. Sem Photos, upload, IA ou rede.") }
@@ -1016,7 +1021,6 @@ private final class P4SettingsCatalog:ObservableObject,@unchecked Sendable {
         }
     }
 }
-private struct P4SettingsPreparation:Identifiable { let id=UUID();let configuration:P4CaptureConfiguration }
 private struct P4CameraSettingsScreen:View {
     @StateObject private var catalog=P4SettingsCatalog()
     @State private var draft=P4SettingsDraft()
@@ -1061,6 +1065,8 @@ private struct P4CameraSettingsScreen:View {
             }
         }.disabled(catalog.busy || !draft.editable || historyExists)
         Text(catalog.status.text(language)).accessibilityIdentifier("camera-settings-status")
+        Text(text("Posição escolhida: ","Selected position: ")+draft.axis.choiceText(language)).font(.headline)
+        Text(text("A posição é mantida quando você troca a câmera. Altere “Posição durante a gravação” antes de confirmar outro preparo.","The position is kept when you change camera. Change “Position during recording” before confirming another preparation."))
         Button(text("Confirmar escolhas e abrir preparo — ainda sem gravar","Confirm choices and open preparation — not recording yet")) {
             guard !historyExists,let config=draft.commit(cameras:catalog.cameras,microphones:catalog.microphones) else { return }
             catalog.cancel();preparation=P4SettingsPreparation(configuration:config)
@@ -1070,7 +1076,9 @@ private struct P4CameraSettingsScreen:View {
     }.padding() }
     .onChange(of:scene) { _,phase in if phase == .background { catalog.cancel() } }
     .onDisappear { catalog.cancel() }
-    .sheet(item:$preparation,onDismiss:{ draft.returnToEditing() }) { P3CaptureScreen(scope:.cameraSettings,configuration:$0.configuration) }
+    .sheet(item:$preparation,onDismiss:{ draft.returnToEditing() }) { snapshot in
+        P3CaptureScreen(scope:.cameraSettings,configuration:snapshot.configuration).id(snapshot.id)
+    }
     .sheet(isPresented:$showHistory) { P3CaptureScreen(scope:.cameraSettings) }
     }
 }
