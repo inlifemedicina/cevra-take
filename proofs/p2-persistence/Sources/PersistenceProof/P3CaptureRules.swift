@@ -87,9 +87,14 @@ public enum P3AttemptScope:String, Sendable {
     case original="P3-ORIGINAL", retry001="P3-RETRY-001", retry002="P3-RETRY-002"
     case vertical="P3-ORIENTATION-VERTICAL-001", horizontal="P3-ORIENTATION-HORIZONTAL-001"
     case horizontalResume="P3-PREVIEW-RESUME-HORIZONTAL-001"
-    public var requiresInstructions:Bool { self == .retry002 || isOrientationProof || self == .horizontalResume }
+    case manualTextVertical="P4-MANUAL-TEXT-VERTICAL-001"
+    case manualTextFrontVertical="P4-MANUAL-TEXT-FRONT-VERTICAL-001"
+    public var hasManualText:Bool { self == .manualTextVertical || self == .manualTextFrontVertical }
+    public var allowsCapture:Bool { self == .manualTextFrontVertical }
+    public var cameraPolicy:P4CameraPolicy { self == .manualTextFrontVertical ? .frontProof : .rear }
+    public var requiresInstructions:Bool { self == .retry002 || isOrientationProof || self == .horizontalResume || hasManualText }
     public var isOrientationProof:Bool { self == .vertical || self == .horizontal }
-    public var axis:P3OrientationAxis? { self == .vertical ? .vertical : (self == .horizontal || self == .horizontalResume ? .horizontal : nil) }
+    public var axis:P3OrientationAxis? { (self == .vertical || hasManualText) ? .vertical : (self == .horizontal || self == .horizontalResume ? .horizontal : nil) }
     public var requiresPreview:Bool { self != .original }
     public func base(in root:URL)->URL {
         self == .original ? root : root.appendingPathComponent(rawValue,isDirectory:true)
@@ -137,12 +142,32 @@ public enum P3Posture:String, Sendable {
         case .landscapePortRight,.landscapePortLeft:return .horizontal;case .unknown:return nil }
     }
 }
+public enum P4CameraPosition:String,Sendable { case back,front }
+// Explicit proof policy; no media APIs, camera discovery or process/session state.
+public struct P4CameraPolicy:Equatable,Sendable {
+    public let position:P4CameraPosition
+    public let previewMirrored:Bool
+    public let originalMirrored:Bool
+    public init(position:P4CameraPosition,previewMirrored:Bool,originalMirrored:Bool) {
+        self.position=position;self.previewMirrored=previewMirrored;self.originalMirrored=originalMirrored
+    }
+    public static let rear=Self(position:.back,previewMirrored:false,originalMirrored:false)
+    // Candidate proof setting; not a final product preference.
+    public static let frontProof=Self(position:.front,previewMirrored:true,originalMirrored:false)
+    public func previewReady(supported:Bool,mirrored:Bool,automatic:Bool)->Bool {
+        supported && !automatic && mirrored == previewMirrored
+    }
+    public func admits(framePolicy:Self,captureSupported:Bool,captureMirrored:Bool,captureAutomatic:Bool)->Bool {
+        framePolicy == self && captureSupported && !captureAutomatic && captureMirrored == originalMirrored
+    }
+}
 public struct P3OrientationFrame:Equatable, Sendable {
     public let posture:P3Posture
     public let previewAngle:Double
     public let captureAngle:Double
-    public init(posture:P3Posture,previewAngle:Double,captureAngle:Double) {
-        self.posture=posture;self.previewAngle=previewAngle;self.captureAngle=captureAngle
+    public let cameraPolicy:P4CameraPolicy
+    public init(posture:P3Posture,previewAngle:Double,captureAngle:Double,cameraPolicy:P4CameraPolicy = .rear) {
+        self.posture=posture;self.previewAngle=previewAngle;self.captureAngle=captureAngle;self.cameraPolicy=cameraPolicy
     }
     public func supported(for axis:P3OrientationAxis?,previewSupported:Bool,captureSupported:Bool)->Bool {
         guard let axis,posture.axis == axis else { return false }
@@ -222,5 +247,102 @@ public final class P3AudioOwnership:@unchecked Sendable {
         lock.lock();defer { lock.unlock() }
         guard owner == lease else { return false }
         try deactivate();owner=nil;return true
+    }
+}
+
+
+// Presentation only: these values never admit capture or change stored results.
+public enum P3FeedbackLanguage:Equatable,Sendable {
+    case pt,en
+    public init(localeIdentifier:String) { self=localeIdentifier.lowercased().hasPrefix("en") ? .en:.pt }
+    public func text(_ pt:String,_ en:String)->String { self == .pt ? pt:en }
+}
+public struct P3PreparationFeedback:Equatable,Sendable {
+    public let phase:P3Phase
+    public let axis:P3OrientationAxis?
+    public let posture:P3Posture?
+    public let signalReady:Bool
+    public let confirmed:Bool
+    public let allowsCapture:Bool
+    public init(phase:P3Phase,axis:P3OrientationAxis?,posture:P3Posture?,signalReady:Bool,confirmed:Bool,allowsCapture:Bool) {
+        self.phase=phase;self.axis=axis;self.posture=posture;self.signalReady=signalReady;self.confirmed=confirmed;self.allowsCapture=allowsCapture
+    }
+    public func text(_ language:P3FeedbackLanguage)->String {
+        let position=axis == .horizontal ? language.text("horizontal","horizontal"):language.text("vertical","vertical")
+        switch phase {
+        case .starting:return language.text("Iniciando gravação. Mantenha a posição e o app aberto.","Starting recording. Keep your position and the app open.")
+        case .recording:return language.text("Gravando. Mantenha a posição até salvar.","Recording. Keep your position until saved.")
+        case .finalizing:return language.text("Finalizando e salvando o original. Aguarde nesta tela.","Finishing and saving the original. Stay on this screen.")
+        case .saved:return language.text("Original salvo. Confira separadamente integridade, perfil e reprodução.","Original saved. Check integrity, profile and playback separately.")
+        case .failed:return language.text("Operação interrompida. Consulte o estado; não repita nem apague a tentativa.","Operation interrupted. Check the state; do not repeat or delete the attempt.")
+        default:break
+        }
+        guard allowsCapture else { return language.text("Histórico preservado: somente Reabrir e Play.","Preserved history: Reopen and Play only.") }
+        switch phase {
+        case .idle:return language.text("Aguardando preparo por comando humano. Sensores ainda não iniciados.","Waiting for a human prepare command. Sensors have not started.")
+        case .permission,.preparing:return language.text("Preparando permissões e prévia. Ainda não gravando.","Preparing permissions and preview. Not recording yet.")
+        case .paused:return language.text("Prévia pausada. Retome e confirme uma nova imagem antes de gravar.","Preview paused. Resume and confirm a new image before recording.")
+        case .ready:
+            if let axis,posture?.axis != axis {
+                return language.text("Gravação bloqueada: mantenha o aparelho "+position+" e confirme nova imagem. A prévia pode continuar visível.","Recording blocked: hold the device "+position+" and confirm a new image. The preview may remain visible.")
+            }
+            guard signalReady else { return language.text("Gravação bloqueada: aguarde uma prévia pronta e confira a imagem real.","Recording blocked: wait for a ready preview and check the real image.") }
+            return confirmed ? language.text("Imagem confirmada. Início somente pelo botão de gravação.","Image confirmed. Start only with the recording button."):language.text("Confirmação pendente: confira e confirme a imagem real antes de gravar.","Confirmation pending: check and confirm the real image before recording.")
+        default:return language.text("Confira o estado antes de continuar.","Check the state before continuing.")
+        }
+    }
+}
+public enum P3IntegrityFeedback:Equatable,Sendable { case notChecked,verified,verificationFailed }
+public enum P3StoredProfileFeedback:Equatable,Sendable { case unavailable,pass,fail }
+public struct P3FileFeedback:Equatable,Sendable {
+    public let integrity:P3IntegrityFeedback
+    public let profile:P3StoredProfileFeedback
+    public let reportedFPS:Double?
+    public let independentlyMeasuredAverageFPS:Double?
+    public init(integrity:P3IntegrityFeedback = .notChecked,profile:P3StoredProfileFeedback = .unavailable,reportedFPS:Double? = nil,independentlyMeasuredAverageFPS:Double? = nil) {
+        self.integrity=integrity;self.profile=profile
+        self.reportedFPS=Self.finiteFPS(reportedFPS)
+        self.independentlyMeasuredAverageFPS=Self.finiteFPS(independentlyMeasuredAverageFPS)
+    }
+    private static func finiteFPS(_ value:Double?)->Double? {
+        guard let value,value.isFinite,value>=0 else { return nil };return value
+    }
+    // Auxiliary recorded evidence, not an authenticated manifest or a new analysis.
+    public static func recorded(_ report:[String:String]?,matching original:Original)->Self {
+        guard let report,report["sha256"]==original.sha256,report["bytes"]==String(original.byteCount) else { return Self(integrity:.verified) }
+        let profile:P3StoredProfileFeedback
+        switch report["profile"] { case "PASS":profile = .pass;case "FAIL":profile = .fail;default:profile = .unavailable }
+        return Self(integrity:.verified,profile:profile,reportedFPS:report["nominalFPS"].flatMap(Double.init))
+    }
+    public func integrityText(_ language:P3FeedbackLanguage)->String {
+        switch integrity {
+        case .notChecked:return language.text("Integridade: ainda não conferida.","Integrity: not checked yet.")
+        case .verified:return language.text("Integridade: original conferido. Isso não aprova o perfil ou a reprodução.","Integrity: original checked. This does not approve profile or playback.")
+        case .verificationFailed:return language.text("Integridade: conferência não concluída; original preservado.","Integrity: verification did not complete; original preserved.")
+        }
+    }
+    public func profileText(_ language:P3FeedbackLanguage)->String {
+        switch profile {
+        case .unavailable:return language.text("Perfil registrado: indisponível; não inferir aprovação.","Recorded profile: unavailable; do not infer approval.")
+        case .pass:return language.text("Perfil registrado: PASS. Reprodução humana continua separada.","Recorded profile: PASS. Human playback remains separate.")
+        case .fail:return language.text("Perfil registrado: FAIL. Reabrir ou Play não altera esse resultado.","Recorded profile: FAIL. Reopen or Play does not change this result.")
+        }
+    }
+    private func value(_ fps:Double?,_ language:P3FeedbackLanguage)->String {
+        guard let fps else { return language.text("não medido","not measured") }
+        let value=String(format:"%.6f",fps)
+        return (language == .pt ? value.replacingOccurrences(of:".",with:","):value)+" fps"
+    }
+    public func targetText(_ language:P3FeedbackLanguage)->String {
+        language.text("Alvo configurado desta prova: 30 fps. Não é uma medição do arquivo.","Configured target for this proof: 30 fps. This is not a file measurement.")
+    }
+    public func reportedFPSText(_ language:P3FeedbackLanguage)->String {
+        language.text("FPS informado pela API do arquivo: ","FPS reported by the file API: ")+value(reportedFPS,language)
+    }
+    public func averageFPSText(_ language:P3FeedbackLanguage)->String {
+        language.text("Média temporal independente: ","Independent timestamp average: ")+value(independentlyMeasuredAverageFPS,language)
+    }
+    public func playbackText(_ language:P3FeedbackLanguage)->String {
+        language.text("Reprodução humana: use Play e avalie imagem e voz; nenhum aceite humano é registrado por estes indicadores.","Human playback: use Play and assess image and voice; these indicators do not record human acceptance.")
     }
 }
