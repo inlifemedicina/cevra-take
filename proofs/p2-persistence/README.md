@@ -183,6 +183,9 @@ até 64 bytes e até 1024 entradas. Recusa duplicatas, links, diretórios declar
 extensões/PAX, prefixos, nomes inesperados, checksum inválido, truncamento,
 padding não zero e dados não zero após o terminador. Esta prova exige dois blocos zero
 finais; não é um reader genérico de todos os arquivos tar.
+Os controles JSON extraídos e as duas entradas do relatório recusam chaves
+duplicadas, inclusive nomes escapados equivalentes, e profundidade acima de 32
+antes da decodificação tipada. O Store v1 existente não é reescrito por essa guarda.
 
 Originais são copiados em blocos de 64 KiB. Metadata/manifest continuam limitados
 a 16 MiB por arquivo; o contêiner de prova tem teto de 8 GiB menos 1 byte, explícito
@@ -238,7 +241,11 @@ Os testes novos exercitam roundtrip em processos separados após remover somente
 a fonte sintética, leitura independente dos membros pelo tar nativo, original
 sintético maior que 16 MiB, corrupção/entradas inseguras/destino existente e
 ENOSPC/EACCES injetados antes da publicação. Relatórios usam referências numéricas
-sintéticas, hashes exatos, zona ambígua e inputs inválidos. Não repetem os testes
+sintéticas, hashes exatos, zona ambígua e inputs inválidos. A revisão independente
+identificou ambiguidade de chaves JSON duplicadas; regressões reproduziram sua
+aceitação no relatório e no controle do contêiner antes da nova guarda. Uma revisão
+válida acima de 64 KiB confirma que o orçamento de metadata continua 16 MiB.
+Não repetem os testes
 históricos inalterados nem promovem TAKE-A19, A23, sincronismo físico ou novo
 processo iPhone. R2 do fluxo mobile, lifecycle/recuperação no aparelho, coletor de
 recursos, referência decodificada/calibrada e a rodada humana agrupada ainda

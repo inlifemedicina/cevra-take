@@ -70,6 +70,9 @@ public enum PortableProof {
             }
             guard ended, names.contains("metadata.json"), names.contains("manifest.json") else { throw ProofError.invalidBundle }
         }
+        for control in ["metadata.json", "manifest.json"] {
+            try ProofJSON.validate(ProofIO.boundedJSON(bundle.appendingPathComponent(control), limit: Store.MAX_INLINE_BYTES))
+        }
         // Exact names, metadata/schema, original sizes/hashes and references are
         // validated by the existing Store before the outer destination is published.
         try Store(work).restore(from: bundle, to: restored)
@@ -202,9 +205,9 @@ enum ProofIO {
         defer { close(fd) }
         guard fsync(fd) == 0 else { throw POSIXError(.EIO) }
     }
-    static func boundedJSON(_ u: URL) throws -> Data {
+    static func boundedJSON(_ u: URL, limit: Int = Store.STREAM_CHUNK_BYTES) throws -> Data {
         try regular(u) { fd, size in
-            guard size <= Store.STREAM_CHUNK_BYTES else { throw ProofError.inlineTooLarge }
+            guard size <= limit else { throw ProofError.inlineTooLarge }
             return try read(fd, bytes: size)
         }
     }

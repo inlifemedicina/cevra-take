@@ -154,4 +154,30 @@ final class PortableProofTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: archive), before)
         XCTAssertEqual(try canonical(source.diagnoseReadOnly()), try canonical(Fixture.r2))
     }
+    func testControlJSONDuplicateKeysAreRejectedAndLongRevisionAccepted() throws {
+        let source = Store(path("source")), archive = path("long.tar"), restored = path("long-restored")
+        try source.commit(Fixture.r1, payloads: ["O": Fixture.original])
+        var snapshot = Fixture.r2
+        snapshot.revisions[1] = Revision(id: "R2", scriptID: "S", text: String(repeating: "Revisão PT / EN text\n", count: 5000))
+        try source.commit(snapshot, payloads: ["O": Fixture.original])
+        try PortableProof.export(source, to: archive)
+        try PortableProof.restore(from: archive, to: restored)
+        XCTAssertEqual(try canonical(Store(restored).diagnoseReadOnly()), try canonical(snapshot))
+        let valid = try Data(contentsOf: archive)
+        var malformed = Data()
+        for (name, _, payload) in entries(valid) {
+            var bytes = Data(valid[payload])
+            if name == "manifest.json" {
+                bytes = Data("{\"formatVersion\":1,".utf8) + bytes.dropFirst()
+            }
+            malformed.append(PortableProof.header(name, size: bytes.count)); malformed.append(bytes)
+            malformed.append(Data(repeating: 0, count: (512 - bytes.count % 512) % 512))
+        }
+        malformed.append(Data(repeating: 0, count: 1024))
+        let bad = path("duplicate-control.tar"), absent = path("duplicate-control-destination")
+        try malformed.write(to: bad)
+        XCTAssertThrowsError(try PortableProof.restore(from: bad, to: absent))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: absent.path))
+        XCTAssertEqual(try Data(contentsOf: bad), malformed)
+    }
 }

@@ -66,4 +66,22 @@ final class P4SyncReportTests: XCTestCase {
         XCTAssertThrowsError(try P4SyncReport.make(protocolFile: path("link.json"), annotationsFile: path("annotations.json")))
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: temp.path).sorted(), ["annotations.json", "link.json", "protocol.json"])
     }
+    func testDuplicateEscapedAndNestedKeysAndExcessiveDepthAreRejected() throws {
+        let c = String(decoding: try canonical(config()), as: UTF8.self)
+        let a = String(decoding: try canonical(annotations(offset: 0, uncertainty: 0)), as: UTF8.self)
+        let deep = String(repeating: "[", count: 33) + "0" + String(repeating: "]", count: 33)
+        let cases = [
+            ("{\"maximumAbsoluteOffsetSeconds\":0.080," + c.dropFirst(), a),
+            ("{\"maximum\\u0041bsoluteOffsetSeconds\":0.080," + c.dropFirst(), a),
+            (c, a.replacingOccurrences(of: "\"videoSeconds\":1}", with: "\"\\u0076ideoSeconds\":1,\"videoSeconds\":1}")),
+            ("{\"unused\":" + deep + "," + c.dropFirst(), a)
+        ]
+        for (configText, annotationText) in cases {
+            let cb = Data(configText.utf8), ab = Data(annotationText.utf8)
+            try cb.write(to: path("protocol.json")); try ab.write(to: path("annotations.json"))
+            XCTAssertThrowsError(try P4SyncReport.make(protocolFile: path("protocol.json"), annotationsFile: path("annotations.json")))
+            XCTAssertEqual(try Data(contentsOf: path("protocol.json")), cb)
+            XCTAssertEqual(try Data(contentsOf: path("annotations.json")), ab)
+        }
+    }
 }
