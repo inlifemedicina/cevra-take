@@ -1,6 +1,17 @@
 # P4 — roteiro manual junto da captura no iPhone
 
-Protocolo pré-registrado em 04/10/2026, antes da integração e dos novos testes.
+**Reconciliação vigente — 05/10/2026:** a integração de roteiro/captura do PR #17
+foi incorporada em main após o PR #11; o PR #18 contém painel de câmera e critério
+futuro `P4-30FPS-CADENCE-002`, com fonte revisada, testes e artefato assinado offline.
+A rodada humana anterior no artefato `b59a936` teve confirmação limitada do protocolo
+e inspeção readonly; o FPS nominal histórico **FAIL** conserva o limite original.
+O novo critério físico continua **NOT_RUN** e não reclassifica tomadas antigas.
+Namespaces consumidos são somente leitura. P3/P4/NC-01 incompletos; 26 aceites
+BLOCKED, sem NC-02, stack final ou percentual. Esta integração não instala/abre o
+app, consulta o aparelho, ativa sensores ou grava. Os checkpoints abaixo são históricos
+ou protocolos futuros conforme seus títulos; não são autorização operacional atual.
+
+**Protocolo inicial — histórico:** pré-registrado em 04/10/2026, antes da integração e dos novos testes.
 Autorização: proprietário aprovou preparar roteiro+captura com prioridade no iPhone
 (`Sentinel_0bc0f88a51488191a59259a36175cd8b`). Estado inicial: NOT_RUN físico.
 
@@ -191,3 +202,143 @@ iPhoneOS/iPhoneSimulator SDK27 PASS. Nenhuma suíte histórica repetida. A nova 
 física não foi testada e este recorte não inclui build assinado ou instalação.
 Cobertura restante e26 TAKE-A BLOCKED mantidos. Configurações editáveis de câmera
 serão um recorte de produto separado, ainda não implementado por estas mensagens.
+
+### Primeiro painel de câmera — protocolo preparado em 05/10/2026
+
+Painel autorizado para seleção antes da gravação, sem avanço automático de fase ou
+stack de produto. Namespace futuro único `P4-CAMERA-SETTINGS-001`, pré-declarado antes
+dos testes. As provas anteriores, inclusive frontal, são somente Reabrir/Play.
+Nenhuma claim/RUN é criada ao listar, escolher ou preparar: reserva exclusiva apenas
+no start admitido. Não há contador, retake, reset, escolha de pasta ou overwrite.
+
+Opções deste recorte: câmera wide frontal/traseira presente; combinações nativas de
+720p/1080p/4K SDR com24/25/30/50/60fps quando suportadas pelo formato; posição vertical/
+horizontal; espelhamento da prévia separado do original; entradas de áudio realmente
+listadas pela categoria/rota. Lista de microfones exige botão humano, permissão e
+ativação temporária de áudio; depois libera somente seu lease. Não inicia câmera ou
+grava arquivo. Encoder H.264, rotação, espelhamento e rota são revalidados no preparo.
+Ausência/mudança de opção bloqueia, sem fallback silencioso.
+
+As escolhas ficam congeladas no preparo; para editar antes de gravar é necessário
+fechar o preparo, parar a prévia e selecionar novamente a entrada disponível. Nova
+confirmação de imagem é obrigatória. Durante start/gravação/finalização não se fecha
+o sheet por gesto. Background cancela consultas pendentes; sem preview/start/resume
+automáticos. O guard serial verifica formato/duração de frame/rota antes da claim.
+
+A posição escolhida permanece ao trocar a câmera. O painel exibe a posição antes
+de confirmar; o preparo repete esse valor do snapshot imutável. Cada confirmação
+possui identidade volátil própria para o controller SwiftUI, estável durante o
+preparo e renovada depois de fechar/editar. Esse ID não é claim nem namespace.
+“Voltar às configurações — encerrar preview, sem gravar” fecha somente o preparo;
+o lifecycle existente encerra a sessão, e as claims/originais continuam preservados.
+Um preparo horizontal com aparelho em portrait continua bloqueado. Para preparar
+vertical, voltar ao painel e selecionar explicitamente “Vertical” em “Posição
+durante a gravação”; conferir “Posição deste preparo: Vertical” antes de preparar.
+Não se transforma posição nem se libera confirmação/start automaticamente.
+
+Uma tomada futura de30s em H.264 SDR com mic escolhido, objeto neutro e roteiro PT
+existente. O perfil desse NOVO namespace compara resolução/FPS escolhidos, mantendo
+duração29–31s, FPS±0,001, um vídeo e pelo menos um áudio. Isso não altera o perfil fixo
+1080p30 das provas antigas nem converte FAIL anteriores em PASS. Alvo, API e média
+independente separados; resultados somente leitura, média NOT_MEASURED. Relatório
+local guarda escolhas/aplicação confirmada no start sem UID/nome de dispositivos;
+não atesta suporte universal, qualidade por frame ou sincronismo.
+
+Rodada humana agrupada PREPARADA, ainda NÃO EXECUTADA:
+1. Coordenação posterior: revisar artefato exato e preservação proporcional dos
+   históricos, exigir namespace novo ausente; update separado, sem autoLaunch.
+2. Abrir painel/listar câmeras, comparar opções reais; mudar câmera deve limpar a
+   combinação anterior. Listar microfones, escolher uma entrada real; acessório
+   ausente não deve aparecer. Sem permissões/rota, bloquear sem gravar.
+3. Selecionar uma combinação disponível, posição e espelhamentos; confirmar preparo.
+   Conferir câmera, letras/lados e rota. Pausar/retomar exige nova imagem. Fechar
+   antes do start e editar uma escolha deve encerrar preview e exigir novo preparo;
+   nenhuma claim consumida nessa conferência.
+4. Somente após confirmação real: uma tomada30s com roteiro/voz, manter posição/app.
+   Reabrir/Play: conferir posição, política de espelhamento, voz e ausência de texto
+   no arquivo. Inspeção readonly limitada de perfil, escolhas/aplicação, integridade,
+   binding e preservação; um relato consolidado, sem retake/reset em caso de falha.
+
+Controles manuais foco/exposição/WB, HDR/Log/ProRes, outras lentes e perfis avançados
+ficam fora deste recorte. Suporte de cada combinação/rota/espelhamento no aparelho,
+qualidade, a11y e recursos seguem NOT_RUN. Nenhum26 TAKE-A promovido. Esta preparação
+offline não consulta iPhone, instala/abre app, ativa sensores ou grava mídia.
+
+Verificação offline deste painel:15 testes direcionados PASS, zero falhas (0,002s),
+incluindo11 casos novos e quatro regressões afetadas. Typecheck arm64 iPhoneOS e
+iPhoneSimulator SDK27 PASS; link iPhoneOS sem assinatura PASS, sem execução. Erro
+intermediário de sintaxe no texto do DTO foi corrigido; logs anteriores preservados
+privadamente. Sem repetição de suítes históricas amplas. Revisão independente do
+head/tree/body é gate antes de push e Draft PR dependente do checkpoint de clareza.
+
+Regressão offline do handoff/posição:18 testes direcionados PASS, zero falhas,
+incluindo14 casos do painel e quatro regressões de consentimento/admission/claim.
+Snapshots horizontal→vertical têm identidades distintas e configurações imutáveis;
+portrait em preparo horizontal não confirma nem executa a escrita da claim.
+Typechecks iPhoneOS/iPhoneSimulator SDK27 e link iPhoneOS sem assinatura PASS.
+Isso não demonstra causa de uma escolha humana anterior nem valida o ajuste em
+aparelho; instalação e rodada humana do novo checkpoint continuam separadas.
+
+Auditoria adversarial posterior: seis regressões puras/sintéticas PASS, zero falhas,
+para confirmação repetida/B→A, capacidades obsoletas, fechamento nas três fases
+pré-start, ciclos de pausa/retomada com epochs antigos, divergência de escolhas e
+preservação de claim/original sintéticos. O shutdown serial agora remove os observers
+de sessão antes de encerrar a prévia; a retomada os registra novamente. Os testes
+puros não exercitam SwiftUI/AVFoundation nem medem o impacto dos registros antigos.
+Esse cleanup não estabelece a causa do mismatch histórico de orientação. Nenhum
+critério, resultado físico ou aceite foi promovido; a rodada humana segue separada.
+
+### Critério futuro de30fps — P4-30FPS-CADENCE-002
+
+Decisão do proprietário em05/10/2026: para futuras capturas curtas configuradas a
+30fps, validar a configuração/aplicação nativa e a continuidade temporal salva;
+a média é diagnóstico. O perfil inicial ±0,001 descrito acima é histórico. Suas
+funções, relatórios e FAIL continuam intactos; reabrir/Play não os reclassifica.
+Outros FPS e os protocolos fixos antigos conservam o critério anterior.
+
+Somente a finalização de uma nova captura do painel configurada a30fps usa002.
+O guard nativo existente confere formato, duração de frame e rota no admission;
+a aplicação de FPS é fixada na fila serial antes do start. Resolução selecionada,
+SDR, um vídeo, ao menos um áudio e duração apresentada29–31s continuam necessários.
+Nenhuma entrada, namespace, claim, consentimento ou guard de gravação é ampliado.
+O namespace existente consumido não pode ser reutilizado por esta mudança.
+
+O leitor somente leitura pula o payload e lê até2MiB de `moov`; não decodifica
+imagem/voz, não usa Store/lock e não ativa hardware. Reconstrói DTS/durações de
+`stts`, soma `ctts` quando presente, ordena para apresentação e aplica uma edit
+list contínua de taxa1; sem edits, usa a janela da mídia. Escalas diferentes
+usam uma grade inteira comum, com verificações de overflow. Tabelas ausentes,
+malformadas, fragmentadas, edits não suportados ou limites excedidos produzem
+NOT_VERIFIABLE. Há limites de128 boxes por nível, oito tracks,4096 amostras e
+grade máxima de10^9 ticks/s; estes limites não anunciam custo de recursos medido.
+
+Para F=30 e q=um tick da base temporal da mídia:
+- Pelo menos duas amostras retidas, com timestamps estritamente crescentes.
+- Cada intervalo difere de1/F em no máximo q; o desvio acumulado de cada início
+  em relação à sequência ideal também não excede q. Comparações inteiras exatas.
+- Os intervalos efetivos das amostras cobrem a janela apresentada; nenhum buraco
+  inicial/interno/final excede q. Interseções parciais por trim são mantidas.
+- Borda inicial e último início até fim apresentado limitados a1/F+q; uma amostra
+  apresentada prolongada também não pode exceder1/F+q. Cauda longa não vira PASS.
+- Base demasiado grossa para distinguir um quadro perdido (`q>=1/(2F)`) é
+  NOT_VERIFIABLE; não há relaxamento automático da tolerância.
+
+Relatório novo registra `profileCriteriaVersion`, PASS/FAIL/NOT_VERIFIABLE,
+motivo, grade/q/janela, número de amostras apresentadas e média pelos timestamps.
+`nominalFPS` informado pela API permanece diagnóstico distinto. Leitura de resultado
+antigo preserva o perfil salvo e não executa esse leitor; média antiga ausente
+permanece não medida. A leitura nova da média exige a versão002 reconhecida.
+
+PASS deste critério comprova continuidade temporal dentro do orçamento registrado,
+sem provar entrega de todos os frames do sensor, pixels únicos, ausência de imagem
+congelada, sincronismo quantitativo, qualidade humana ou equivalência clínica.
+Não promove os26 TAKE-A nem fecha P3/P4/NC01 ou inicia NC02.
+
+Verificação desta implementação:21 testes novos de cadência/container e21 regressões
+pertinentes PASS, zero falhas. Os casos incluem quantização±um tick, lacuna de um
+quadro representável, duplicata/ordem PTS, drift acumulado, N<2, cauda prolongada,
+bordas editadas, clocks diferentes, offsets de composição, fragmentação e limites/malformed.
+Mocks/tabelas sintéticas não validam hardware. Nenhuma mídia histórica foi
+reescrita ou usada para promover PASS retroativo; nova captura/instalação e merge
+continuam fora desta implementação. Revisão independente do checkpoint é gate
+antes da publicação no mesmo Draft PR18.

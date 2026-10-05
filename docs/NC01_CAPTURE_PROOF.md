@@ -3,7 +3,17 @@
 **Checkpoint:** 02/10/2026. **Base:** main `99f1de2a4b020cb75b8000e2ed335d3b72b0747d`,
 PR #10 incorporado. **Executor:** Codex / `gpt-6.1-sol` / `medium`, verificados nos
 metadados locais do turno; nenhuma configuração global alterada.
-**Estado vigente:** P3 INICIADO/incompleto. Vertical: clipe salvo, preview/Play em pé e
+**Reconciliação vigente — 05/10/2026:** P3 permanece incompleto. No artefato
+`b8115b3`, o proprietário confirmou voz audível com Silent Mode ligado e imagem
+correta pelo botão explícito Play do original reaberto; confirmação limitada àquela
+configuração, sem cobrir os controles nativos VideoPlayer ou medir categoria runtime.
+A reabertura em novo processo anterior continua evidência distinta; não foi repetida
+nesta integração. `002` orientação NOT_PASS e os demais FAIL permanecem históricos.
+Sincronismo/frame loss quantitativos NOT_MEASURED; 26 aceites BLOCKED. PR #11 foi
+incorporado em main, sem atualização do iPhone por esta integração. O estado P4
+posterior está no [documento dono](../proofs/p4-teleprompter/ios/README.md).
+
+**Estado no checkpoint anterior — histórico:** P3 INICIADO/incompleto. Vertical: clipe salvo, preview/Play em pé e
 voz confirmados pelo proprietário, recorte limitado. Horizontal histórica `001`: somente claim consumida,
 sem RUN/mídia/result/LATEST; causa física UNKNOWN, não reutilizar. Tomada `002` continua
 orientação NOT_PASS. Na prova posterior de retomada+horizontal em `f6d421b`, o proprietário

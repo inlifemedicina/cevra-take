@@ -2,9 +2,9 @@ import XCTest
 @testable import PersistenceProof
 
 final class P4FrontCameraTests:XCTestCase {
-    func testFrontalNamespaceIsOnlyNewCaptureAndRetainsManualBindingScope() {
+    func testFrontalNamespaceRemainsHistoricalWithManualBindingScope() {
         let front=P3AttemptScope.manualTextFrontVertical
-        XCTAssertTrue(front.allowsCapture);XCTAssertTrue(front.hasManualText)
+        XCTAssertFalse(front.allowsCapture);XCTAssertTrue(front.hasManualText)
         XCTAssertEqual(front.axis,.vertical);XCTAssertEqual(front.cameraPolicy.position,.front)
         XCTAssertEqual(front.base(in:URL(fileURLWithPath:"/synthetic/P3CaptureSandbox")).lastPathComponent,"P4-MANUAL-TEXT-FRONT-VERTICAL-001")
         let rear=P3AttemptScope.manualTextVertical

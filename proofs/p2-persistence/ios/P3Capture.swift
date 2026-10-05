@@ -66,12 +66,13 @@ private enum P3Error: String, Error { case orientation, spaceUnknown, lowSpace, 
 // Serialize category/activation with lease checks; no takeover of another controller.
 private enum P3AudioSession {
     private static let ownership=P3AudioOwnership()
-    static func acquire(_ role:P3AudioRole,reusing:P3AudioLease?) throws -> P3AudioLease {
+    static func acquire(_ role:P3AudioRole,reusing:P3AudioLease?,captureBluetooth:Bool=false) throws -> P3AudioLease {
         try ownership.acquire(role,reusing:reusing) { role in
             let audio=AVAudioSession.sharedInstance()
             let category:AVAudioSession.Category=role == .capture ? .playAndRecord : .playback
             let mode:AVAudioSession.Mode=role == .capture ? .videoRecording : .default
-            let options:AVAudioSession.CategoryOptions=role == .capture ? [.defaultToSpeaker] : []
+            var options:AVAudioSession.CategoryOptions=role == .capture ? [.defaultToSpeaker] : []
+            if role == .capture && captureBluetooth { options.insert(.allowBluetoothHFP) }
             try audio.setCategory(category,mode:mode,options:options)
             guard audio.category == category,audio.mode == mode else { throw P3AudioOwnershipError.configuration }
             try audio.setActive(true)
@@ -121,6 +122,8 @@ struct P3ReadinessScreen: View {
 private struct P3Media: Sendable {
     let duration:Double; let width:Int; let height:Int; let fps:Double
     let videos:Int; let audios:Int; let sdr:Bool
+    let cadence:P4CadenceResult?
+    let cadenceTiming:[String:String]
     var profileOK:Bool { P3Limits.fileProfile(duration:duration,width:width,height:height,fps:fps,videoTracks:videos,audioTracks:audios,sdrVerified:sdr) }
 }
 // All capture/state mutations are confined to q. Published UI updates run on main.
@@ -138,6 +141,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private var state=P3State()
     private var run:URL?
     private var failure:P3Error?
+    private var appliedFPSAtStart:Int?
     private var observers:[NSObjectProtocol]=[]
     private var startTimeout:DispatchWorkItem?
     private var finishTimeout:DispatchWorkItem?
@@ -148,6 +152,9 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private var captureAudioLease:P3AudioLease?
     @Published private(set) var audioSessionDiagnostic="Captura: sessão de áudio NOT_RUN"
     private let scope:P3AttemptScope
+    private let configuration:P4CaptureConfiguration?
+    private var capturePolicy:P4CameraPolicy { configuration?.policy ?? scope.cameraPolicy }
+    private var captureAxis:P3OrientationAxis? { configuration?.axis ?? scope.axis }
     private let textBinding:P4CaptureBinding?
     var manualRevision:ScriptRevision? { textBinding?.revision }
     private let baseURL:URL
@@ -162,13 +169,15 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     @Published private(set) var previewHumanConfirmed=false
     @Published private(set) var preparationFeedback=P3PreparationFeedback(phase:.idle,axis:nil,posture:nil,signalReady:false,confirmed:false,allowsCapture:false)
     @Published private(set) var fileFeedback=P3FileFeedback()
+    @Published private(set) var recordedSettings:P4RecordedSettings?
     private var displayPreviewReady=false
-    init(scope:P3AttemptScope = .original) {
+    init(scope:P3AttemptScope = .original,configuration:P4CaptureConfiguration?=nil) {
         self.scope=scope
+        self.configuration=scope == .cameraSettings ? configuration:nil
         self.textBinding=scope.hasManualText ? try? P4CaptureBinding.fixedPT() : nil
         self.consent=P3PreparationConsent(scope:scope)
         self.baseURL=scope.base(in:p3Base())
-        self.preparationFeedback=P3PreparationFeedback(phase:.idle,axis:scope.axis,posture:nil,signalReady:false,confirmed:false,allowsCapture:scope.allowsCapture)
+        self.preparationFeedback=P3PreparationFeedback(phase:.idle,axis:configuration?.axis ?? scope.axis,posture:nil,signalReady:false,confirmed:false,allowsCapture:scope.allowsCapture)
         super.init()
     }
     private func publish(_ text:String) {
@@ -177,7 +186,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         publishPreparationFeedback()
     }
     private func publishPreparationFeedback() {
-        let feedback=P3PreparationFeedback(phase:state.phase,axis:scope.axis,posture:orientationCandidate?.posture,signalReady:displayPreviewReady,confirmed:consent.previewConfirmed,allowsCapture:scope.allowsCapture)
+        let feedback=P3PreparationFeedback(phase:state.phase,axis:captureAxis,posture:orientationCandidate?.posture,signalReady:displayPreviewReady,confirmed:consent.previewConfirmed,allowsCapture:scope.allowsCapture)
         DispatchQueue.main.async { self.preparationFeedback=feedback }
     }
     private func safeThermal()->Bool {
@@ -185,7 +194,26 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     }
     private func internalRoute()->Bool {
         let input=AVAudioSession.sharedInstance().currentRoute.inputs
+        if let configuration { return configuration.routeMatches(ids:input.map(\.uid)) }
         return input.count==1 && input[0].portType == .builtInMic
+    }
+    private func selectInput() throws {
+        let audio=AVAudioSession.sharedInstance()
+        let port:AVAudioSessionPortDescription?
+        if let configuration { port=audio.availableInputs?.first(where:{$0.uid==configuration.microphone.id && $0.portType.rawValue==configuration.microphone.kind}) }
+        else { port=audio.availableInputs?.first(where:{$0.portType == .builtInMic}) }
+        guard let port else { throw P3Error.route }
+        try audio.setPreferredInput(port)
+        guard internalRoute() else { throw P3Error.route }
+    }
+    private func settingsMatchApplied()->Bool {
+        guard let configuration else { return scope != .cameraSettings }
+        guard let device=videoDevice,device.activeColorSpace == .sRGB,!device.isVideoHDREnabled else { return false }
+        let size=CMVideoFormatDescriptionGetDimensions(device.activeFormat.formatDescription)
+        let mode=P4VideoMode(width:Int(size.width),height:Int(size.height),fps:configuration.mode.fps)
+        return configuration.appliedMatches(cameraID:device.uniqueID,mode:mode,
+            minimumDuration:device.activeVideoMinFrameDuration.seconds,maximumDuration:device.activeVideoMaxFrameDuration.seconds,
+            inputIDs:AVAudioSession.sharedInstance().currentRoute.inputs.map(\.uid))
     }
     private func existingClaimOrResult()->Bool {
         FileManager.default.fileExists(atPath:baseURL.appendingPathComponent("ATTEMPT-RESERVED.json").path) ||
@@ -193,6 +221,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     }
     func prepareByHuman() { q.async {
         guard self.scope.allowsCapture else { self.publish("Histórico — somente Reabrir/Play; sem novo preparo");return }
+        guard self.scope != .cameraSettings || self.configuration != nil else { self.publish("BLOCKED — selecione e confirme configurações antes de preparar");return }
         guard !self.scope.hasManualText || self.textBinding != nil else { self.publish("BLOCKED — roteiro fixo indisponível; sem sensores");return }
         guard !self.existingClaimOrResult() else { self.publish("BLOCKED — tentativa já consumida; somente reabrir, sem reset");return }
         guard self.consent.mayPrepare(phase:self.state.phase),self.state.accept(.prepare) else { return }
@@ -228,11 +257,9 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             if !configured { try prepareSession() }
             else {
                 guard !session.isInterrupted else { pausePreview("Sessão ainda interrompida");return }
-                let audio=AVAudioSession.sharedInstance()
                 try acquireCaptureAudio()
-                guard let builtIn=audio.availableInputs?.first(where:{$0.portType == .builtInMic}) else { pausePreview("Rota interna indisponível");return }
-                try audio.setPreferredInput(builtIn)
-                guard internalRoute() else { pausePreview("Rota interna não confirmada");return }
+                try selectInput()
+                guard settingsMatchApplied() else { pausePreview("Configuração aplicada mudou; sem fallback");return }
             }
             guard epoch.accepts(token),state.accept(.prepared) else { return }
             installSessionObservers(token:token)
@@ -260,17 +287,24 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private func prepareSession() throws {
         guard safeThermal() else { throw P3Error.thermal }
         guard try p3Free(p3Base().deletingLastPathComponent())>=P3Limits.startSpace else { throw P3Error.lowSpace }
-        let wanted:AVCaptureDevice.Position=scope.cameraPolicy.position == .front ? .front : .back
+        let wanted:AVCaptureDevice.Position=capturePolicy.position == .front ? .front : .back
         guard let device=AVCaptureDevice.default(.builtInWideAngleCamera,for:.video,position:wanted),
               device.position == wanted,
               let audio=AVCaptureDevice.default(for:.audio) else { throw P3Error.unsupportedFormat }
+        if let configuration { guard device.uniqueID==configuration.camera.id else { throw P3Error.unsupportedFormat } }
+        let mode=configuration?.mode ?? P4VideoMode(width:1920,height:1080,fps:30)
+        guard mode.isOffered else { throw P3Error.unsupportedFormat }
         guard let format=device.formats.first(where: {
             let d=CMVideoFormatDescriptionGetDimensions($0.formatDescription)
-            return d.width==1920 && d.height==1080 && $0.supportedColorSpaces.contains(.sRGB) &&
-            $0.videoSupportedFrameRateRanges.contains(where: { $0.minFrameRate<=30 && $0.maxFrameRate>=30 })
+            return Int(d.width)==mode.width && Int(d.height)==mode.height && $0.supportedColorSpaces.contains(.sRGB) &&
+            $0.videoSupportedFrameRateRanges.contains(where: { $0.minFrameRate<=Double(mode.fps) && $0.maxFrameRate>=Double(mode.fps) })
         }) else { throw P3Error.unsupportedFormat }
         session.beginConfiguration()
-        defer { session.commitConfiguration() }
+        var complete=false
+        defer {
+            if !complete { for input in session.inputs { session.removeInput(input) };for item in session.outputs { session.removeOutput(item) };videoDevice=nil }
+            session.commitConfiguration()
+        }
         guard session.canSetSessionPreset(.inputPriority) else { throw P3Error.unsupportedFormat }
         session.sessionPreset = .inputPriority
         let videoInput=try AVCaptureDeviceInput(device:device),audioInput=try AVCaptureDeviceInput(device:audio)
@@ -278,8 +312,8 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         session.addInput(videoInput);session.addInput(audioInput);session.addOutput(output)
         try device.lockForConfiguration()
         device.activeFormat=format
-        device.activeVideoMinFrameDuration=CMTime(value:1,timescale:30)
-        device.activeVideoMaxFrameDuration=CMTime(value:1,timescale:30)
+        device.activeVideoMinFrameDuration=CMTime(value:1,timescale:CMTimeScale(mode.fps))
+        device.activeVideoMaxFrameDuration=CMTime(value:1,timescale:CMTimeScale(mode.fps))
         device.automaticallyAdjustsVideoHDREnabled=false
         if format.isVideoHDRSupported { device.isVideoHDREnabled=false }
         device.activeColorSpace = .sRGB
@@ -288,8 +322,8 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         // Mirror support is mandatory for this fixed proof; never fall back to rear.
         guard connection.isVideoMirroringSupported else { throw P3Error.unsupportedFormat }
         connection.automaticallyAdjustsVideoMirroring=false
-        connection.isVideoMirrored=scope.cameraPolicy.originalMirrored
-        guard scope.cameraPolicy.admits(framePolicy:scope.cameraPolicy,captureSupported:connection.isVideoMirroringSupported,
+        connection.isVideoMirrored=capturePolicy.originalMirrored
+        guard capturePolicy.admits(framePolicy:capturePolicy,captureSupported:connection.isVideoMirroringSupported,
             captureMirrored:connection.isVideoMirrored,captureAutomatic:connection.automaticallyAdjustsVideoMirroring) else { throw P3Error.unsupportedFormat }
         // Rotation is chosen explicitly at the human start, never by fallback to 0.
         videoDevice=device
@@ -299,13 +333,11 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             AVVideoCompressionPropertiesKey:[AVVideoAverageBitRateKey:12_000_000]],for:connection)
         output.maxRecordedDuration=CMTime(seconds:P3Limits.seconds,preferredTimescale:600)
         output.minFreeDiskSpaceLimit=P3Limits.reserve
-        let audioSession=AVAudioSession.sharedInstance()
         session.automaticallyConfiguresApplicationAudioSession=false
         try acquireCaptureAudio()
-        guard let builtIn=audioSession.availableInputs?.first(where:{$0.portType == .builtInMic}) else { throw P3Error.route }
-        try audioSession.setPreferredInput(builtIn)
-        guard internalRoute() else { throw P3Error.route }
-        configured=true
+        try selectInput()
+        guard settingsMatchApplied() else { throw P3Error.unsupportedFormat }
+        configured=true;complete=true
     }
     private func installSessionObservers(token:UInt64) {
         for observer in observers { NotificationCenter.default.removeObserver(observer) };observers.removeAll()
@@ -325,7 +357,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     // Read-only diagnostic. Never requests access, configures or starts a session.
     private func publishPreviewSessionStatus() {
         let running=session.isRunning, interrupted=session.isInterrupted
-        let mic=p3Permission(.audio),route=internalRoute() ? "builtInMic" : "notConfirmed"
+        let mic=p3Permission(.audio),route=internalRoute() ? (configuration?.microphone.kind ?? "builtInMic") : "notConfirmed"
         DispatchQueue.main.async {
             self.previewSessionStatus="Sessão running=\(running), interrupted=\(interrupted); micPermission=\(mic), inputRoute=\(route)"
         }
@@ -343,8 +375,8 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             self.consent.observePreview(ready:false)
         }
         if self.orientationFreeze.frame == nil { self.orientationCandidate=orientation }
-        let supported=orientation?.supported(for:self.scope.axis,previewSupported:true,captureSupported:true) == true &&
-            orientation?.cameraPolicy == self.scope.cameraPolicy
+        let supported=orientation?.supported(for:self.captureAxis,previewSupported:true,captureSupported:true) == true &&
+            orientation?.cameraPolicy == self.capturePolicy
         self.consent.observePreview(ready:ready && supported)
         self.displayPreviewReady=ready && supported
         self.publishPreparationFeedback()
@@ -359,7 +391,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     func recordByHuman(orientation:P3OrientationFrame,generation:UInt64,completion:@escaping(Bool)->Void) { q.async { [self] in
         func reply(_ accepted:Bool) { DispatchQueue.main.async { completion(accepted) } }
         guard self.configured,self.state.phase == .ready,self.epoch.accepts(generation) else { reply(false);return }
-        guard orientation.cameraPolicy == self.scope.cameraPolicy,
+        guard orientation.cameraPolicy == self.capturePolicy,
               P3OrientationStartTransaction.admitted(orientation,latest:self.orientationCandidate,consent:self.consent,
                 phase:self.state.phase,sessionRunning:self.session.isRunning) else {
             self.consent.observePreview(ready:false);self.displayPreviewReady=false
@@ -368,19 +400,20 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         }
         do {
             guard let connection=self.output.connection(with:.video),
-                  self.videoDevice?.position == (self.scope.cameraPolicy.position == .front ? AVCaptureDevice.Position.front : .back),
-                  self.scope.cameraPolicy.admits(framePolicy:orientation.cameraPolicy,captureSupported:connection.isVideoMirroringSupported,
+                  self.videoDevice?.position == (self.capturePolicy.position == .front ? AVCaptureDevice.Position.front : .back),
+                  self.capturePolicy.admits(framePolicy:orientation.cameraPolicy,captureSupported:connection.isVideoMirroringSupported,
                     captureMirrored:connection.isVideoMirrored,captureAutomatic:connection.automaticallyAdjustsVideoMirroring),
-                  self.orientationFreeze.lock(orientation,axis:self.scope.axis,previewSupported:true,
+                  self.orientationFreeze.lock(orientation,axis:self.captureAxis,previewSupported:true,
                     captureSupported:connection.isVideoRotationAngleSupported(CGFloat(orientation.captureAngle))) else { throw P3Error.orientation }
             connection.videoRotationAngle=CGFloat(orientation.captureAngle)
             guard Double(connection.videoRotationAngle)==orientation.captureAngle,
-                  self.scope.cameraPolicy.admits(framePolicy:orientation.cameraPolicy,captureSupported:connection.isVideoMirroringSupported,
+                  self.capturePolicy.admits(framePolicy:orientation.cameraPolicy,captureSupported:connection.isVideoMirroringSupported,
                     captureMirrored:connection.isVideoMirrored,captureAutomatic:connection.automaticallyAdjustsVideoMirroring) else { throw P3Error.orientation }
             let base=baseURL;let free=try p3Free(p3Base().deletingLastPathComponent())
-            guard P3Limits.mayStart(free:free,internalMic:self.internalRoute(),
-                permissions:AVCaptureDevice.authorizationStatus(for:.video) == .authorized && AVCaptureDevice.authorizationStatus(for:.audio) == .authorized,
-                thermalSafe:self.safeThermal()) else { throw P3Error.lowSpace }
+            guard self.settingsMatchApplied() else { throw P3Error.unsupportedFormat }
+            let permissions=AVCaptureDevice.authorizationStatus(for:.video) == .authorized && AVCaptureDevice.authorizationStatus(for:.audio) == .authorized
+            let mayStart=self.configuration.map { $0.mayStart(free:free,inputIDs:AVAudioSession.sharedInstance().currentRoute.inputs.map(\.uid),permissions:permissions,thermalSafe:self.safeThermal()) } ?? P3Limits.mayStart(free:free,internalMic:self.internalRoute(),permissions:permissions,thermalSafe:self.safeThermal())
+            guard mayStart else { throw P3Error.lowSpace }
             guard try self.startClaim.reserve(admitted:self.epoch.accepts(generation) && self.scope.allowsCapture,exclusiveWrite: {
                 try FileManager.default.createDirectory(at:base,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
                 try p3ExclusiveJSON(["protocol":"P3-MIN-001","attempt":self.scope.rawValue],at:base.appendingPathComponent("ATTEMPT-RESERVED.json"))
@@ -390,6 +423,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             try p3ExclusiveJSON(["protocol":"P3-MIN-001","source":"capture.mov","freeBeforeBytes":String(free)],at:dir.appendingPathComponent("capture.claim.json"))
             let file=dir.appendingPathComponent("capture.mov")
             guard !FileManager.default.fileExists(atPath:file.path),self.state.accept(.record),self.deadline.begin() else { throw P3Error.destinationExists }
+            self.appliedFPSAtStart=self.configuration?.mode.fps // settingsMatchApplied succeeded on q immediately before admission.
             self.run=dir;self.publish("STARTING — um clipe local, não repetir comando")
             self.output.startRecording(to:file,recordingDelegate:self)
             let timeout=DispatchWorkItem { [weak self] in
@@ -419,7 +453,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     }
     private func acquireCaptureAudio() throws {
         do {
-            captureAudioLease=try P3AudioSession.acquire(.capture,reusing:captureAudioLease)
+            captureAudioLease=try P3AudioSession.acquire(.capture,reusing:captureAudioLease,captureBluetooth:configuration != nil)
             DispatchQueue.main.async { self.audioSessionDiagnostic="Captura: playAndRecord/videoRecording/defaultToSpeaker ativa — sem PASS de qualidade" }
         } catch {
             let code=P3AudioSession.errorCode(error)
@@ -427,6 +461,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         }
     }
     private func shutdown() {
+        for observer in observers { NotificationCenter.default.removeObserver(observer) };observers.removeAll()
         if configured { session.stopRunning() }
         if let lease=captureAudioLease {
             do {
@@ -471,9 +506,18 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             self.shutdown()
             guard self.failure == nil,good,self.deadline.finishCallback(),self.state.accept(.finished),let root=self.run else { self.fail(self.failure ?? .recording);return }
             self.publish("FINALIZING — validar arquivo e persistir")
+            let requestedFPS=self.configuration?.mode.fps, appliedFPS=self.appliedFPSAtStart
             Task.detached(priority:.utility) {
                 do {
-                    let media=try await Self.inspect(url)
+                    let media=try await Self.inspect(url,requestedFPS:requestedFPS,appliedFPS:appliedFPS)
+                    let profile:P3StoredProfileFeedback
+                    if let mode=self.configuration?.mode,mode.fps==30,let cadence=media.cadence {
+                        profile=mode.cadenceProfile(duration:media.duration,width:media.width,height:media.height,videoTracks:media.videos,audioTracks:media.audios,sdr:media.sdr,cadence:cadence)
+                    } else {
+                        let old=self.configuration.map { $0.mode.fileProfile(duration:media.duration,width:media.width,height:media.height,fps:media.fps,videoTracks:media.videos,audioTracks:media.audios,sdr:media.sdr) } ?? media.profileOK
+                        profile=old ? .pass:.fail
+                    }
+                    let profileName=profile == .pass ? "PASS":profile == .fail ? "FAIL":"NOT_VERIFIABLE"
                     let original=try Store.describeOriginal(id:"O",source:url)
                     let bytes=Int64(original.byteCount)
                     guard bytes <= (Int64.max-P3Limits.reserve)/2,try p3Free(root)>=P3Limits.reserve+2*bytes else { throw P3Error.lowSpace }
@@ -485,31 +529,36 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
                         "durationSeconds":String(media.duration),"width":String(media.width),"height":String(media.height),
                         "nominalFPS":String(media.fps),"videoTracks":String(media.videos),"audioTracks":String(media.audios),
                         "sdrVerified":String(media.sdr),"sha256":original.sha256,"bytes":String(original.byteCount),
-                        "takeRevision":"R1","synthetic":"false","profile":media.profileOK ? "PASS":"FAIL",
+                        "takeRevision":"R1","synthetic":"false","profile":profileName,
+                        "profileCriteriaVersion":media.cadence == nil ? "P3-NOMINAL-FPS-001":P4CadenceResult.version,
                         "playbackHuman":"PENDING","sync":"NOT_MEASURED","frameLoss":"NOT_MEASURED",
                         "attempt":self.scope.rawValue,
                         "postureAtStart":self.orientationFreeze.frame?.posture.rawValue ?? "unknown",
                         "captureRotationAngle":String(self.orientationFreeze.frame?.captureAngle ?? -1),
                         "previewRotationAngle":String(self.orientationFreeze.frame?.previewAngle ?? -1),
-                        "cameraPosition":self.scope.cameraPolicy.position.rawValue,
+                        "cameraPosition":self.capturePolicy.position.rawValue,
                         "previewMirroredAtConfirmation":String(self.orientationFreeze.frame?.cameraPolicy.previewMirrored ?? false),
-                        "originalMirroredVerifiedAtStart":String(self.scope.cameraPolicy.originalMirrored),
+                        "originalMirroredVerifiedAtStart":String(self.capturePolicy.originalMirrored),
                         "automaticMirroringDisabledAtStart":"true"]
+                    if let configuration=self.configuration { report.merge(configuration.report) { _,new in new } }
+                    if let cadence=media.cadence { report.merge(cadence.report) { _,new in new } }
+                    report.merge(media.cadenceTiming) { _,new in new }
                     if let binding=self.textBinding { report.merge(binding.report) { _,new in new } }
                     try p3ExclusiveJSON(report,at:root.appendingPathComponent("result.json"))
                     try p3ExclusiveJSON(["protocol":"P3-MIN-001","run":root.lastPathComponent],at:self.baseURL.appendingPathComponent("LATEST.json"))
                     self.q.async {
                         guard self.state.accept(.persisted) else { return }
-                        let feedback=P3FileFeedback(integrity:.verified,profile:media.profileOK ? .pass:.fail,reportedFPS:media.fps)
-                        DispatchQueue.main.async { self.fileFeedback=feedback }
-                        self.publish(media.profileOK ? "FILE_PROFILE_PERSISTENCE_PASS — reprodução humana PENDING" : "FILE_SAVED_PROFILE_FAIL — original preservado")
+                        let feedback=P3FileFeedback(integrity:.verified,profile:profile,reportedFPS:media.fps,independentlyMeasuredAverageFPS:media.cadence?.averageFPS,configuredFPS:Double(self.configuration?.mode.fps ?? 30))
+                        let settings=self.configuration.flatMap { P4RecordedSettings(report:$0.report) }
+                        DispatchQueue.main.async { self.fileFeedback=feedback;self.recordedSettings=settings }
+                        self.publish(profile == .pass ? "FILE_PROFILE_PERSISTENCE_PASS — reprodução humana PENDING" : profile == .fail ? "FILE_SAVED_PROFILE_FAIL — original preservado":"FILE_SAVED_PROFILE_NOT_VERIFIABLE — original preservado, sem aprovação")
                     }
                 } catch let e as P3Error { self.q.async { self.fail(e) } }
                 catch { self.q.async { self.fail(.integrity) } }
             }
         }
     }
-    private static func inspect(_ url:URL) async throws -> P3Media {
+    private static func inspect(_ url:URL,requestedFPS:Int?,appliedFPS:Int?) async throws -> P3Media {
         let asset=AVURLAsset(url:url)
         let duration=try await asset.load(.duration).seconds
         let video=try await asset.loadTracks(withMediaType:.video),audio=try await asset.loadTracks(withMediaType:.audio)
@@ -522,7 +571,15 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             guard let value=value as? String else { return false }
             return value == (kCMFormatDescriptionTransferFunction_ITU_R_709_2 as String) || value == (kCMFormatDescriptionTransferFunction_sRGB as String)
         }
-        return P3Media(duration:duration,width:Int(size.width),height:Int(size.height),fps:Double(fps),videos:video.count,audios:audio.count,sdr:sdr)
+        var cadence:P4CadenceResult?,cadenceTiming=[String:String]()
+        if requestedFPS==30 {
+            let timeline=try? P4CadenceMOV.read(url)
+            cadenceTiming=timeline?.report ?? [:]
+            if let timeline, duration.isFinite,abs(timeline.seconds-duration)<=1/Double(timeline.scale) {
+                cadence=P4Cadence.evaluate(timeline,configuredFPS:30,appliedFPS:appliedFPS)
+            } else { cadence=P4CadenceResult(.unavailable,"editDurationMismatchOrUnavailable") }
+        }
+        return P3Media(duration:duration,width:Int(size.width),height:Int(size.height),fps:Double(fps),videos:video.count,audios:audio.count,sdr:sdr,cadence:cadence,cadenceTiming:cadenceTiming)
     }
     func reopenByHuman() { q.async {
         guard [.idle,.saved].contains(self.state.phase) else { return }
@@ -541,12 +598,16 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             if let binding=self.textBinding { guard binding.matches(s) else { throw P3Error.integrity } }
             if self.state.phase == .idle { guard self.state.accept(.recovered) else { throw P3Error.integrity } }
             let recorded=try? p3SmallJSON(root.appendingPathComponent("result.json"))
-            let feedback=P3FileFeedback.recorded(recorded,matching:s.originals[0])
-            DispatchQueue.main.async { self.fileFeedback=feedback }
+            let feedback=P3FileFeedback.recorded(recorded,matching:s.originals[0],requiresSettingsReport:self.scope == .cameraSettings)
+            let settings=recorded.flatMap { report -> P4RecordedSettings? in
+                guard report["sha256"]==s.originals[0].sha256,report["bytes"]==String(s.originals[0].byteCount) else { return nil }
+                return P4RecordedSettings(report:report)
+            }
+            DispatchQueue.main.async { self.fileFeedback=feedback;self.recordedSettings=settings }
             self.run=root;self.publish("REOPEN_HASH_PASS — áudio/imagem humanos PENDING")
             DispatchQueue.main.async { self.playbackURL=url;self.status="REOPEN_HASH_PASS — toque Play e avalie áudio/imagem" }
         } catch {
-            DispatchQueue.main.async { self.fileFeedback=P3FileFeedback(integrity:.verificationFailed,profile:self.fileFeedback.profile,reportedFPS:self.fileFeedback.reportedFPS,independentlyMeasuredAverageFPS:self.fileFeedback.independentlyMeasuredAverageFPS) }
+            DispatchQueue.main.async { self.fileFeedback=P3FileFeedback(integrity:.verificationFailed,profile:self.fileFeedback.profile,reportedFPS:self.fileFeedback.reportedFPS,independentlyMeasuredAverageFPS:self.fileFeedback.independentlyMeasuredAverageFPS,configuredFPS:self.fileFeedback.configuredFPS) }
             self.fail(.integrity)
         }
     } }
@@ -783,12 +844,18 @@ private struct P3PlaybackView:View {
 }
 struct P3CaptureScreen:View {
     private let scope:P3AttemptScope
+    private let configuration:P4CaptureConfiguration?
+    private var chosenAxis:P3OrientationAxis? { configuration?.axis ?? scope.axis }
+    private var chosenPolicy:P4CameraPolicy { configuration?.policy ?? scope.cameraPolicy }
+    private var mayPrepare:Bool { scope.allowsCapture && (scope != .cameraSettings || configuration != nil) }
     @StateObject private var controller:P3CaptureController
-    init(scope:P3AttemptScope = .original) {
+    init(scope:P3AttemptScope = .original,configuration:P4CaptureConfiguration?=nil) {
         self.scope=scope
-        _controller=StateObject(wrappedValue:P3CaptureController(scope:scope))
+        self.configuration=scope == .cameraSettings ? configuration:nil
+        _controller=StateObject(wrappedValue:P3CaptureController(scope:scope,configuration:configuration))
     }
     @Environment(\.scenePhase) private var scene
+    @Environment(\.dismiss) private var dismissPreparation
     @Environment(\.locale) private var feedbackLocale
     private var feedbackLanguage:P3FeedbackLanguage { P3FeedbackLanguage(localeIdentifier:feedbackLocale.identifier) }
     @State private var previewDiagnostic="Preview: não verificado"
@@ -797,9 +864,18 @@ struct P3CaptureScreen:View {
     @State private var selectedScope:P3AttemptScope?
     @State private var previewView:P3PreviewView?
     @State private var showTextSamples=false
+    @State private var showSettings=false
     private var activeManualCapture:Bool { scope.hasManualText && [.starting,.recording,.finalizing].contains(controller.phase) }
     var body:some View { ScrollView { VStack(spacing:16) {
-        Text(scope == .manualTextFrontVertical ? "P4 — frontal + roteiro vertical" : (scope.hasManualText ? "P4 — roteiro + captura vertical" : (scope == .original ? "P3 — originais preservados" : "P3 — prova "+(scope.axis?.rawValue ?? "histórica")))).font(.title2)
+        if let configuration {
+            Text(configuration.positionText(feedbackLanguage)).font(.headline)
+            Text(feedbackLanguage.text("Escolhas para este preparo (não editam originais): ","Choices for this preparation (do not edit originals): ")+configuration.mode.label+" · "+configuration.axis.rawValue+" · "+configuration.camera.position.rawValue)
+            Text(feedbackLanguage.text("Áudio escolhido: ","Selected audio: ")+configuration.microphone.name)
+            if !activeManualCapture {
+                Button(feedbackLanguage.text("Voltar às configurações — encerrar preview, sem gravar","Back to settings — end preview, without recording")) { dismissPreparation() }
+            }
+        }
+        Text(scope == .cameraSettings ? feedbackLanguage.text("Captura com configurações","Capture with settings") : (scope == .manualTextFrontVertical ? "P4 — frontal + roteiro vertical" : (scope.hasManualText ? "P4 — roteiro + captura vertical" : (scope == .original ? "P3 — originais preservados" : "P3 — prova "+(scope.axis?.rawValue ?? "histórica"))))).font(.title2)
         if !activeManualCapture { Text("Somente após coordenação: objeto neutro e voz. Sem Photos, upload, IA ou rede.") }
         Text(controller.preparationFeedback.text(feedbackLanguage)).accessibilityIdentifier("p3-preparation-feedback")
         if !activeManualCapture && controller.fileFeedback.integrity != .notChecked {
@@ -810,6 +886,7 @@ struct P3CaptureScreen:View {
                 Text(controller.fileFeedback.reportedFPSText(feedbackLanguage))
                 Text(controller.fileFeedback.averageFPSText(feedbackLanguage))
                 Text(controller.fileFeedback.playbackText(feedbackLanguage))
+                if let settings=controller.recordedSettings { Text(settings.text(feedbackLanguage)) }
             }.accessibilityIdentifier("p3-file-feedback")
         }
         DisclosureGroup(feedbackLanguage.text("Detalhes técnicos do estado","Technical state details")) {
@@ -819,21 +896,21 @@ struct P3CaptureScreen:View {
         if scope == .manualTextFrontVertical && !activeManualCapture {
             Text("Prova frontal: prévia espelhada; vídeo salvo sem espelhar. Conferir letras/lados no original após Play.")
         }
-        if scope.requiresInstructions && !activeManualCapture {
-            Text(scope.hasManualText ? "0. Após coordenação: mantenha VERTICAL, objeto neutro, leia o roteiro sintético EM VOZ ALTA. Toque/role o texto nos 30 s, sem sair do app. Sem imagem real, não grave." : "0. Antes de preparar: mantenha a posição desta prova: \(scope.axis?.rawValue ?? "histórica"), filme objeto neutro e conte EM VOZ ALTA de 1 em diante durante os 30 s. Não saia do app até salvar. Sem imagem real, não grave. Depois reabra/Play e confira voz e orientação.")
-            Button(scope.hasManualText ? "Entendi posição vertical e leitura em voz alta — comando humano" : "Entendi posição desta prova e contagem em voz alta — comando humano") {
+        if scope.requiresInstructions && mayPrepare && !activeManualCapture {
+            Text("0. Após coordenação: mantenha \(chosenAxis?.rawValue ?? "histórica"), objeto neutro, leia o roteiro sintético EM VOZ ALTA. Sem imagem real, não grave; não saia do app até salvar.")
+            Button("Entendi posição escolhida e leitura em voz alta — comando humano") {
                 controller.acknowledgeInstructionsByHuman()
             }.disabled(controller.phase != .idle)
         }
         if !activeManualCapture {
         Button("1. Preparar permissões e câmera — comando humano") { controller.prepareByHuman() }
-            .disabled(!scope.allowsCapture || controller.phase != .idle || (scope.requiresInstructions && !controller.instructionsAcknowledged))
+            .disabled(!mayPrepare || controller.phase != .idle || (scope.requiresInstructions && !controller.instructionsAcknowledged))
         Button("Pausar preview — sem consumir tentativa") { controller.pauseByHuman() }.disabled(controller.phase != .ready)
         Button("Retomar preview — comando humano; nova confirmação obrigatória") { controller.resumeByHuman() }.disabled(controller.phase != .paused || !scope.allowsCapture)
         }
         if controller.canPreview,let device=controller.previewDevice {
             let generation=controller.previewEpoch
-            P3Preview(session:controller.session,device:device,axis:scope.axis,cameraPolicy:scope.cameraPolicy,diagnosticRevision:diagnosticRevision,report: { text,ready,orientation in
+            P3Preview(session:controller.session,device:device,axis:chosenAxis,cameraPolicy:chosenPolicy,diagnosticRevision:diagnosticRevision,report: { text,ready,orientation in
                 guard controller.previewEpoch == generation,controller.canPreview else { return }
                 previewDiagnostic=text;previewSignalReady=ready;controller.observePreviewSignal(ready:ready,orientation:orientation,generation:generation)
             },available: { if controller.previewEpoch == generation { previewView=$0 } }).id(generation).frame(height:scope.hasManualText ? 150 : 220)
@@ -863,10 +940,11 @@ struct P3CaptureScreen:View {
             ManualPrompter(revision:revision,fontSize:22).id(revision.identity.sha256).frame(height:320)
         }
         Button("3. Reabrir original e habilitar Play") { controller.reopenByHuman() }.disabled(![.idle,.saved].contains(controller.phase))
-        if let url=controller.playbackURL { P3PlaybackView(url:url,suspended:selectedScope != nil || showTextSamples) }
+        if let url=controller.playbackURL { P3PlaybackView(url:url,suspended:selectedScope != nil || showTextSamples || showSettings) }
         if scope == .original {
             Button("Amostras P4 PT/EN por toque — sem sensores") { showTextSamples=true }.disabled(![.idle,.saved].contains(controller.phase))
-            Button("Abrir P4 FRONTAL + roteiro VERTICAL — aguarde coordenação") { selectedScope = .manualTextFrontVertical }.disabled(![.idle,.saved].contains(controller.phase))
+            Button("Configurações de câmera — antes de gravar") { showSettings=true }.disabled(![.idle,.saved].contains(controller.phase))
+            Button("Reabrir P4 frontal — somente leitura e Play") { selectedScope = .manualTextFrontVertical }.disabled(![.idle,.saved].contains(controller.phase))
             Button("Reabrir P4 traseira — somente leitura e Play") { selectedScope = .manualTextVertical }.disabled(![.idle,.saved].contains(controller.phase))
             Button("Reabrir retomada HORIZONTAL — somente leitura e Play") { selectedScope = .horizontalResume }
                 .disabled(![.idle,.saved].contains(controller.phase))
@@ -882,5 +960,149 @@ struct P3CaptureScreen:View {
     .onDisappear { controller.suspend() }
     .sheet(item:$selectedScope) { P3CaptureScreen(scope:$0) }
     .sheet(isPresented:$showTextSamples) { P4MobileTextSamples() }
+    .sheet(isPresented:$showSettings) { P4CameraSettingsScreen() }
+    .interactiveDismissDisabled(activeManualCapture)
+    }
+}
+
+private enum P4SettingsNotice:Sendable {
+    case notLoaded,formatsEmpty,formatsLoaded,inputsEmpty,inputsLoaded,denied,error(String),releaseError(String)
+    func text(_ language:P3FeedbackLanguage)->String {
+        switch self {
+        case .notLoaded:return language.text("Nenhuma capacidade consultada","No capabilities queried")
+        case .formatsEmpty:return language.text("Nenhuma opção SDR suportada disponível","No supported SDR option available")
+        case .formatsLoaded:return language.text("Formatos nativos listados; encoder, rotação e espelhamento conferidos no preparo","Native formats listed; encoder, rotation and mirroring checked during preparation")
+        case .inputsEmpty:return language.text("Nenhuma entrada disponível nesta rota","No input available on this route")
+        case .inputsLoaded:return language.text("Entradas disponíveis listadas; rota efetiva conferida no preparo","Available inputs listed; effective route checked during preparation")
+        case .denied:return language.text("Microfone não autorizado; nenhuma entrada escolhida","Microphone not authorized; no input selected")
+        case .error(let code):return language.text("Áudio indisponível: ","Audio unavailable: ")+code
+        case .releaseError(let code):return language.text("Liberação de áudio falhou; escolhas bloqueadas: ","Audio release failed; choices blocked: ")+code
+        }
+    }
+}
+// Explicit discovery commands only; neither command starts a camera session or records.
+private final class P4SettingsCatalog:ObservableObject,@unchecked Sendable {
+    @Published private(set) var cameras:[P4CameraCapability]=[]
+    @Published private(set) var microphones:[P4MicrophoneCapability]=[]
+    @Published private(set) var status=P4SettingsNotice.notLoaded
+    @Published private(set) var busy=false
+    private let q=DispatchQueue(label:"org.cevra.settings.catalog")
+    private var epoch=P3PreviewEpoch()
+    private var audioLease:P3AudioLease?
+    // Generation is main-only. Audio lease/permission epoch are queue-only.
+    private var generation:UInt64=0
+    func camerasByHuman() {
+        guard !busy else { return };busy=true;generation &+= 1;let gen=generation
+        q.async {
+            let discovery=AVCaptureDevice.DiscoverySession(deviceTypes:[.builtInWideAngleCamera],mediaType:.video,position:.unspecified)
+            let cameras=discovery.devices.compactMap { device -> P4CameraCapability? in
+                guard device.position == .front || device.position == .back else { return nil }
+                let modes=Set(device.formats.flatMap { format -> [P4VideoMode] in
+                    let d=CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                    let ranges=format.videoSupportedFrameRateRanges.compactMap { range -> ClosedRange<Double>? in
+                        guard range.minFrameRate.isFinite,range.maxFrameRate.isFinite,range.minFrameRate<=range.maxFrameRate else { return nil }
+                        return range.minFrameRate...range.maxFrameRate
+                    }
+                    return P4VideoMode.supported(width:Int(d.width),height:Int(d.height),ranges:ranges,sdr:format.supportedColorSpaces.contains(.sRGB))
+                }).sorted { ($0.width,$0.height,$0.fps)<($1.width,$1.height,$1.fps) }
+                guard !modes.isEmpty else { return nil }
+                return P4CameraCapability(id:device.uniqueID,position:device.position == .front ? .front:.back,modes:modes)
+            }.sorted { $0.position.rawValue<$1.position.rawValue }
+            DispatchQueue.main.async { guard self.generation==gen else { return };self.cameras=cameras;self.busy=false;self.status=cameras.isEmpty ? .formatsEmpty:.formatsLoaded }
+        }
+    }
+    func microphonesByHuman() {
+        guard !busy else { return };busy=true;microphones=[];generation &+= 1;let gen=generation
+        q.async {
+            let token=self.epoch.begin()
+            AVCaptureDevice.requestAccess(for:.audio) { permitted in self.q.async {
+                guard self.epoch.accepts(token) else { return }
+                var microphones=[P4MicrophoneCapability](),status=P4SettingsNotice.denied
+                if permitted {
+                    do {
+                        self.audioLease=try P3AudioSession.acquire(.capture,reusing:self.audioLease,captureBluetooth:true)
+                        microphones=(AVAudioSession.sharedInstance().availableInputs ?? []).map { P4MicrophoneCapability(id:$0.uid,name:$0.portName,kind:$0.portType.rawValue) }
+                        if let lease=self.audioLease { try P3AudioSession.release(lease);self.audioLease=nil }
+                        status=microphones.isEmpty ? .inputsEmpty:.inputsLoaded
+                    } catch {
+                        microphones=[];status = .error(P3AudioSession.errorCode(error))
+                        if let lease=self.audioLease { do { try P3AudioSession.release(lease);self.audioLease=nil } catch { status = .releaseError(P3AudioSession.errorCode(error)) } }
+                    }
+                }
+                let inputs=microphones,message=status
+                DispatchQueue.main.async { guard self.generation==gen else { return };self.microphones=inputs;self.status=message;self.busy=false }
+            } }
+        }
+    }
+    func cancel() {
+        generation &+= 1;busy=false;microphones=[]
+        q.async {
+            self.epoch.cancel()
+            if let lease=self.audioLease { do { try P3AudioSession.release(lease);self.audioLease=nil } catch {
+                let message=P3AudioSession.errorCode(error)
+                DispatchQueue.main.async { self.status = .releaseError(message) }
+            } }
+        }
+    }
+}
+private struct P4CameraSettingsScreen:View {
+    @StateObject private var catalog=P4SettingsCatalog()
+    @State private var draft=P4SettingsDraft()
+    @State private var preparation:P4SettingsPreparation?
+    @State private var showHistory=false
+    @Environment(\.scenePhase) private var scene
+    @Environment(\.locale) private var locale
+    private var language:P3FeedbackLanguage { P3FeedbackLanguage(localeIdentifier:locale.identifier) }
+    private func text(_ pt:String,_ en:String)->String { language.text(pt,en) }
+    private var historyExists:Bool {
+        let root=P3AttemptScope.cameraSettings.base(in:p3Base())
+        return ["ATTEMPT-RESERVED.json","LATEST.json"].contains { FileManager.default.fileExists(atPath:root.appendingPathComponent($0).path) }
+    }
+    private var modes:[P4VideoMode] { catalog.cameras.first(where:{$0.id==draft.cameraID})?.modes ?? [] }
+    private var valid:Bool { var copy=draft;return copy.commit(cameras:catalog.cameras,microphones:catalog.microphones) != nil }
+    var body:some View { ScrollView { VStack(alignment:.leading,spacing:16) {
+        Text(text("Configurações antes de gravar","Settings before recording")).font(.title2)
+        Text(text("Primeiro painel: câmera wide, H.264 SDR; 720p/1080p/4K e 24/25/30/50/60 fps somente quando listados pelo aparelho. Controles manuais avançados não disponíveis neste recorte.","First panel: wide camera, H.264 SDR; 720p/1080p/4K and 24/25/30/50/60 fps only when listed by the device. Advanced manual controls are unavailable in this scope."))
+        if historyExists { Text(text("Tentativa já consumida: configurações e resultados anteriores preservados, sem nova gravação/reset.","Attempt consumed: previous settings and results preserved; no new recording/reset.")) }
+        Group {
+            Button(text("Listar câmeras e formatos — sem iniciar preview","List cameras and formats — without starting preview")) { catalog.camerasByHuman() }
+            Picker(text("Câmera","Camera"),selection:$draft.cameraID) {
+                Text(text("Selecione","Select")).tag(String?.none)
+                ForEach(catalog.cameras,id:\.id) { camera in Text(camera.position == .front ? text("Frontal","Front"):text("Traseira","Back")).tag(Optional(camera.id)) }
+            }.onChange(of:draft.cameraID) { _,id in draft.chooseCamera(id) }
+            Picker(text("Resolução e FPS","Resolution and FPS"),selection:$draft.mode) {
+                Text(text("Selecione combinação","Select a combination")).tag(P4VideoMode?.none)
+                ForEach(modes,id:\.self) { mode in Text(mode.label).tag(Optional(mode)) }
+            }
+            Picker(text("Posição durante a gravação","Position during recording"),selection:$draft.axis) {
+                Text(text("Vertical","Portrait")).tag(P3OrientationAxis.vertical)
+                Text(text("Horizontal","Landscape")).tag(P3OrientationAxis.horizontal)
+            }
+            Toggle(text("Espelhar a prévia","Mirror the preview"),isOn:$draft.previewMirrored)
+            Toggle(text("Espelhar o vídeo salvo","Mirror the saved video"),isOn:$draft.originalMirrored)
+            Text(text("O preparo confirma suporte a espelhamento/rotação e saída H.264. Uma opção indisponível bloqueia; não é trocada silenciosamente.","Preparation confirms mirroring/rotation support and H.264 output. An unavailable option blocks; it is never silently substituted."))
+            Button(text("Listar microfones — solicitar permissão e ativar áudio temporariamente","List microphones — request permission and activate audio temporarily")) { catalog.microphonesByHuman() }
+            Text(text("Sem iniciar câmera ou gravar. A lista depende da rota/categoria de áudio; acessórios ausentes não são simulados.","Does not start the camera or record. The list depends on the audio route/category; missing accessories are not simulated."))
+            Picker(text("Microfone disponível","Available microphone"),selection:$draft.microphoneID) {
+                Text(text("Selecione após listar entradas","Select after listing inputs")).tag(String?.none)
+                ForEach(catalog.microphones,id:\.id) { mic in Text(mic.name).tag(Optional(mic.id)) }
+            }
+        }.disabled(catalog.busy || !draft.editable || historyExists)
+        Text(catalog.status.text(language)).accessibilityIdentifier("camera-settings-status")
+        Text(text("Posição escolhida: ","Selected position: ")+draft.axis.choiceText(language)).font(.headline)
+        Text(text("A posição é mantida quando você troca a câmera. Altere “Posição durante a gravação” antes de confirmar outro preparo.","The position is kept when you change camera. Change “Position during recording” before confirming another preparation."))
+        Button(text("Confirmar escolhas e abrir preparo — ainda sem gravar","Confirm choices and open preparation — not recording yet")) {
+            guard !historyExists,let config=draft.commit(cameras:catalog.cameras,microphones:catalog.microphones) else { return }
+            catalog.cancel();preparation=P4SettingsPreparation(configuration:config)
+        }.disabled(!valid || catalog.busy || historyExists)
+        Text(text("As escolhas ficam fixas neste preparo. Para editar antes do start, feche o preparo; isso encerra a prévia, sem apagar claims ou originais. Gravação somente por botão humano após nova imagem confirmada.","Choices stay fixed for this preparation. To edit before start, close preparation; this ends preview without deleting claims or originals. Recording starts only with the human button after a new image is confirmed."))
+        Button(text("Reabrir tomada do painel — somente leitura","Reopen panel take — read only")) { showHistory=true }.disabled(!historyExists)
+    }.padding() }
+    .onChange(of:scene) { _,phase in if phase == .background { catalog.cancel() } }
+    .onDisappear { catalog.cancel() }
+    .sheet(item:$preparation,onDismiss:{ draft.returnToEditing() }) { snapshot in
+        P3CaptureScreen(scope:.cameraSettings,configuration:snapshot.configuration).id(snapshot.id)
+    }
+    .sheet(isPresented:$showHistory) { P3CaptureScreen(scope:.cameraSettings) }
     }
 }

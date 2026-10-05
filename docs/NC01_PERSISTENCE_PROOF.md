@@ -5,7 +5,14 @@
 branch local `feat/p2-persistence-proof`. Registro P1 previamente revisado preservado
 byte a byte e separado em commit local. Sem fetch/pull ou publicação na execução
 inicial da prova; registro de revisão e publicação autorizados posteriormente.
-**Estado atual:** P1 READY; P2 INICIADO; P2_MAC_PROOF PASS/revisão independente
+**Reconciliação vigente — 05/10/2026:** a prova sintética P2 Mac/iPhone e a correção
+large foram aceitas nos protocolos delimitados PASS/revisão APPROVE descritos abaixo.
+P2_GLOBAL **NOT_READY** continua limitando cobertura e prontidão do produto; não
+invalida a aceitação dessas provas. Os FAIL e bloqueios anteriores são históricos
+preservados. P3/P4 já têm execuções parciais, nos documentos donos; a indicação
+P3 NOT_RUN abaixo refere-se ao checkpoint antigo. Nenhum TAKE-A global promovido.
+
+**Estado no checkpoint de 02/10/2026 — histórico:** P1 READY; P2 INICIADO; P2_MAC_PROOF PASS/revisão independente
 APPROVE; compilação local genérica iOS sem assinatura PASS. P2_PHYSICAL: protocolo
 sintético executado no iPhone 16 Pro Max/iOS 27.2, resultados observados PASS,
 **P2_PHYSICAL PASS / revisão independente APPROVE**. P2_GLOBAL **NOT_READY**; P2 não fechado;
