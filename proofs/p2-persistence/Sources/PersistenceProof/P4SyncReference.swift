@@ -53,6 +53,7 @@ public enum P4SyncReference {
         let absoluteLower = zip(offsets, uncertainties).map { max(0, abs($0) - $1) }.max()!
         let driftUpper = upper.max()! - lower.min()!
         let driftLower = max(0, lower.max()! - upper.min()!)
+        guard absoluteUpper.isFinite, driftUpper.isFinite else { throw P4SyncError.invalidReference }
         let status: P4SyncStatus
         if absoluteLower > maximumAbsoluteOffsetSeconds || driftLower > maximumDriftSeconds { status = .fail }
         else if absoluteUpper <= maximumAbsoluteOffsetSeconds && driftUpper <= maximumDriftSeconds { status = .pass }

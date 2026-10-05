@@ -58,5 +58,6 @@ final class P4SyncReferenceTests: XCTestCase {
             XCTAssertThrowsError(try P4SyncReference.measure(good, durationSeconds: 30, maximumAbsoluteOffsetSeconds: limit, maximumDriftSeconds: 0.04))
             XCTAssertThrowsError(try P4SyncReference.measure(good, durationSeconds: 30, maximumAbsoluteOffsetSeconds: 0.08, maximumDriftSeconds: limit))
         }
+        XCTAssertThrowsError(try measure(events([0, 0, 0], uncertainty: .greatestFiniteMagnitude)))
     }
 }
