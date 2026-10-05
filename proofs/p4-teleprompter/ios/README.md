@@ -267,3 +267,12 @@ portrait em preparo horizontal não confirma nem executa a escrita da claim.
 Typechecks iPhoneOS/iPhoneSimulator SDK27 e link iPhoneOS sem assinatura PASS.
 Isso não demonstra causa de uma escolha humana anterior nem valida o ajuste em
 aparelho; instalação e rodada humana do novo checkpoint continuam separadas.
+
+Auditoria adversarial posterior: seis regressões puras/sintéticas PASS, zero falhas,
+para confirmação repetida/B→A, capacidades obsoletas, fechamento nas três fases
+pré-start, ciclos de pausa/retomada com epochs antigos, divergência de escolhas e
+preservação de claim/original sintéticos. O shutdown serial agora remove os observers
+de sessão antes de encerrar a prévia; a retomada os registra novamente. Os testes
+puros não exercitam SwiftUI/AVFoundation nem medem o impacto dos registros antigos.
+Esse cleanup não estabelece a causa do mismatch histórico de orientação. Nenhum
+critério, resultado físico ou aceite foi promovido; a rodada humana segue separada.

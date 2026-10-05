@@ -457,6 +457,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         }
     }
     private func shutdown() {
+        for observer in observers { NotificationCenter.default.removeObserver(observer) };observers.removeAll()
         if configured { session.stopRunning() }
         if let lease=captureAudioLease {
             do {
