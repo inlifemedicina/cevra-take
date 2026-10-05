@@ -1,5 +1,9 @@
 # NC-01/P4 — preparação independente de texto e leitura manual
 
+Estado atual: PASS humano **limitado** da rodada reduzida, conforme
+[fechamento de 03/10/2026](#fechamento-humano-da-rodada-reduzida--03102026).
+Os checkpoints anteriores abaixo permanecem históricos; P4/NC-01 continuam incompletos.
+
 Protocolo pré-registrado em 03/10/2026, antes dos testes. Base main
 `99f1de2a4b020cb75b8000e2ed335d3b72b0747d`. Autorização noturna para partes técnicas já
 aprovadas independentes de gates humanos: [plano NC-01 §2](../../docs/NC01_FEASIBILITY_PLAN.md).
@@ -150,3 +154,29 @@ câmera+texto, originais e recursos/latência continuam sob gates próprios.
 O proprietário também autorizou integrar os PRs #14/#15 após os critérios de revisão
 e validação aplicáveis à prova preparatória offline, sem integrar câmera ou produto.
 Os 26 TAKE-A seguem BLOCKED; P4/NC-01 incompletos, sem stack escolhida ou avanço NC-02.
+
+## Fechamento humano da rodada reduzida — 03/10/2026
+
+Após autorização do protocolo e abertura da rodada conjunta, o proprietário respondeu
+**“Tudo certo”**, às 21:35:27 UTC, diretamente ao roteiro completo. PASS humano limitado
+ao que foi relatado: leitura dos três painéis (vertical 390×844, horizontal 844×390 e
+desktop 1024×768) sem problemas informados; PT/LONG_R1 longa 390×844/fonte36,
+marcar120 → rolar para longe → voltar, mantendo120/PAUSED e bloco correto; EN/LONG_R1
+longa 844×390/fonte36, marcar116 → rolar → voltar, mantendo116/PAUSED e bloco correto.
+
+A fonte exercida corresponde ao snapshot `8cd3ceb6f7d616c0ffc9c7e10e17dd3bf19f89e9`,
+integrado pelos PRs #14/#15 em `f2e3cb6f3adbfc476c490c42c85ee2107d9882db`.
+Reutilizam-se os percursos humanos PT/EN com fonte22, os dez testes determinísticos e
+os 22 renders iniciais já revisados; não foram repetidos no fechamento. O relato humano
+não é medição independente de tempo, memória ou frames, nem execução automatizada.
+Casos não exercidos e o bloqueio histórico da instrumentação sem janela não recebem PASS.
+
+Concluído este pacote independente de texto/layout nos limites técnicos e humanos
+registrados. Permanecem abertos: acessibilidade assistiva e Dynamic Type; interação
+não amostrada e suporte por aparelho/plataforma; concorrência scroll/câmera+áudio,
+latência/frames/memória e inspeção do original sem texto queimado. Nenhum TAKE-A recebe
+PASS global, P4/NC-01 continuam incompletos, NC-02 não iniciado e stack não escolhida.
+
+Menor recorte seguinte: preparar uma rodada Mac de acessibilidade/adaptação de leitura,
+reutilizando fixtures e evidências válidas. Execução assistiva, nova UI ou ensaio físico
+exigem coordenação/autorização próprias; este fechamento não as executa nem as autoriza.
