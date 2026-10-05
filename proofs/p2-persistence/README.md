@@ -97,3 +97,75 @@ antes de usar conteúdo novamente, validar pelo store/describer.
 Nova fixture isolada: `P2-LARGE-001`, R1/R2, T→R1, O de 32 MiB + 4096 bytes;
 mesmo padrão determinístico. Nunca ampliar/resetar a fixture física antiga.
 Testes/resultados: [LARGE_EVIDENCE.txt](LARGE_EVIDENCE.txt).
+
+## Bloco offline de confiabilidade local — preparação de 05/10/2026
+
+Este bloco estende a prova existente, sem iniciar NC-02, escolher stack ou ampliar
+entradas de captura. A lista canônica continua em
+[ACCEPTANCE_TESTS.md](../../docs/ACCEPTANCE_TESTS.md); todos os aceites de produto
+permanecem BLOCKED. O corpo/registro de provas físicas privadas não é publicado
+por esta preparação. Resultados sintéticos não reclassificam o histórico.
+
+O Store agora compara os bytes UTF-8 de revisões já publicadas. A comparação de
+String do Swift considerava `café` e `cafe\u{301}` iguais: uma R2 podia publicar
+uma R1 com outra representação byte a byte. A guarda recusa essa alteração antes
+do staging, mantendo CURRENT, gerações e originais; R2 legítima continua permitida.
+O formato v1, a validação de referências e os limites numéricos são preservados.
+
+`verify` usa o reader por arquivos de 64 KiB, conservando sua saída JSON e lock;
+não materializa originais no orçamento inline de 16 MiB. `diagnose-readonly ROOT`
+usa o diagnóstico existente e emite somente o snapshot validado, sem criar .lock,
+store, staging ou reparos. Requer cópia local sem escritor ativo; não comprova
+consistência concorrente, novo processo iPhone ou qualidade de reprodução.
+As operações mutantes continuam restritas às fixtures de teste autorizadas.
+
+`LocalReliabilityTests` combina as fixtures PT-BR/EN-US e leitura manual existentes
+com persistência sintética: reconstrução UTF-8, pausa/marca, R1, leitura em processo
+CLI separado, R2 mantendo T→R1, exportação v1 e restauração isolada. Também verifica
+rejeição de representação Unicode alterada, destino existente, original adulterado,
+versão incompatível, arquivo inesperado e exportação interrompida por ENOSPC
+injetado. Um original sintético acima de 16 MiB exercita leitura por streaming e
+ausência de escrita no diagnóstico. Não há mídia real, nova reserva ou sensor.
+
+O bundle exportado por este Store ainda é **pasta de prova/debug**, com manifesto,
+metadata e originais; não implementa o arquivo único de exportação de produto
+aprovado em PRODUCT_AND_PROFILES.md. Empacotamento de produto, UX de importação,
+edição de roteiro/R2 durante o fluxo capturado e recuperação lifecycle mobile não
+recebem prontidão por estes testes. A superfície P4/SwiftUI e o capturador ficam
+byte-idênticos; suas provas válidas são reutilizadas, sem nova matriz de UI.
+
+### Preparação da futura rodada agrupada, sem execução física
+
+Após autorização e preparação específicas do aparelho e de uma entrada inédita,
+reunir no mesmo contexto: texto PT/EN e rolagem/pausa, perfil já aprovado, voz,
+salvamento e reabertura, vínculo da tomada à R1 após R2 e exportação/restauração
+em destino isolado. Reutilizar provas válidas e não repetir a gravação apenas para
+confirmar o mesmo resultado. As entradas de captura consumidas ficam somente
+leitura; este bloco não cria namespace, reset, retry ou comando para nova captura.
+Reabertura em novo processo precisa de evidência própria, sem presumir restart
+por uma ação Reabrir. Falhas reais/permissões ficam em ensaio isolado, fora dos
+originais e do fluxo normal; não preencher o disco geral para simular ENOSPC.
+
+Para sincronismo, usar três eventos visual+sonoro da mesma referência identificável,
+no início (0–15%), meio (45–55%) e fim (85–100%) de um futuro clipe de 29–31 s.
+Registrar nos arquivos decodificados o instante visual e o início correspondente
+do som no mesmo relógio do asset, método de anotação, resolução e incerteza conjunta
+por evento. Propagação do som, geometria da referência e erro de anotação precisam entrar
+na incerteza; não usar FPS médio/presença de tracks como substitutos da referência.
+
+`P4SyncReference` é cálculo puro sobre essas observações, sem leitor/decoder ou
+ligação ao capturador. Informa áudio−vídeo, intervalo dos offsets e drift fim−início.
+Os limites são entradas explícitas, sem defaults. Proposta técnica para a futura
+rodada: offset absoluto até 80 ms e intervalo dos offsets até 40 ms; fixar a versão
+do protocolo e esses limites antes de colher novos dados. São limites desta prova,
+não garantia clínica, threshold retrospectivo nem alteração da cadência existente.
+PASS exige que também os limites superiores com incerteza caibam no orçamento;
+FAIL exige desvio comprovado mesmo descontando a incerteza; zona ambígua retorna
+NOT_VERIFIABLE. Sem três referências válidas e precisas, não medir um PASS.
+
+Recursos/estabilidade exigem coletor e amostra próprios no alvo: baseline, mesma
+carga, tempo, memória/I/O, bateria e estado térmico, com parada por serious/critical
+e demais guards existentes. Nesta preparação não há coletor instalado nem limites
+de recursos inventados a partir de testes Mac. Calibrar o método/limites e deixar
+prontos antes da rodada; recursos, frames perdidos e sync físico continuam NOT_RUN.
+Uma rodada de 30 s não anuncia gravação prolongada ou paridade entre aparelhos.
