@@ -89,8 +89,9 @@ public enum P3AttemptScope:String, Sendable {
     case horizontalResume="P3-PREVIEW-RESUME-HORIZONTAL-001"
     case manualTextVertical="P4-MANUAL-TEXT-VERTICAL-001"
     case manualTextFrontVertical="P4-MANUAL-TEXT-FRONT-VERTICAL-001"
-    public var hasManualText:Bool { self == .manualTextVertical || self == .manualTextFrontVertical }
-    public var allowsCapture:Bool { self == .manualTextFrontVertical }
+    case cameraSettings="P4-CAMERA-SETTINGS-001"
+    public var hasManualText:Bool { self == .manualTextVertical || self == .manualTextFrontVertical || self == .cameraSettings }
+    public var allowsCapture:Bool { self == .cameraSettings }
     public var cameraPolicy:P4CameraPolicy { self == .manualTextFrontVertical ? .frontProof : .rear }
     public var requiresInstructions:Bool { self == .retry002 || isOrientationProof || self == .horizontalResume || hasManualText }
     public var isOrientationProof:Bool { self == .vertical || self == .horizontal }
@@ -257,6 +258,101 @@ public enum P3FeedbackLanguage:Equatable,Sendable {
     public init(localeIdentifier:String) { self=localeIdentifier.lowercased().hasPrefix("en") ? .en:.pt }
     public func text(_ pt:String,_ en:String)->String { self == .pt ? pt:en }
 }
+
+// First settings panel: native adapters supply capabilities; fixtures never discover hardware.
+public struct P4VideoMode:Hashable,Sendable {
+    public let width:Int,height:Int,fps:Int
+    public init(width:Int,height:Int,fps:Int) { self.width=width;self.height=height;self.fps=fps }
+    public var label:String { "\(width)×\(height) · \(fps) fps · SDR" }
+    public var isOffered:Bool { Self.offeredFPS.contains(fps) && [(1280,720),(1920,1080),(3840,2160)].contains { $0.0==width && $0.1==height } }
+    public static let offeredFPS=[24,25,30,50,60]
+    public static func supported(width:Int,height:Int,ranges:[ClosedRange<Double>],sdr:Bool)->[Self] {
+        guard sdr,[(1280,720),(1920,1080),(3840,2160)].contains(where:{$0.0==width && $0.1==height}) else { return [] }
+        return offeredFPS.filter { fps in ranges.contains { $0.contains(Double(fps)) } }.map { Self(width:width,height:height,fps:$0) }
+    }
+    public func fileProfile(duration:Double,width:Int,height:Int,fps:Double,videoTracks:Int,audioTracks:Int,sdr:Bool)->Bool {
+        duration.isFinite && (29...31).contains(duration) &&
+        ((width==self.width && height==self.height) || (width==self.height && height==self.width)) &&
+        fps.isFinite && abs(fps-Double(self.fps))<=0.001 && videoTracks==1 && audioTracks>=1 && sdr
+    }
+}
+public struct P4CameraCapability:Sendable,Equatable {
+    public let id:String,position:P4CameraPosition,modes:[P4VideoMode]
+    public init(id:String,position:P4CameraPosition,modes:[P4VideoMode]) { self.id=id;self.position=position;self.modes=modes }
+}
+public struct P4MicrophoneCapability:Sendable,Equatable {
+    // Native UID is ephemeral, kept in memory only; report stores the input kind.
+    public let id:String,name:String,kind:String
+    public init(id:String,name:String,kind:String) { self.id=id;self.name=name;self.kind=kind }
+}
+public struct P4CaptureConfiguration:Equatable,Sendable {
+    public let camera:P4CameraCapability,mode:P4VideoMode,axis:P3OrientationAxis
+    public let previewMirrored:Bool,originalMirrored:Bool,microphone:P4MicrophoneCapability
+    public init(camera:P4CameraCapability,mode:P4VideoMode,axis:P3OrientationAxis,previewMirrored:Bool,originalMirrored:Bool,microphone:P4MicrophoneCapability) {
+        self.camera=camera;self.mode=mode;self.axis=axis;self.previewMirrored=previewMirrored;self.originalMirrored=originalMirrored;self.microphone=microphone
+    }
+    public var policy:P4CameraPolicy { P4CameraPolicy(position:camera.position,previewMirrored:previewMirrored,originalMirrored:originalMirrored) }
+    public func isAvailable(cameras:[P4CameraCapability],microphones:[P4MicrophoneCapability])->Bool {
+        cameras.contains { $0.id==camera.id && $0.position==camera.position && $0.modes.contains(mode) } && microphones.contains(microphone)
+    }
+    public func routeMatches(ids:[String])->Bool { ids == [microphone.id] }
+    public func appliedMatches(cameraID:String,mode:P4VideoMode,minimumDuration:Double,maximumDuration:Double,inputIDs:[String])->Bool {
+        cameraID==camera.id && mode==self.mode && minimumDuration.isFinite && maximumDuration.isFinite &&
+        abs(minimumDuration-1/Double(mode.fps))<=1e-9 && abs(maximumDuration-1/Double(mode.fps))<=1e-9 && routeMatches(ids:inputIDs)
+    }
+    public func mayStart(free:Int64?,inputIDs:[String],permissions:Bool,thermalSafe:Bool)->Bool {
+        guard let free else { return false }
+        return free>=P3Limits.startSpace && routeMatches(ids:inputIDs) && permissions && thermalSafe
+    }
+    public var report:[String:String] {
+        ["settingsVersion":"P4-CAMERA-SETTINGS-001","configuredWidth":String(mode.width),"configuredHeight":String(mode.height),
+         "configuredFPS":String(mode.fps),"configuredOrientation":axis.rawValue,"configuredCamera":camera.position.rawValue,
+         "configuredPreviewMirror":String(previewMirrored),"configuredOriginalMirror":String(originalMirrored),
+         "configuredInputKind":microphone.kind,"codec":"H264","colorProfile":"SDR",
+         "appliedWidth":String(mode.width),"appliedHeight":String(mode.height),"appliedFPS":String(mode.fps),
+         "appliedInputKind":microphone.kind,"settingsVerifiedAtStart":"true"]
+    }
+}
+public struct P4SettingsDraft:Sendable {
+    public var cameraID:String?,mode:P4VideoMode?,microphoneID:String?
+    public var axis=P3OrientationAxis.vertical,previewMirrored=true,originalMirrored=false
+    public private(set) var committed:P4CaptureConfiguration?
+    public init() {}
+    public var editable:Bool { committed == nil }
+    public mutating func returnToEditing() { committed=nil }
+    public mutating func chooseCamera(_ id:String?) { guard editable else { return };cameraID=id;mode=nil }
+    public mutating func commit(cameras:[P4CameraCapability],microphones:[P4MicrophoneCapability])->P4CaptureConfiguration? {
+        guard editable,let camera=cameras.first(where:{$0.id==cameraID}),let mode,mode.isOffered,camera.modes.contains(mode),
+              let microphone=microphones.first(where:{$0.id==microphoneID}) else { return nil }
+        let config=P4CaptureConfiguration(camera:camera,mode:mode,axis:axis,previewMirrored:previewMirrored,originalMirrored:originalMirrored,microphone:microphone)
+        committed=config;return config
+    }
+}
+public struct P4RecordedSettings:Equatable,Sendable {
+    public let mode:P4VideoMode,axis:P3OrientationAxis,policy:P4CameraPolicy,inputKind:String
+    public init?(report:[String:String]) {
+        guard report["settingsVersion"]==P3AttemptScope.cameraSettings.rawValue,report["settingsVerifiedAtStart"]=="true",
+              let width=report["configuredWidth"].flatMap(Int.init),let height=report["configuredHeight"].flatMap(Int.init),
+              let fps=report["configuredFPS"].flatMap(Int.init),
+              let axis=report["configuredOrientation"].flatMap(P3OrientationAxis.init(rawValue:)),
+              let position=report["configuredCamera"].flatMap(P4CameraPosition.init(rawValue:)),
+              let preview=report["configuredPreviewMirror"].flatMap(Bool.init),let original=report["configuredOriginalMirror"].flatMap(Bool.init),
+              let kind=report["configuredInputKind"],
+              ["MicrophoneBuiltIn","HeadsetMic","USBAudio","BluetoothHFP","LineIn","CarAudio"].contains(kind),
+              report["appliedWidth"]==String(width),report["appliedHeight"]==String(height),report["appliedFPS"]==String(fps),report["appliedInputKind"]==kind
+        else { return nil }
+        let mode=P4VideoMode(width:width,height:height,fps:fps);guard mode.isOffered else { return nil }
+        self.mode=mode;self.axis=axis;self.policy=P4CameraPolicy(position:position,previewMirrored:preview,originalMirrored:original);self.inputKind=kind
+    }
+    public func text(_ language:P3FeedbackLanguage)->String {
+        let camera=policy.position == .front ? language.text("frontal","front"):language.text("traseira","back")
+        let position=axis == .vertical ? language.text("vertical","portrait"):language.text("horizontal","landscape")
+        let input=inputKind == "MicrophoneBuiltIn" ? language.text("interno","built-in"):inputKind
+        let prefix=language.text("Configurações registradas no início, somente leitura: ","Settings recorded at start, read only: ")+mode.label+" · "+camera+" · "+position
+        let mirror=language.text(" · prévia espelhada="," · mirrored preview=")+String(policy.previewMirrored)+language.text(" · original espelhado="," · mirrored original=")+String(policy.originalMirrored)
+        return prefix+mirror+language.text(" · áudio="," · audio=")+input
+    }
+}
 public struct P3PreparationFeedback:Equatable,Sendable {
     public let phase:P3Phase
     public let axis:P3OrientationAxis?
@@ -299,20 +395,25 @@ public struct P3FileFeedback:Equatable,Sendable {
     public let profile:P3StoredProfileFeedback
     public let reportedFPS:Double?
     public let independentlyMeasuredAverageFPS:Double?
-    public init(integrity:P3IntegrityFeedback = .notChecked,profile:P3StoredProfileFeedback = .unavailable,reportedFPS:Double? = nil,independentlyMeasuredAverageFPS:Double? = nil) {
+    public let configuredFPS:Double?
+    public init(integrity:P3IntegrityFeedback = .notChecked,profile:P3StoredProfileFeedback = .unavailable,reportedFPS:Double? = nil,independentlyMeasuredAverageFPS:Double? = nil,configuredFPS:Double? = 30) {
         self.integrity=integrity;self.profile=profile
         self.reportedFPS=Self.finiteFPS(reportedFPS)
         self.independentlyMeasuredAverageFPS=Self.finiteFPS(independentlyMeasuredAverageFPS)
+        self.configuredFPS=Self.finiteFPS(configuredFPS)
     }
     private static func finiteFPS(_ value:Double?)->Double? {
         guard let value,value.isFinite,value>=0 else { return nil };return value
     }
     // Auxiliary recorded evidence, not an authenticated manifest or a new analysis.
-    public static func recorded(_ report:[String:String]?,matching original:Original)->Self {
-        guard let report,report["sha256"]==original.sha256,report["bytes"]==String(original.byteCount) else { return Self(integrity:.verified) }
+    public static func recorded(_ report:[String:String]?,matching original:Original,requiresSettingsReport:Bool=false)->Self {
+        let fallback:Double?=requiresSettingsReport ? nil:30
+        guard let report,report["sha256"]==original.sha256,report["bytes"]==String(original.byteCount) else { return Self(integrity:.verified,configuredFPS:fallback) }
+        if requiresSettingsReport && (report["attempt"] != P3AttemptScope.cameraSettings.rawValue || report["settingsVersion"] != P3AttemptScope.cameraSettings.rawValue) { return Self(integrity:.verified,configuredFPS:nil) }
         let profile:P3StoredProfileFeedback
         switch report["profile"] { case "PASS":profile = .pass;case "FAIL":profile = .fail;default:profile = .unavailable }
-        return Self(integrity:.verified,profile:profile,reportedFPS:report["nominalFPS"].flatMap(Double.init))
+        let target:Double?=report["attempt"] == P3AttemptScope.cameraSettings.rawValue ? report["configuredFPS"].flatMap(Int.init).flatMap { P4VideoMode.offeredFPS.contains($0) ? Double($0):nil }:30
+        return Self(integrity:.verified,profile:profile,reportedFPS:report["nominalFPS"].flatMap(Double.init),configuredFPS:target)
     }
     public func integrityText(_ language:P3FeedbackLanguage)->String {
         switch integrity {
@@ -334,7 +435,8 @@ public struct P3FileFeedback:Equatable,Sendable {
         return (language == .pt ? value.replacingOccurrences(of:".",with:","):value)+" fps"
     }
     public func targetText(_ language:P3FeedbackLanguage)->String {
-        language.text("Alvo configurado desta prova: 30 fps. Não é uma medição do arquivo.","Configured target for this proof: 30 fps. This is not a file measurement.")
+        let target=configuredFPS.map { fps in fps.rounded()==fps ? String(format:"%.0f",fps)+" fps":value(fps,language) } ?? language.text("não medido","not measured")
+        return language.text("Alvo configurado: ","Configured target: ")+target+language.text(". Não é uma medição do arquivo.",". This is not a file measurement.")
     }
     public func reportedFPSText(_ language:P3FeedbackLanguage)->String {
         language.text("FPS informado pela API do arquivo: ","FPS reported by the file API: ")+value(reportedFPS,language)

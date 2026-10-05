@@ -191,3 +191,60 @@ iPhoneOS/iPhoneSimulator SDK27 PASS. Nenhuma suíte histórica repetida. A nova 
 física não foi testada e este recorte não inclui build assinado ou instalação.
 Cobertura restante e26 TAKE-A BLOCKED mantidos. Configurações editáveis de câmera
 serão um recorte de produto separado, ainda não implementado por estas mensagens.
+
+### Primeiro painel de câmera — protocolo preparado em 05/10/2026
+
+Painel autorizado para seleção antes da gravação, sem avanço automático de fase ou
+stack de produto. Namespace futuro único `P4-CAMERA-SETTINGS-001`, pré-declarado antes
+dos testes. As provas anteriores, inclusive frontal, são somente Reabrir/Play.
+Nenhuma claim/RUN é criada ao listar, escolher ou preparar: reserva exclusiva apenas
+no start admitido. Não há contador, retake, reset, escolha de pasta ou overwrite.
+
+Opções deste recorte: câmera wide frontal/traseira presente; combinações nativas de
+720p/1080p/4K SDR com24/25/30/50/60fps quando suportadas pelo formato; posição vertical/
+horizontal; espelhamento da prévia separado do original; entradas de áudio realmente
+listadas pela categoria/rota. Lista de microfones exige botão humano, permissão e
+ativação temporária de áudio; depois libera somente seu lease. Não inicia câmera ou
+grava arquivo. Encoder H.264, rotação, espelhamento e rota são revalidados no preparo.
+Ausência/mudança de opção bloqueia, sem fallback silencioso.
+
+As escolhas ficam congeladas no preparo; para editar antes de gravar é necessário
+fechar o preparo, parar a prévia e selecionar novamente a entrada disponível. Nova
+confirmação de imagem é obrigatória. Durante start/gravação/finalização não se fecha
+o sheet por gesto. Background cancela consultas pendentes; sem preview/start/resume
+automáticos. O guard serial verifica formato/duração de frame/rota antes da claim.
+
+Uma tomada futura de30s em H.264 SDR com mic escolhido, objeto neutro e roteiro PT
+existente. O perfil desse NOVO namespace compara resolução/FPS escolhidos, mantendo
+duração29–31s, FPS±0,001, um vídeo e pelo menos um áudio. Isso não altera o perfil fixo
+1080p30 das provas antigas nem converte FAIL anteriores em PASS. Alvo, API e média
+independente separados; resultados somente leitura, média NOT_MEASURED. Relatório
+local guarda escolhas/aplicação confirmada no start sem UID/nome de dispositivos;
+não atesta suporte universal, qualidade por frame ou sincronismo.
+
+Rodada humana agrupada PREPARADA, ainda NÃO EXECUTADA:
+1. Coordenação posterior: revisar artefato exato e preservação proporcional dos
+   históricos, exigir namespace novo ausente; update separado, sem autoLaunch.
+2. Abrir painel/listar câmeras, comparar opções reais; mudar câmera deve limpar a
+   combinação anterior. Listar microfones, escolher uma entrada real; acessório
+   ausente não deve aparecer. Sem permissões/rota, bloquear sem gravar.
+3. Selecionar uma combinação disponível, posição e espelhamentos; confirmar preparo.
+   Conferir câmera, letras/lados e rota. Pausar/retomar exige nova imagem. Fechar
+   antes do start e editar uma escolha deve encerrar preview e exigir novo preparo;
+   nenhuma claim consumida nessa conferência.
+4. Somente após confirmação real: uma tomada30s com roteiro/voz, manter posição/app.
+   Reabrir/Play: conferir posição, política de espelhamento, voz e ausência de texto
+   no arquivo. Inspeção readonly limitada de perfil, escolhas/aplicação, integridade,
+   binding e preservação; um relato consolidado, sem retake/reset em caso de falha.
+
+Controles manuais foco/exposição/WB, HDR/Log/ProRes, outras lentes e perfis avançados
+ficam fora deste recorte. Suporte de cada combinação/rota/espelhamento no aparelho,
+qualidade, a11y e recursos seguem NOT_RUN. Nenhum26 TAKE-A promovido. Esta preparação
+offline não consulta iPhone, instala/abre app, ativa sensores ou grava mídia.
+
+Verificação offline deste painel:15 testes direcionados PASS, zero falhas (0,002s),
+incluindo11 casos novos e quatro regressões afetadas. Typecheck arm64 iPhoneOS e
+iPhoneSimulator SDK27 PASS; link iPhoneOS sem assinatura PASS, sem execução. Erro
+intermediário de sintaxe no texto do DTO foi corrigido; logs anteriores preservados
+privadamente. Sem repetição de suítes históricas amplas. Revisão independente do
+head/tree/body é gate antes de push e Draft PR dependente do checkpoint de clareza.
