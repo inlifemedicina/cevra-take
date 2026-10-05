@@ -19,6 +19,12 @@ merge, gasto ou próxima fase. Não adotar cronograma por promessa nem percentua
 | NC-11 | Planejamento, publicação assistida e aprendizado. | Dados e permissões reais, aprovação e ausência de falsas inferências causais. | NÃO INICIADO |
 | NC-12 | Hardening, acessibilidade, migração, licenças e distribuição. | Fluxos anunciados testados em aparelhos e instalação limpa. | NÃO INICIADO; práticas aplicadas desde início |
 
+## Registro de propostas
+
+[Revisão de 03/10/2026](DECISION_REVIEW_2026-10-03.md) organiza melhorias por resultado
+e distingue backlog aprovado de refinamentos pendentes; não altera estados, sequência,
+gates, prioridade ou autorização de execução.
+
 ## Ordem prática
 
 NC-00 → NC-01 → NC-02 → NC-03 forma o primeiro caminho local. NC-04–08 ampliam valor
