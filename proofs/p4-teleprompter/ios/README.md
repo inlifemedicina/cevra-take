@@ -342,3 +342,49 @@ Mocks/tabelas sintéticas não validam hardware. Nenhuma mídia histórica foi
 reescrita ou usada para promover PASS retroativo; nova captura/instalação e merge
 continuam fora desta implementação. Revisão independente do checkpoint é gate
 antes da publicação no mesmo Draft PR18.
+
+
+### Entrada técnica única para o teste futuro002 — 05/10/2026
+
+O preparo autorizado do teste exige um namespace novo; a fonte anterior e3 tinha
+somente o painel001 já consumido. Nova entrada explícita: **Teste de 30 fps — nova
+tentativa única**, namespace fixo **P4-30FPS-CADENCE-002-ATTEMPT-001**. Não há contador,
+chooser de IDs ou reset. P4-CAMERA-SETTINGS-001 e todos os anteriores ficam somente
+Reabrir/Play; seus claims, originais, relatórios e FAIL não são reclassificados.
+
+Reutiliza painel, roteiro fixo, seletores aprovados, áudio/MIME, captura, orientação,
+epochs, espaço/thermal, rota/permissões, preview instrumental + confirmação humana
+e freeze/admission serial. Para este teste002, só modos de30fps realmente listados
+pela câmera são selecionáveis; inexistência é BLOCKED, sem substituir modo. Nenhum
+limiar ou regra do leitor/validador é alterado.
+
+Abrir/configurar/preparar/pausar/retomar não cria claim/RUN. Uma reserva exclusiva só
+no start admitido consome a tentativa; falha posterior conserva a claim e bloqueia
+repetição, inclusive em novo controller/processo. Fechar/editar ou gerar identidade
+volátil da tela não cria outro namespace. Nova confirmação de imagem após resume
+continua obrigatória. O resultado guarda attempt versionado e critério002; a leitura
+exige identidade correspondente e vínculo com original, sem analisar novamente o
+resultado histórico. O schema settingsVersion antigo continua sendo o formato do
+painel, distinto da identidade da nova tentativa.
+
+Preparação offline/testes/revisão/Draft/build não são instalação nem prontidão física.
+Futura atualização requer artefato exato e PRE/POST proporcional: preservar os111
+arquivos históricos da rodada anterior (conforme recibo existente; não fullhash
+fresh inferido), seus estados e a claim001, e exigir novo namespace ausente antes e
+depois da atualização. Sem autoLaunch/sensores. Gravação humana só em roteiro
+específico coordenado depois; primeira captura futura mantém perfil aprovado
+frontal1080p30 SDR/vertical/mic interno/prévia espelhada/original não espelhado, quando
+listado/admitido. Falha ou ausência de capacidade não autoriza repetição/substituição.
+
+Teste físico novo002 NOT_RUN; P3/P4/NC-01 incompletos,26 aceites BLOCKED. Sem nova
+stack/NC-02/Vids/percentual. Historicamente instalado b59; nenhum aparelho consultado
+ou operado neste delta técnico.
+
+Validação offline desta entrada:51 XCTest finais PASS/zero falhas (9 novos casos
+da tentativa + cadência/settings/feedback afetados);14 regressões binding/frontal/
+adversariais válidas da primeira rodada reutilizadas, sem repetição. Primeira rodada
+64 casos teve63 PASS e uma falha de setup na fixture sintética de reabertura, corrigida
+criando o diretório pai; log privado preservado. Nenhuma falha física reclassificada.
+Typecheck arm64 iPhoneOS/iPhoneSimulator SDK27 e link iOS sem assinatura PASS.
+Novo Draft e artefato assinado offline exigem revisão independente do head/tree/body
+e inputs exatos; não autorizam atualização do aparelho nem gravação.

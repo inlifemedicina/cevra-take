@@ -86,7 +86,7 @@ final class P4CameraSettingsTests:XCTestCase {
         let next=epoch.begin();XCTAssertTrue(epoch.accepts(next))
     }
     func testHorizontalAndMirroringChoiceRetainsExistingHumanAdmission() {
-        let c=config();var consent=P3PreparationConsent(scope:.cameraSettings)
+        let c=config();var consent=P3PreparationConsent(scope:.cadenceValidation)
         XCTAssertFalse(consent.mayPrepare(phase:.idle));consent.acknowledgeInstructions()
         consent.observePreview(ready:true);XCTAssertTrue(consent.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:true))
         let f=P3OrientationFrame(posture:.landscapePortLeft,previewAngle:0,captureAngle:0,cameraPolicy:c.policy)
@@ -144,7 +144,7 @@ final class P4CameraSettingsTests:XCTestCase {
     }
     func testPortraitInHorizontalPreparationCannotConfirmOrConsumeClaim() throws {
         let c=config();let frame=P3OrientationFrame(posture:.portrait,previewAngle:90,captureAngle:90,cameraPolicy:c.policy)
-        var consent=P3PreparationConsent(scope:.cameraSettings);consent.acknowledgeInstructions()
+        var consent=P3PreparationConsent(scope:.cadenceValidation);consent.acknowledgeInstructions()
         let supported=frame.supported(for:c.axis,previewSupported:true,captureSupported:true)
         XCTAssertFalse(supported);consent.observePreview(ready:supported)
         XCTAssertFalse(consent.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:true))

@@ -90,8 +90,14 @@ public enum P3AttemptScope:String, Sendable {
     case manualTextVertical="P4-MANUAL-TEXT-VERTICAL-001"
     case manualTextFrontVertical="P4-MANUAL-TEXT-FRONT-VERTICAL-001"
     case cameraSettings="P4-CAMERA-SETTINGS-001"
-    public var hasManualText:Bool { self == .manualTextVertical || self == .manualTextFrontVertical || self == .cameraSettings }
-    public var allowsCapture:Bool { self == .cameraSettings }
+    case cadenceValidation="P4-30FPS-CADENCE-002-ATTEMPT-001"
+    public var hasCaptureSettings:Bool { self == .cameraSettings || self == .cadenceValidation }
+    public var hasManualText:Bool { self == .manualTextVertical || self == .manualTextFrontVertical || hasCaptureSettings }
+    public var allowsCapture:Bool { self == .cadenceValidation }
+    public func acceptsCaptureConfiguration(_ configuration:P4CaptureConfiguration?)->Bool {
+        guard allowsCapture,let configuration else { return false }
+        return configuration.mode.isOffered && configuration.camera.modes.contains(configuration.mode) && configuration.mode.fps==30
+    }
     public var cameraPolicy:P4CameraPolicy { self == .manualTextFrontVertical ? .frontProof : .rear }
     public var requiresInstructions:Bool { self == .retry002 || isOrientationProof || self == .horizontalResume || hasManualText }
     public var isOrientationProof:Bool { self == .vertical || self == .horizontal }
@@ -354,7 +360,14 @@ public struct P4SettingsPreparation:Identifiable,Sendable {
 }
 public struct P4RecordedSettings:Equatable,Sendable {
     public let mode:P4VideoMode,axis:P3OrientationAxis,policy:P4CameraPolicy,inputKind:String
-    public init?(report:[String:String]) {
+    public init?(report:[String:String],expectedAttempt:P3AttemptScope?=nil) {
+        if let expectedAttempt {
+            guard expectedAttempt.hasCaptureSettings,report["attempt"]==expectedAttempt.rawValue else { return nil }
+            if expectedAttempt == .cadenceValidation {
+                guard report["profileCriteriaVersion"]==P4CadenceResult.version,
+                      report["configuredFPS"]=="30",report["appliedFPS"]=="30" else { return nil }
+            }
+        }
         guard report["settingsVersion"]==P3AttemptScope.cameraSettings.rawValue,report["settingsVerifiedAtStart"]=="true",
               let width=report["configuredWidth"].flatMap(Int.init),let height=report["configuredHeight"].flatMap(Int.init),
               let fps=report["configuredFPS"].flatMap(Int.init),
@@ -430,13 +443,20 @@ public struct P3FileFeedback:Equatable,Sendable {
         guard let value,value.isFinite,value>=0 else { return nil };return value
     }
     // Auxiliary recorded evidence, not an authenticated manifest or a new analysis.
-    public static func recorded(_ report:[String:String]?,matching original:Original,requiresSettingsReport:Bool=false)->Self {
+    public static func recorded(_ report:[String:String]?,matching original:Original,requiresSettingsReport:Bool=false,settingsScope:P3AttemptScope = .cameraSettings)->Self {
         let fallback:Double?=requiresSettingsReport ? nil:30
         guard let report,report["sha256"]==original.sha256,report["bytes"]==String(original.byteCount) else { return Self(integrity:.verified,configuredFPS:fallback) }
-        if requiresSettingsReport && (report["attempt"] != P3AttemptScope.cameraSettings.rawValue || report["settingsVersion"] != P3AttemptScope.cameraSettings.rawValue) { return Self(integrity:.verified,configuredFPS:nil) }
+        if requiresSettingsReport {
+            guard settingsScope.hasCaptureSettings,report["attempt"]==settingsScope.rawValue,
+                  report["settingsVersion"]==P3AttemptScope.cameraSettings.rawValue else { return Self(integrity:.verified,configuredFPS:nil) }
+            if settingsScope == .cadenceValidation && P4RecordedSettings(report:report,expectedAttempt:settingsScope) == nil {
+                return Self(integrity:.verified,configuredFPS:nil)
+            }
+        }
         let profile:P3StoredProfileFeedback
         switch report["profile"] { case "PASS":profile = .pass;case "FAIL":profile = .fail;default:profile = .unavailable }
-        let target:Double?=report["attempt"] == P3AttemptScope.cameraSettings.rawValue ? report["configuredFPS"].flatMap(Int.init).flatMap { P4VideoMode.offeredFPS.contains($0) ? Double($0):nil }:30
+        let settingsAttempt=report["attempt"].flatMap(P3AttemptScope.init(rawValue:))?.hasCaptureSettings == true
+        let target:Double?=settingsAttempt ? report["configuredFPS"].flatMap(Int.init).flatMap { P4VideoMode.offeredFPS.contains($0) ? Double($0):nil }:30
         let average=report["profileCriteriaVersion"]==P4CadenceResult.version ? report["timestampAverageFPS"].flatMap(Double.init):nil
         return Self(integrity:.verified,profile:profile,reportedFPS:report["nominalFPS"].flatMap(Double.init),independentlyMeasuredAverageFPS:average,configuredFPS:target)
     }
