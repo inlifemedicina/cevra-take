@@ -2,8 +2,8 @@ import Foundation
 
 // Arithmetic over future decoded/annotated reference events, never track presence,
 // cadence, nominal FPS or human "looks correct". No media/device access or defaults.
-public enum P4SyncMark: String, Sendable { case start, middle, end }
-public struct P4SyncObservation: Sendable {
+public enum P4SyncMark: String, Codable, Sendable { case start, middle, end }
+public struct P4SyncObservation: Codable, Sendable {
     public let mark: P4SyncMark
     public let videoSeconds: Double
     public let audioSeconds: Double
@@ -13,8 +13,8 @@ public struct P4SyncObservation: Sendable {
         self.audioSeconds = audioSeconds; self.uncertaintySeconds = uncertaintySeconds
     }
 }
-public enum P4SyncStatus: String, Sendable { case pass, fail, notVerifiable }
-public struct P4SyncMeasurement: Sendable {
+public enum P4SyncStatus: String, Codable, Sendable { case pass, fail, notVerifiable }
+public struct P4SyncMeasurement: Codable, Sendable {
     public let status: P4SyncStatus
     public let offsetsSeconds: [Double]
     public let maximumAbsoluteOffsetSeconds: Double
