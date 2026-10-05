@@ -167,3 +167,27 @@ pendente. Frontal/espelhamento/orientação/voz/texto reais continuam NOT_RUN.
 Revisão independente de fonte/tree/body/inputs antecede build assinado e publicação
 no mesmo Draft PR17; artefato0748 preservado. Sem update/launch/querydevice/sensores,
 novas claims/RUNs/mídia ou mudança nos26 TAKE-A BLOCKED nesta preparação.
+
+### Clareza de estado e diagnóstico — preparação offline
+
+A tela apresenta posição/confirmar/iniciar, gravação e salvamento com mensagens
+PT-BR/EN-US. A imagem de preview pode continuar visível com gravação bloqueada por
+posição ou confirmação; voltar à posição exigida ainda requer nova confirmação.
+Essas mensagens descrevem o estado e não substituem os gates nativos existentes.
+
+Integridade do original, perfil registrado e avaliação humana de imagem/voz são
+indicadores separados. Reabrir ou Play não muda um FAIL de perfil. O relatório
+auxiliar só é exibido quando seus bytes/SHA correspondem ao original já conferido;
+relatório ausente, inválido ou divergente deixa o perfil indisponível, sem impedir
+o Play de um original validado. O relatório não é um manifesto autenticado.
+
+O alvo configurado de30fps, o FPS informado pela API do arquivo e uma média temporal
+independente têm rótulos distintos. Esta UI não calcula a média temporal; exibe
+“não medido” quando não há essa medição. Resultados são somente leitura. Critérios,
+limites, captura, namespaces, originais, binding, áudio e MIME permanecem iguais.
+
+Sete testes sintéticos de apresentação PASS, zero falhas; typecheck arm64 de
+iPhoneOS/iPhoneSimulator SDK27 PASS. Nenhuma suíte histórica repetida. A nova UI
+física não foi testada e este recorte não inclui build assinado ou instalação.
+Cobertura restante e26 TAKE-A BLOCKED mantidos. Configurações editáveis de câmera
+serão um recorte de produto separado, ainda não implementado por estas mensagens.

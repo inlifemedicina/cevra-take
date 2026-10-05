@@ -160,16 +160,25 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private var consent:P3PreparationConsent
     @Published private(set) var instructionsAcknowledged=false
     @Published private(set) var previewHumanConfirmed=false
+    @Published private(set) var preparationFeedback=P3PreparationFeedback(phase:.idle,axis:nil,posture:nil,signalReady:false,confirmed:false,allowsCapture:false)
+    @Published private(set) var fileFeedback=P3FileFeedback()
+    private var displayPreviewReady=false
     init(scope:P3AttemptScope = .original) {
         self.scope=scope
         self.textBinding=scope.hasManualText ? try? P4CaptureBinding.fixedPT() : nil
         self.consent=P3PreparationConsent(scope:scope)
         self.baseURL=scope.base(in:p3Base())
+        self.preparationFeedback=P3PreparationFeedback(phase:.idle,axis:scope.axis,posture:nil,signalReady:false,confirmed:false,allowsCapture:scope.allowsCapture)
         super.init()
     }
     private func publish(_ text:String) {
         let phase=state.phase
         DispatchQueue.main.async { self.phase=phase;self.status=text }
+        publishPreparationFeedback()
+    }
+    private func publishPreparationFeedback() {
+        let feedback=P3PreparationFeedback(phase:state.phase,axis:scope.axis,posture:orientationCandidate?.posture,signalReady:displayPreviewReady,confirmed:consent.previewConfirmed,allowsCapture:scope.allowsCapture)
+        DispatchQueue.main.async { self.preparationFeedback=feedback }
     }
     private func safeThermal()->Bool {
         let t=ProcessInfo.processInfo.thermalState;return t != .serious && t != .critical
@@ -227,7 +236,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             }
             guard epoch.accepts(token),state.accept(.prepared) else { return }
             installSessionObservers(token:token)
-            consent.observePreview(ready:false);orientationCandidate=nil
+            consent.observePreview(ready:false);orientationCandidate=nil;displayPreviewReady=false
             DispatchQueue.main.async { self.previewEpoch=token;self.previewHumanConfirmed=false;self.previewDevice=self.videoDevice;self.canPreview=true }
             publish("PREPARED — confirme NOVA imagem real e postura; tentativa não consumida")
             q.async {
@@ -239,7 +248,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     }
     private func pausePreview(_ reason:String) {
         guard state.accept(.pause) else { return }
-        epoch.cancel();consent.observePreview(ready:false);orientationCandidate=nil
+        epoch.cancel();consent.observePreview(ready:false);orientationCandidate=nil;displayPreviewReady=false
         shutdown()
         DispatchQueue.main.async { self.previewHumanConfirmed=false }
         publish("PAUSED — "+reason+"; retomar somente por botão humano e nova confirmação; sem claim/RUN")
@@ -337,11 +346,14 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         let supported=orientation?.supported(for:self.scope.axis,previewSupported:true,captureSupported:true) == true &&
             orientation?.cameraPolicy == self.scope.cameraPolicy
         self.consent.observePreview(ready:ready && supported)
+        self.displayPreviewReady=ready && supported
+        self.publishPreparationFeedback()
         let confirmed=self.consent.previewConfirmed
         DispatchQueue.main.async { self.previewHumanConfirmed=confirmed }
     } }
     func confirmPreviewByHuman(signalReady:Bool,generation:UInt64) { q.async {
         guard self.epoch.accepts(generation),signalReady,self.consent.confirmPreview(phase:self.state.phase,sessionRunning:self.session.isRunning,humanVisible:true) else { return }
+        self.publishPreparationFeedback()
         DispatchQueue.main.async { self.previewHumanConfirmed=true }
     } }
     func recordByHuman(orientation:P3OrientationFrame,generation:UInt64,completion:@escaping(Bool)->Void) { q.async { [self] in
@@ -350,7 +362,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         guard orientation.cameraPolicy == self.scope.cameraPolicy,
               P3OrientationStartTransaction.admitted(orientation,latest:self.orientationCandidate,consent:self.consent,
                 phase:self.state.phase,sessionRunning:self.session.isRunning) else {
-            self.consent.observePreview(ready:false)
+            self.consent.observePreview(ready:false);self.displayPreviewReady=false
             self.publish("BLOCKED antes do start — orientação/preview mudou; atualize e reconfirme imagem real; reserva preservada")
             DispatchQueue.main.async { self.previewHumanConfirmed=false };reply(false);return
         }
@@ -488,6 +500,8 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
                     try p3ExclusiveJSON(["protocol":"P3-MIN-001","run":root.lastPathComponent],at:self.baseURL.appendingPathComponent("LATEST.json"))
                     self.q.async {
                         guard self.state.accept(.persisted) else { return }
+                        let feedback=P3FileFeedback(integrity:.verified,profile:media.profileOK ? .pass:.fail,reportedFPS:media.fps)
+                        DispatchQueue.main.async { self.fileFeedback=feedback }
                         self.publish(media.profileOK ? "FILE_PROFILE_PERSISTENCE_PASS — reprodução humana PENDING" : "FILE_SAVED_PROFILE_FAIL — original preservado")
                     }
                 } catch let e as P3Error { self.q.async { self.fail(e) } }
@@ -526,9 +540,15 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
                   try Store.describeOriginal(id:"O",source:url)==s.originals[0] else { throw P3Error.integrity }
             if let binding=self.textBinding { guard binding.matches(s) else { throw P3Error.integrity } }
             if self.state.phase == .idle { guard self.state.accept(.recovered) else { throw P3Error.integrity } }
+            let recorded=try? p3SmallJSON(root.appendingPathComponent("result.json"))
+            let feedback=P3FileFeedback.recorded(recorded,matching:s.originals[0])
+            DispatchQueue.main.async { self.fileFeedback=feedback }
             self.run=root;self.publish("REOPEN_HASH_PASS — áudio/imagem humanos PENDING")
             DispatchQueue.main.async { self.playbackURL=url;self.status="REOPEN_HASH_PASS — toque Play e avalie áudio/imagem" }
-        } catch { self.fail(.integrity) }
+        } catch {
+            DispatchQueue.main.async { self.fileFeedback=P3FileFeedback(integrity:.verificationFailed,profile:self.fileFeedback.profile,reportedFPS:self.fileFeedback.reportedFPS,independentlyMeasuredAverageFPS:self.fileFeedback.independentlyMeasuredAverageFPS) }
+            self.fail(.integrity)
+        }
     } }
 }
 // Main-thread view layout owns the backing preview layer's dimensions. A sublayer
@@ -769,6 +789,8 @@ struct P3CaptureScreen:View {
         _controller=StateObject(wrappedValue:P3CaptureController(scope:scope))
     }
     @Environment(\.scenePhase) private var scene
+    @Environment(\.locale) private var feedbackLocale
+    private var feedbackLanguage:P3FeedbackLanguage { P3FeedbackLanguage(localeIdentifier:feedbackLocale.identifier) }
     @State private var previewDiagnostic="Preview: não verificado"
     @State private var diagnosticRevision=0
     @State private var previewSignalReady=false
@@ -779,7 +801,20 @@ struct P3CaptureScreen:View {
     var body:some View { ScrollView { VStack(spacing:16) {
         Text(scope == .manualTextFrontVertical ? "P4 — frontal + roteiro vertical" : (scope.hasManualText ? "P4 — roteiro + captura vertical" : (scope == .original ? "P3 — originais preservados" : "P3 — prova "+(scope.axis?.rawValue ?? "histórica")))).font(.title2)
         if !activeManualCapture { Text("Somente após coordenação: objeto neutro e voz. Sem Photos, upload, IA ou rede.") }
-        Text(controller.status).accessibilityIdentifier("p3-status")
+        Text(controller.preparationFeedback.text(feedbackLanguage)).accessibilityIdentifier("p3-preparation-feedback")
+        if !activeManualCapture && controller.fileFeedback.integrity != .notChecked {
+            VStack(alignment:.leading,spacing:6) {
+                Text(controller.fileFeedback.integrityText(feedbackLanguage))
+                Text(controller.fileFeedback.profileText(feedbackLanguage))
+                Text(controller.fileFeedback.targetText(feedbackLanguage))
+                Text(controller.fileFeedback.reportedFPSText(feedbackLanguage))
+                Text(controller.fileFeedback.averageFPSText(feedbackLanguage))
+                Text(controller.fileFeedback.playbackText(feedbackLanguage))
+            }.accessibilityIdentifier("p3-file-feedback")
+        }
+        DisclosureGroup(feedbackLanguage.text("Detalhes técnicos do estado","Technical state details")) {
+            Text(controller.status).accessibilityIdentifier("p3-status")
+        }
         if !activeManualCapture { Text(controller.audioSessionDiagnostic) }
         if scope == .manualTextFrontVertical && !activeManualCapture {
             Text("Prova frontal: prévia espelhada; vídeo salvo sem espelhar. Conferir letras/lados no original após Play.")
