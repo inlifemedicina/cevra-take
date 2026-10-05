@@ -173,7 +173,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     private var displayPreviewReady=false
     init(scope:P3AttemptScope = .original,configuration:P4CaptureConfiguration?=nil) {
         self.scope=scope
-        self.configuration=scope == .cameraSettings ? configuration:nil
+        self.configuration=scope.hasCaptureSettings ? configuration:nil
         self.textBinding=scope.hasManualText ? try? P4CaptureBinding.fixedPT() : nil
         self.consent=P3PreparationConsent(scope:scope)
         self.baseURL=scope.base(in:p3Base())
@@ -207,7 +207,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
         guard internalRoute() else { throw P3Error.route }
     }
     private func settingsMatchApplied()->Bool {
-        guard let configuration else { return scope != .cameraSettings }
+        guard let configuration else { return !scope.hasCaptureSettings }
         guard let device=videoDevice,device.activeColorSpace == .sRGB,!device.isVideoHDREnabled else { return false }
         let size=CMVideoFormatDescriptionGetDimensions(device.activeFormat.formatDescription)
         let mode=P4VideoMode(width:Int(size.width),height:Int(size.height),fps:configuration.mode.fps)
@@ -221,7 +221,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     }
     func prepareByHuman() { q.async {
         guard self.scope.allowsCapture else { self.publish("Histórico — somente Reabrir/Play; sem novo preparo");return }
-        guard self.scope != .cameraSettings || self.configuration != nil else { self.publish("BLOCKED — selecione e confirme configurações antes de preparar");return }
+        guard self.scope.acceptsCaptureConfiguration(self.configuration) else { self.publish("BLOCKED — selecione e confirme um modo disponível de 30 fps antes de preparar");return }
         guard !self.scope.hasManualText || self.textBinding != nil else { self.publish("BLOCKED — roteiro fixo indisponível; sem sensores");return }
         guard !self.existingClaimOrResult() else { self.publish("BLOCKED — tentativa já consumida; somente reabrir, sem reset");return }
         guard self.consent.mayPrepare(phase:self.state.phase),self.state.accept(.prepare) else { return }
@@ -390,7 +390,7 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
     } }
     func recordByHuman(orientation:P3OrientationFrame,generation:UInt64,completion:@escaping(Bool)->Void) { q.async { [self] in
         func reply(_ accepted:Bool) { DispatchQueue.main.async { completion(accepted) } }
-        guard self.configured,self.state.phase == .ready,self.epoch.accepts(generation) else { reply(false);return }
+        guard self.scope.acceptsCaptureConfiguration(self.configuration),self.configured,self.state.phase == .ready,self.epoch.accepts(generation) else { reply(false);return }
         guard orientation.cameraPolicy == self.capturePolicy,
               P3OrientationStartTransaction.admitted(orientation,latest:self.orientationCandidate,consent:self.consent,
                 phase:self.state.phase,sessionRunning:self.session.isRunning) else {
@@ -598,10 +598,10 @@ final class P3CaptureController: NSObject, ObservableObject, AVCaptureFileOutput
             if let binding=self.textBinding { guard binding.matches(s) else { throw P3Error.integrity } }
             if self.state.phase == .idle { guard self.state.accept(.recovered) else { throw P3Error.integrity } }
             let recorded=try? p3SmallJSON(root.appendingPathComponent("result.json"))
-            let feedback=P3FileFeedback.recorded(recorded,matching:s.originals[0],requiresSettingsReport:self.scope == .cameraSettings)
+            let feedback=P3FileFeedback.recorded(recorded,matching:s.originals[0],requiresSettingsReport:self.scope.hasCaptureSettings,settingsScope:self.scope)
             let settings=recorded.flatMap { report -> P4RecordedSettings? in
                 guard report["sha256"]==s.originals[0].sha256,report["bytes"]==String(s.originals[0].byteCount) else { return nil }
-                return P4RecordedSettings(report:report)
+                return P4RecordedSettings(report:report,expectedAttempt:self.scope.hasCaptureSettings ? self.scope:nil)
             }
             DispatchQueue.main.async { self.fileFeedback=feedback;self.recordedSettings=settings }
             self.run=root;self.publish("REOPEN_HASH_PASS — áudio/imagem humanos PENDING")
@@ -847,11 +847,11 @@ struct P3CaptureScreen:View {
     private let configuration:P4CaptureConfiguration?
     private var chosenAxis:P3OrientationAxis? { configuration?.axis ?? scope.axis }
     private var chosenPolicy:P4CameraPolicy { configuration?.policy ?? scope.cameraPolicy }
-    private var mayPrepare:Bool { scope.allowsCapture && (scope != .cameraSettings || configuration != nil) }
+    private var mayPrepare:Bool { scope.acceptsCaptureConfiguration(configuration) }
     @StateObject private var controller:P3CaptureController
     init(scope:P3AttemptScope = .original,configuration:P4CaptureConfiguration?=nil) {
         self.scope=scope
-        self.configuration=scope == .cameraSettings ? configuration:nil
+        self.configuration=scope.hasCaptureSettings ? configuration:nil
         _controller=StateObject(wrappedValue:P3CaptureController(scope:scope,configuration:configuration))
     }
     @Environment(\.scenePhase) private var scene
@@ -865,6 +865,7 @@ struct P3CaptureScreen:View {
     @State private var previewView:P3PreviewView?
     @State private var showTextSamples=false
     @State private var showSettings=false
+    @State private var showCadenceSettings=false
     private var activeManualCapture:Bool { scope.hasManualText && [.starting,.recording,.finalizing].contains(controller.phase) }
     var body:some View { ScrollView { VStack(spacing:16) {
         if let configuration {
@@ -875,7 +876,7 @@ struct P3CaptureScreen:View {
                 Button(feedbackLanguage.text("Voltar às configurações — encerrar preview, sem gravar","Back to settings — end preview, without recording")) { dismissPreparation() }
             }
         }
-        Text(scope == .cameraSettings ? feedbackLanguage.text("Captura com configurações","Capture with settings") : (scope == .manualTextFrontVertical ? "P4 — frontal + roteiro vertical" : (scope.hasManualText ? "P4 — roteiro + captura vertical" : (scope == .original ? "P3 — originais preservados" : "P3 — prova "+(scope.axis?.rawValue ?? "histórica"))))).font(.title2)
+        Text(scope.hasCaptureSettings ? feedbackLanguage.text("Captura com configurações","Capture with settings") : (scope == .manualTextFrontVertical ? "P4 — frontal + roteiro vertical" : (scope.hasManualText ? "P4 — roteiro + captura vertical" : (scope == .original ? "P3 — originais preservados" : "P3 — prova "+(scope.axis?.rawValue ?? "histórica"))))).font(.title2)
         if !activeManualCapture { Text("Somente após coordenação: objeto neutro e voz. Sem Photos, upload, IA ou rede.") }
         Text(controller.preparationFeedback.text(feedbackLanguage)).accessibilityIdentifier("p3-preparation-feedback")
         if !activeManualCapture && controller.fileFeedback.integrity != .notChecked {
@@ -940,10 +941,11 @@ struct P3CaptureScreen:View {
             ManualPrompter(revision:revision,fontSize:22).id(revision.identity.sha256).frame(height:320)
         }
         Button("3. Reabrir original e habilitar Play") { controller.reopenByHuman() }.disabled(![.idle,.saved].contains(controller.phase))
-        if let url=controller.playbackURL { P3PlaybackView(url:url,suspended:selectedScope != nil || showTextSamples || showSettings) }
+        if let url=controller.playbackURL { P3PlaybackView(url:url,suspended:selectedScope != nil || showTextSamples || showSettings || showCadenceSettings) }
         if scope == .original {
             Button("Amostras P4 PT/EN por toque — sem sensores") { showTextSamples=true }.disabled(![.idle,.saved].contains(controller.phase))
-            Button("Configurações de câmera — antes de gravar") { showSettings=true }.disabled(![.idle,.saved].contains(controller.phase))
+            Button("Teste de 30 fps — nova tentativa única") { showCadenceSettings=true }.disabled(![.idle,.saved].contains(controller.phase))
+            Button("Reabrir painel anterior — somente leitura e Play") { showSettings=true }.disabled(![.idle,.saved].contains(controller.phase))
             Button("Reabrir P4 frontal — somente leitura e Play") { selectedScope = .manualTextFrontVertical }.disabled(![.idle,.saved].contains(controller.phase))
             Button("Reabrir P4 traseira — somente leitura e Play") { selectedScope = .manualTextVertical }.disabled(![.idle,.saved].contains(controller.phase))
             Button("Reabrir retomada HORIZONTAL — somente leitura e Play") { selectedScope = .horizontalResume }
@@ -960,7 +962,8 @@ struct P3CaptureScreen:View {
     .onDisappear { controller.suspend() }
     .sheet(item:$selectedScope) { P3CaptureScreen(scope:$0) }
     .sheet(isPresented:$showTextSamples) { P4MobileTextSamples() }
-    .sheet(isPresented:$showSettings) { P4CameraSettingsScreen() }
+    .sheet(isPresented:$showSettings) { P4CameraSettingsScreen(scope:.cameraSettings) }
+    .sheet(isPresented:$showCadenceSettings) { P4CameraSettingsScreen(scope:.cadenceValidation) }
     .interactiveDismissDisabled(activeManualCapture)
     }
 }
@@ -1046,6 +1049,7 @@ private final class P4SettingsCatalog:ObservableObject,@unchecked Sendable {
     }
 }
 private struct P4CameraSettingsScreen:View {
+    let scope:P3AttemptScope
     @StateObject private var catalog=P4SettingsCatalog()
     @State private var draft=P4SettingsDraft()
     @State private var preparation:P4SettingsPreparation?
@@ -1055,14 +1059,15 @@ private struct P4CameraSettingsScreen:View {
     private var language:P3FeedbackLanguage { P3FeedbackLanguage(localeIdentifier:locale.identifier) }
     private func text(_ pt:String,_ en:String)->String { language.text(pt,en) }
     private var historyExists:Bool {
-        let root=P3AttemptScope.cameraSettings.base(in:p3Base())
+        let root=scope.base(in:p3Base())
         return ["ATTEMPT-RESERVED.json","LATEST.json"].contains { FileManager.default.fileExists(atPath:root.appendingPathComponent($0).path) }
     }
-    private var modes:[P4VideoMode] { catalog.cameras.first(where:{$0.id==draft.cameraID})?.modes ?? [] }
-    private var valid:Bool { var copy=draft;return copy.commit(cameras:catalog.cameras,microphones:catalog.microphones) != nil }
+    private var modes:[P4VideoMode] { (catalog.cameras.first(where:{$0.id==draft.cameraID})?.modes ?? []).filter { $0.fps==30 } }
+    private var valid:Bool { var copy=draft;return scope.acceptsCaptureConfiguration(copy.commit(cameras:catalog.cameras,microphones:catalog.microphones)) }
     var body:some View { ScrollView { VStack(alignment:.leading,spacing:16) {
         Text(text("Configurações antes de gravar","Settings before recording")).font(.title2)
-        Text(text("Primeiro painel: câmera wide, H.264 SDR; 720p/1080p/4K e 24/25/30/50/60 fps somente quando listados pelo aparelho. Controles manuais avançados não disponíveis neste recorte.","First panel: wide camera, H.264 SDR; 720p/1080p/4K and 24/25/30/50/60 fps only when listed by the device. Advanced manual controls are unavailable in this scope."))
+        Text(scope.allowsCapture ? text("Uma tentativa única de 30 fps. Abrir ou preparar não consome a tentativa; o início admitido consome. Falhas posteriores não permitem repetição.","One 30 fps attempt. Opening or preparing does not consume the attempt; admitted start does. Later failures do not allow a repeat."):text("Painel anterior preservado: somente Reabrir e Play.","Previous panel preserved: Reopen and Play only."))
+        Text(text("Neste teste: câmera wide, H.264 SDR; 720p/1080p/4K a 30 fps somente quando listados pelo aparelho. Outros modos ficam fora desta tentativa.","In this test: wide camera, H.264 SDR; 720p/1080p/4K at 30 fps only when listed by the device. Other modes are outside this attempt."))
         if historyExists { Text(text("Tentativa já consumida: configurações e resultados anteriores preservados, sem nova gravação/reset.","Attempt consumed: previous settings and results preserved; no new recording/reset.")) }
         Group {
             Button(text("Listar câmeras e formatos — sem iniciar preview","List cameras and formats — without starting preview")) { catalog.camerasByHuman() }
@@ -1087,12 +1092,12 @@ private struct P4CameraSettingsScreen:View {
                 Text(text("Selecione após listar entradas","Select after listing inputs")).tag(String?.none)
                 ForEach(catalog.microphones,id:\.id) { mic in Text(mic.name).tag(Optional(mic.id)) }
             }
-        }.disabled(catalog.busy || !draft.editable || historyExists)
+        }.disabled(!scope.allowsCapture || catalog.busy || !draft.editable || historyExists)
         Text(catalog.status.text(language)).accessibilityIdentifier("camera-settings-status")
         Text(text("Posição escolhida: ","Selected position: ")+draft.axis.choiceText(language)).font(.headline)
         Text(text("A posição é mantida quando você troca a câmera. Altere “Posição durante a gravação” antes de confirmar outro preparo.","The position is kept when you change camera. Change “Position during recording” before confirming another preparation."))
         Button(text("Confirmar escolhas e abrir preparo — ainda sem gravar","Confirm choices and open preparation — not recording yet")) {
-            guard !historyExists,let config=draft.commit(cameras:catalog.cameras,microphones:catalog.microphones) else { return }
+            guard !historyExists,let config=draft.commit(cameras:catalog.cameras,microphones:catalog.microphones),scope.acceptsCaptureConfiguration(config) else { return }
             catalog.cancel();preparation=P4SettingsPreparation(configuration:config)
         }.disabled(!valid || catalog.busy || historyExists)
         Text(text("As escolhas ficam fixas neste preparo. Para editar antes do start, feche o preparo; isso encerra a prévia, sem apagar claims ou originais. Gravação somente por botão humano após nova imagem confirmada.","Choices stay fixed for this preparation. To edit before start, close preparation; this ends preview without deleting claims or originals. Recording starts only with the human button after a new image is confirmed."))
@@ -1101,8 +1106,8 @@ private struct P4CameraSettingsScreen:View {
     .onChange(of:scene) { _,phase in if phase == .background { catalog.cancel() } }
     .onDisappear { catalog.cancel() }
     .sheet(item:$preparation,onDismiss:{ draft.returnToEditing() }) { snapshot in
-        P3CaptureScreen(scope:.cameraSettings,configuration:snapshot.configuration).id(snapshot.id)
+        P3CaptureScreen(scope:scope,configuration:snapshot.configuration).id(snapshot.id)
     }
-    .sheet(isPresented:$showHistory) { P3CaptureScreen(scope:.cameraSettings) }
+    .sheet(isPresented:$showHistory) { P3CaptureScreen(scope:scope) }
     }
 }

@@ -47,7 +47,7 @@ final class P4CameraSettingsAdversarialTests:XCTestCase {
 
     func testClosingEachPreStartPhaseCancelsCallbacksAndDoesNotWriteClaim() throws {
         for phase in [P3Phase.permission,.preparing,.ready] {
-            var state=P3State(),epoch=P3PreviewEpoch(),consent=P3PreparationConsent(scope:.cameraSettings)
+            var state=P3State(),epoch=P3PreviewEpoch(),consent=P3PreparationConsent(scope:.cadenceValidation)
             consent.acknowledgeInstructions();XCTAssertTrue(state.accept(.prepare));let old=epoch.begin()
             if phase != .permission { XCTAssertTrue(state.accept(.permitted)) }
             if phase == .ready {
@@ -67,7 +67,7 @@ final class P4CameraSettingsAdversarialTests:XCTestCase {
     }
 
     func testRepeatedPauseResumeRequiresNewImageAndIgnoresAllPriorEpochs() {
-        var state=P3State(),epoch=P3PreviewEpoch(),consent=P3PreparationConsent(scope:.cameraSettings)
+        var state=P3State(),epoch=P3PreviewEpoch(),consent=P3PreparationConsent(scope:.cadenceValidation)
         consent.acknowledgeInstructions();XCTAssertTrue(state.accept(.prepare))
         XCTAssertTrue(state.accept(.permitted));XCTAssertTrue(state.accept(.prepared))
         var previous=[epoch.begin()]
@@ -98,7 +98,7 @@ final class P4CameraSettingsAdversarialTests:XCTestCase {
         XCTAssertFalse(config.policy.admits(framePolicy:oldBack.cameraPolicy,captureSupported:true,captureMirrored:false,captureAutomatic:false))
         XCTAssertFalse(config.appliedMatches(cameraID:back.id,mode:mode,minimumDuration:1/30,maximumDuration:1/30,inputIDs:[mic.id]))
         XCTAssertFalse(config.mayStart(free:P3Limits.startSpace,inputIDs:["stale-input"],permissions:true,thermalSafe:true))
-        var consent=P3PreparationConsent(scope:.cameraSettings);consent.acknowledgeInstructions();consent.observePreview(ready:true)
+        var consent=P3PreparationConsent(scope:.cadenceValidation);consent.acknowledgeInstructions();consent.observePreview(ready:true)
         XCTAssertTrue(consent.confirmPreview(phase:.ready,sessionRunning:true,humanVisible:true))
         XCTAssertFalse(P3OrientationStartTransaction.admitted(selected,latest:changed,consent:consent,phase:.ready,sessionRunning:true))
         consent.observePreview(ready:false);consent.observePreview(ready:true)
