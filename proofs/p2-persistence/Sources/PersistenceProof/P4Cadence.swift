@@ -139,7 +139,9 @@ public enum P4CadenceMOV {
             }
             if size==0 { size=length-offset }
             guard size>=header,size<=length-offset else { throw ReadError.malformed }
-            if String(decoding:head[4..<8],as:UTF8.self)=="moov" {
+            let type=String(decoding:head[4..<8],as:UTF8.self)
+            guard type != "moof" else { throw ReadError.unavailable }
+            if type=="moov" {
                 guard moov==nil,size-header<=maximumMoov else { throw ReadError.limit }
                 guard let data=try file.read(upToCount:Int(size-header)),data.count==size-header else { throw ReadError.malformed }
                 moov=data
@@ -153,6 +155,7 @@ public enum P4CadenceMOV {
     public static func parse(moov: Data) throws -> P4CadenceTimeline {
         guard moov.count<=maximumMoov else { throw ReadError.limit }
         let b=Bytes(bytes:Array(moov)), root=try b.boxes(0..<moov.count)
+        guard !root.contains(where: { $0.type=="mvex" }) else { throw ReadError.unavailable }
         let movie=try b.header(b.only("mvhd",in:root))
         let tracks=root.filter { $0.type=="trak" };guard tracks.count<=8 else { throw ReadError.limit }
         var videos=[([Box],[Box])]()

@@ -155,4 +155,16 @@ final class P4CadenceTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf:file),data)
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:folder.path),["synthetic.mov"])
     }
+    func testFragmentationSignalsNeverUseInitialTablesAsCompleteCadence() throws {
+        XCTAssertThrowsError(try P4CadenceMOV.parse(moov:moov(edit:nil)+box("mvex",Data())))
+        let folder=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:folder) }
+        let file=folder.appendingPathComponent("fragment-signals.mov")
+        for payload in [box("moof",Data())+box("moov",moov(edit:nil)),box("moov",moov(edit:nil))+box("moof",Data())] {
+            try payload.write(to:file)
+            XCTAssertThrowsError(try P4CadenceMOV.read(file))
+            XCTAssertEqual(try Data(contentsOf:file),payload)
+        }
+    }
 }

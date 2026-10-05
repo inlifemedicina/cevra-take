@@ -323,10 +323,10 @@ sem provar entrega de todos os frames do sensor, pixels únicos, ausência de im
 congelada, sincronismo quantitativo, qualidade humana ou equivalência clínica.
 Não promove os26 TAKE-A nem fecha P3/P4/NC01 ou inicia NC02.
 
-Verificação desta implementação:20 testes novos de cadência/container e21 regressões
+Verificação desta implementação:21 testes novos de cadência/container e21 regressões
 pertinentes PASS, zero falhas. Os casos incluem quantização±um tick, lacuna de um
 quadro representável, duplicata/ordem PTS, drift acumulado, N<2, cauda prolongada,
-bordas editadas, clocks diferentes, offsets de composição e limites/malformed.
+bordas editadas, clocks diferentes, offsets de composição, fragmentação e limites/malformed.
 Mocks/tabelas sintéticas não validam hardware. Nenhuma mídia histórica foi
 reescrita ou usada para promover PASS retroativo; nova captura/instalação e merge
 continuam fora desta implementação. Revisão independente do checkpoint é gate
